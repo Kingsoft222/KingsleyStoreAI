@@ -32,23 +32,36 @@
         <div id="ai-results" class="results-grid" style="display:none;"></div>
     </main>
 
+    <div id="fitting-room-modal" class="voice-overlay" style="display:none;">
+        <div class="voice-modal">
+            <h2 style="color:var(--accent); margin-bottom:5px;">AI Fitting Room</h2>
+            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to checkout how this cloth looks on you</p>
+            
+            <input type="file" id="user-fit-input" hidden accept="image/*" onchange="handleUserFitUpload(event)">
+            <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
+            
+            <div id="ai-fitting-result"></div>
+            <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Close</button>
+        </div>
+    </div>
+
     <div id="voice-overlay" class="voice-overlay" style="display:none;">
         <div class="voice-modal">
             <div class="wave-container">
                 <div class="wave"></div><div class="wave"></div><div class="wave"></div>
             </div>
-            <p id="voice-status">Listening...</p>
+            <p>Recording...</p>
             <button class="cancel-voice" onclick="cancelVoice()">Cancel</button>
         </div>
     </div>
 
     <footer class="bottom-controls">
         <div class="split-cards">
-            <div class="chip left-end" onclick="quickSearch('Dinner outfit')">
+            <div class="chip left-end spaced-card" onclick="quickSearch('Dinner outfit')">
                 <strong>Dinner outfit</strong>
                 <span>See exclusive<br>female</span>
             </div>
-            <div class="chip right-end" onclick="quickSearch('Trousers')">
+            <div class="chip right-end spaced-card" onclick="quickSearch('Trousers')">
                 <strong>Trousers</strong>
                 <span>Shop stylish<br>trousers</span>
             </div>
