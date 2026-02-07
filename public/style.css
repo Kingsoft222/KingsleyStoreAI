@@ -1,86 +1,42 @@
 :root { 
-    --bg: #ffffff; 
     --accent: #e60023; 
-    --gray: #f7f7f7; 
     --dark: #1a1a1a;
+    --gray: #f2f2f2;
 }
 
-body, html { 
-    margin: 0; 
-    font-family: 'Inter', sans-serif; 
-    background: var(--bg); 
-    height: 100%; 
-}
+body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #fff; height: 100%; width: 100%; overflow-x: hidden; }
 
-/* Header Fix */
-.app-header { display: flex; justify-content: space-between; padding: 15px; align-items: center; }
-.menu-btn { background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 5px; }
+/* Header */
+.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
+.menu-btn { background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
+.cart-icon { position: relative; font-size: 1.5rem; }
+.cart-icon .count { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; }
 
-/* Profile Section - Persistence Fix */
-.store-profile { text-align: center; margin-top: 20px; }
-.profile-pic { 
-    width: 120px; height: 120px; border-radius: 50%; 
-    border: 3px solid var(--accent); margin: 0 auto; 
-    overflow: hidden; background: #eee;
-}
+/* Profile & Persistence */
+.store-profile { text-align: center; padding-top: 20px; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); margin: 0 auto; overflow: hidden; background: #eee; cursor: pointer; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
+.greeting { font-size: 1.1rem; transition: opacity 0.5s; height: 1.5em; }
+.profile-actions { margin-top: 10px; }
+.action-btn { border: none; padding: 5px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+.save { background: #28a745; color: white; }
+.delete { background: #eee; color: #333; margin-left: 5px; }
 
-/* Rotating Hype Text */
-#dynamic-greeting { font-weight: 500; transition: opacity 0.5s; height: 1.2em; }
+/* LOCKED BOTTOM UI (REF.JPG) */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
+.split-cards { display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; }
 
-/* BOTTOM UI: Cards Touching Left/Right Ends */
-.bottom-ui-wrapper {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background: white;
-    padding-bottom: 20px;
-}
-
-.split-cards {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.chip {
-    width: 46%;
-    background: var(--dark);
-    color: white;
-    padding: 20px;
-    cursor: pointer;
-}
-
+.chip { width: 45%; background: var(--dark); color: white; padding: 25px 20px; cursor: pointer; box-sizing: border-box; }
 .left-end { border-radius: 0 25px 25px 0; text-align: left; }
 .right-end { border-radius: 25px 0 0 25px; text-align: left; }
 
-.chip strong { display: block; font-size: 1.2rem; margin-bottom: 10px; }
-.chip span { font-size: 0.8rem; opacity: 0.7; line-height: 1.4; }
+.chip strong { display: block; font-size: 1.3rem; margin-bottom: 5px; }
+.chip span { font-size: 0.85rem; opacity: 0.8; line-height: 1.2; }
 
-/* Polished Search & Send Button */
-.prompt-bar { 
-    background: var(--gray); border-radius: 50px; 
-    padding: 10px 10px 10px 20px; display: flex; 
-    align-items: center; margin: 0 15px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-.prompt-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
-
-.send-icon-btn { 
-    background: var(--dark); border: none; 
-    width: 55px; height: 55px; border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; 
-}
-
-/* AI Store Animation */
-.store-result-img {
-    width: 100%; border-radius: 15px;
-    animation: storeIn 1.5s ease-out;
-}
-@keyframes storeIn {
-    from { transform: translateY(50px) scale(0.9); opacity: 0; }
-    to { transform: translateY(0) scale(1); opacity: 1; }
-}
+/* Search Bar */
+.search-bar { background: var(--gray); border-radius: 50px; padding: 8px 8px 8px 20px; display: flex; align-items: center; margin: 0 15px; }
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
+.mic-icon { font-size: 1.5rem; margin-right: 10px; cursor: pointer; }
+.send-circle { background: var(--dark); border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.send-circle svg { width: 24px; height: 24px; }

@@ -1,42 +1,48 @@
-const hypeText = [
+const greetings = [
     "Nne, what are you looking for today?",
     "My guy, what are you looking for today?",
     "Classic babe, what are you looking for today?",
-    "Chief, let's get you that premium look.",
-    "Baddie, exclusive patterns just for you!"
+    "Chief, looking for premium native?",
+    "Baddie, let's find your style!"
 ];
 
-let hypeIdx = 0;
+let gIndex = 0;
 
-// HYPE ROTATION (3 Minutes)
+// 3-Minute Hype Rotation
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
+    if (!el) return;
     el.style.opacity = 0;
     setTimeout(() => {
-        hypeIdx = (hypeIdx + 1) % hypeText.length;
-        el.innerText = hypeText[hypeIdx];
+        gIndex = (gIndex + 1) % greetings.length;
+        el.innerText = greetings[gIndex];
         el.style.opacity = 1;
     }, 500);
 }, 180000);
 
-// PROFILE PERSISTENCE
+// Persistence Logic
 window.onload = () => {
-    const saved = localStorage.getItem('kingsley_profile');
-    if (saved) document.getElementById('owner-img').src = saved;
+    const savedImg = localStorage.getItem('kingsley_profile_data');
+    if (savedImg) document.getElementById('owner-img').src = savedImg;
 };
 
-window.updateProfile = (e) => {
+window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { document.getElementById('owner-img').src = reader.result; };
     reader.readAsDataURL(e.target.files[0]);
 };
 
-window.saveProfile = () => {
-    localStorage.setItem('kingsley_profile', document.getElementById('owner-img').src);
+window.saveProfileData = () => {
+    const currentSrc = document.getElementById('owner-img').src;
+    localStorage.setItem('kingsley_profile_data', currentSrc);
     alert("Profile Saved!");
 };
 
-window.resetProfile = () => {
-    localStorage.removeItem('kingsley_profile');
+window.clearProfileData = () => {
+    localStorage.removeItem('kingsley_profile_data');
     document.getElementById('owner-img').src = 'images/kingsley.jpg';
+};
+
+window.quickSearch = (term) => {
+    document.getElementById('ai-input').value = term;
 };
