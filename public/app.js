@@ -12,42 +12,24 @@ const greetings = [
 ];
 
 let gIndex = 0;
+let userModelImg = ""; 
 
-// 1. FIXED HYPE ROTATION (3 Minutes)
-function cycleHype() {
+// 1. FAST HYPE ROTATION (1 Second)
+function fastCycleHype() {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
-        el.style.opacity = "0";
-        setTimeout(() => {
-            gIndex = (gIndex + 1) % greetings.length;
-            el.innerText = greetings[gIndex];
-            el.style.opacity = "1";
-        }, 800);
+        gIndex = (gIndex + 1) % greetings.length;
+        el.innerText = greetings[gIndex];
     }
 }
-setInterval(cycleHype, 180000); 
+setInterval(fastCycleHype, 1000); 
 
-// 2. PROFILE LOGIC
+// 2. PROFILE & SEARCH
 window.onload = () => {
     const savedImg = localStorage.getItem('kingsley_profile_locked');
     if (savedImg) document.getElementById('owner-img').src = savedImg;
 };
 
-window.handleProfileUpload = (e) => {
-    const reader = new FileReader();
-    reader.onload = () => { 
-        document.getElementById('owner-img').src = reader.result; 
-        document.getElementById('save-btn').style.display = 'inline-block';
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
-
-window.saveProfileData = () => {
-    localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
-    document.getElementById('save-btn').style.display = 'none';
-};
-
-// 3. SEARCH & AI POP-UP TRIGGER (120000ms = 2 mins)
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -66,10 +48,10 @@ window.executeSearch = () => {
         `).join('');
         results.style.display = 'grid';
 
-        // START 2-MINUTE TIMER FOR FITTING ROOM
+        // FAST POP-UP (2 Seconds)
         setTimeout(() => {
             document.getElementById('fitting-room-modal').style.display = 'flex';
-        }, 120000);
+        }, 2000);
 
     } else {
         results.innerHTML = "<p>No results found.</p>";
@@ -82,47 +64,56 @@ window.quickSearch = (term) => {
     executeSearch();
 };
 
-// 4. AI FITTING ROOM: ROCK YOUR CLOTH FLOW
+// 3. AI FITTING ROOM: MODELING LOGIC
 window.handleUserFitUpload = (e) => {
-    const btn = document.getElementById('fit-action-btn');
-    btn.innerText = "Rock your cloth";
-    btn.style.background = "#28a745"; // Success green
-    btn.onclick = startAIAnimation;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        userModelImg = event.target.result; 
+        const btn = document.getElementById('fit-action-btn');
+        btn.innerText = "Rock your cloth";
+        btn.style.background = "#28a745";
+        btn.onclick = startModeling;
+    };
+    reader.readAsDataURL(e.target.files[0]);
 };
 
-function startAIAnimation() {
+function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const btn = document.getElementById('fit-action-btn');
     const subtext = document.getElementById('modal-subtext');
 
     btn.style.display = 'none';
-    subtext.innerText = "Processing your AI Look...";
+    subtext.innerText = "Styling you in the showroom...";
 
     setTimeout(() => {
-        subtext.innerText = "You look amazing, Chief!";
+        subtext.innerText = "Looking sharp, Chief!";
         resultArea.innerHTML = `
             <div class="showroom-bg">
-                <img src="images/senator_red.jpg" class="shaking-cloth">
+                <img src="${userModelImg}" class="customer-modeling">
             </div>
         `;
-    }, 2000);
+    }, 1500);
 }
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
 };
 
-// 5. MIC/VOICE
-const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window) {
-    const recognition = new webkitSpeechRecognition();
-    micBtn.onclick = () => {
-        document.getElementById('voice-overlay').style.display = 'flex';
-        recognition.start();
+window.clearProfileData = () => {
+    localStorage.removeItem('kingsley_profile_locked');
+    document.getElementById('owner-img').src = 'images/kingsley.jpg';
+};
+
+window.handleProfileUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = () => { 
+        document.getElementById('owner-img').src = reader.result; 
+        document.getElementById('save-btn').style.display = 'inline-block';
     };
-    recognition.onresult = (e) => {
-        document.getElementById('ai-input').value = e.results[0][0].transcript;
-        document.getElementById('voice-overlay').style.display = 'none';
-        executeSearch();
-    };
-}
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+window.saveProfileData = () => {
+    localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
+    document.getElementById('save-btn').style.display = 'none';
+};
