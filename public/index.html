@@ -1,42 +1,57 @@
-:root { 
-    --accent: #e60023; 
-    --dark: #1a1a1a;
-    --gray: #f2f2f2;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kingsley Store | AI Virtual Try-On</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="app-header">
+        <button class="menu-btn">☰</button>
+        <div class="cart-icon">🛒<span class="count">0</span></div>
+    </header>
 
-body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #fff; height: 100%; width: 100%; overflow-x: hidden; }
+    <main class="home-container">
+        <div class="store-profile">
+            <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
+                <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
+            </div>
+            <input type="file" id="profile-input" hidden accept="image/*" onchange="handleProfileUpload(event)">
+            <h1 class="store-name">Kingsley Store</h1>
+            <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
+            
+            <div class="profile-actions">
+                <button class="action-btn save" onclick="saveProfileData()">Save</button>
+                <button class="action-btn delete" onclick="clearProfileData()">-</button>
+            </div>
+        </div>
 
-/* Header */
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
-.menu-btn { background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
-.cart-icon { position: relative; font-size: 1.5rem; }
-.cart-icon .count { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; }
+        <div id="ai-results" class="results-grid" style="display:none;"></div>
+    </main>
 
-/* Profile & Persistence */
-.store-profile { text-align: center; padding-top: 20px; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); margin: 0 auto; overflow: hidden; background: #eee; cursor: pointer; }
-.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
-.greeting { font-size: 1.1rem; transition: opacity 0.5s; height: 1.5em; }
-.profile-actions { margin-top: 10px; }
-.action-btn { border: none; padding: 5px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-.save { background: #28a745; color: white; }
-.delete { background: #eee; color: #333; margin-left: 5px; }
+    <footer class="bottom-controls">
+        <div class="split-cards">
+            <div class="chip left-end" onclick="quickSearch('Dinner outfit')">
+                <strong>Dinner outfit</strong>
+                <span>See exclusive<br>female</span>
+            </div>
+            <div class="chip right-end" onclick="quickSearch('Trousers')">
+                <strong>Trousers</strong>
+                <span>Shop stylish<br>trousers</span>
+            </div>
+        </div>
 
-/* LOCKED BOTTOM UI (REF.JPG) */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
-.split-cards { display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; }
+        <div class="search-bar">
+            <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
+            <span class="mic-icon">🎙️</span>
+            <button class="send-circle" onclick="executeSearch()">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
+            </button>
+        </div>
+    </footer>
 
-.chip { width: 45%; background: var(--dark); color: white; padding: 25px 20px; cursor: pointer; box-sizing: border-box; }
-.left-end { border-radius: 0 25px 25px 0; text-align: left; }
-.right-end { border-radius: 25px 0 0 25px; text-align: left; }
-
-.chip strong { display: block; font-size: 1.3rem; margin-bottom: 5px; }
-.chip span { font-size: 0.85rem; opacity: 0.8; line-height: 1.2; }
-
-/* Search Bar */
-.search-bar { background: var(--gray); border-radius: 50px; padding: 8px 8px 8px 20px; display: flex; align-items: center; margin: 0 15px; }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
-.mic-icon { font-size: 1.5rem; margin-right: 10px; cursor: pointer; }
-.send-circle { background: var(--dark); border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-.send-circle svg { width: 24px; height: 24px; }
+    <script src="app.js"></script>
+</body>
+</html>

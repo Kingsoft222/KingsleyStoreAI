@@ -20,9 +20,9 @@ setInterval(() => {
     }, 500);
 }, 180000);
 
-// Persistence Logic
+// PERSISTENCE FIX: Runs on load
 window.onload = () => {
-    const savedImg = localStorage.getItem('kingsley_profile_data');
+    const savedImg = localStorage.getItem('kingsley_profile_locked');
     if (savedImg) document.getElementById('owner-img').src = savedImg;
 };
 
@@ -34,15 +34,21 @@ window.handleProfileUpload = (e) => {
 
 window.saveProfileData = () => {
     const currentSrc = document.getElementById('owner-img').src;
-    localStorage.setItem('kingsley_profile_data', currentSrc);
-    alert("Profile Saved!");
+    localStorage.setItem('kingsley_profile_locked', currentSrc);
+    alert("Profile Saved Permanently!");
 };
 
 window.clearProfileData = () => {
-    localStorage.removeItem('kingsley_profile_data');
+    localStorage.removeItem('kingsley_profile_locked');
     document.getElementById('owner-img').src = 'images/kingsley.jpg';
 };
 
 window.quickSearch = (term) => {
     document.getElementById('ai-input').value = term;
+};
+
+window.executeSearch = () => {
+    const val = document.getElementById('ai-input').value;
+    alert("Searching for: " + val);
+    // Add your AI search logic here
 };
