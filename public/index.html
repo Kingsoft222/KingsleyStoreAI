@@ -15,16 +15,19 @@
 
     <main class="home-container">
         <div class="store-profile">
-            <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
+            <div class="profile-pic-container">
+                <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
+                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
+                </div>
+                <button class="mini-remove-btn" onclick="clearProfileData()">-</button>
             </div>
+            
             <input type="file" id="profile-input" hidden accept="image/*" onchange="handleProfileUpload(event)">
             <h1 class="store-name">Kingsley Store</h1>
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
             
             <div class="profile-actions">
-                <button class="action-btn save" onclick="saveProfileData()">Save</button>
-                <button class="action-btn delete" onclick="clearProfileData()">-</button>
+                <button id="save-btn" class="action-btn save" style="display:none;" onclick="saveProfileData()">Save</button>
             </div>
         </div>
 
@@ -45,7 +48,7 @@
 
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
-            <span class="mic-icon">🎙️</span>
+            <span class="mic-icon" id="mic-btn">🎙️</span>
             <button class="send-circle" onclick="executeSearch()">
                 <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
             </button>

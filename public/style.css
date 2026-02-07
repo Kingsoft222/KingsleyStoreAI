@@ -9,34 +9,33 @@ body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background
 /* Header */
 .app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
 .menu-btn { background: #fff; border: 1px solid #ddd; border-radius: 5px; padding: 5px 10px; cursor: pointer; }
-.cart-icon { position: relative; font-size: 1.5rem; }
-.cart-icon .count { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; }
 
-/* Profile Section */
+/* Profile & New Button Positions */
 .store-profile { text-align: center; padding-top: 20px; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); margin: 0 auto; overflow: hidden; background: #eee; cursor: pointer; }
+.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+
+.mini-remove-btn { 
+    position: absolute; right: -10px; top: 0; 
+    background: #eee; border: 1px solid #ccc; 
+    border-radius: 50%; width: 25px; height: 25px; 
+    cursor: pointer; font-weight: bold; 
+}
+
 .store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
 .greeting { font-size: 1.1rem; transition: opacity 0.5s; height: 1.5em; margin: 10px 0; }
 
-.profile-actions { margin-top: 10px; }
-.action-btn { border: none; padding: 5px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-.save { background: #28a745; color: white; }
-.delete { background: #eee; color: #333; margin-left: 5px; }
+.action-btn.save { background: #28a745; color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
-/* BOTTOM UI: Matches REF.jpg */
+/* Bottom UI */
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
 .split-cards { display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; }
-
-.chip { width: 45%; background: var(--dark); color: white; padding: 20px 20px; cursor: pointer; box-sizing: border-box; }
+.chip { width: 45%; background: var(--dark); color: white; padding: 20px; cursor: pointer; }
 .left-end { border-radius: 0 20px 20px 0; text-align: left; }
 .right-end { border-radius: 20px 0 0 20px; text-align: left; }
 
-.chip strong { display: block; font-size: 1.2rem; margin-bottom: 5px; }
-.chip span { font-size: 0.8rem; opacity: 0.8; line-height: 1.2; }
-
-/* Search Bar */
-.search-bar { background: var(--gray); border-radius: 50px; padding: 8px 8px 8px 20px; display: flex; align-items: center; margin: 0 15px; }
+.search-bar { background: var(--gray); border-radius: 50px; padding: 8px 20px; display: flex; align-items: center; margin: 0 15px; }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
 .mic-icon { font-size: 1.5rem; margin-right: 10px; cursor: pointer; }
 .send-circle { background: var(--dark); border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
