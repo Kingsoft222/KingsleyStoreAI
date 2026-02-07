@@ -9,129 +9,78 @@ body, html {
     margin: 0; 
     font-family: 'Inter', sans-serif; 
     background: var(--bg); 
-    overflow-x: hidden; 
     height: 100%; 
 }
 
-/* Header & Icons */
-.app-header { display: flex; justify-content: space-between; padding: 20px; align-items: center; position: relative; }
-.cart-icon { position: absolute; right: 20px; top: 25px; font-size: 1.6rem; }
-.cart-icon .count { position: absolute; top: -5px; right: -8px; background: var(--accent); color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
+/* Header Fix */
+.app-header { display: flex; justify-content: space-between; padding: 15px; align-items: center; }
+.menu-btn { background: none; border: 1px solid #ccc; padding: 5px 10px; border-radius: 5px; }
 
-/* Profile Section */
-.store-profile { text-align: center; margin-top: 20px; display: flex; flex-direction: column; align-items: center; }
-.profile-pic-area { position: relative; margin-bottom: 10px; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; cursor: pointer; background: #eee; }
-.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-
-/* Rotating Hype Text Animation */
-#dynamic-greeting {
-    transition: opacity 0.5s ease-in-out;
-    min-height: 1.2em;
-    font-weight: 500;
+/* Profile Section - Persistence Fix */
+.store-profile { text-align: center; margin-top: 20px; }
+.profile-pic { 
+    width: 120px; height: 120px; border-radius: 50%; 
+    border: 3px solid var(--accent); margin: 0 auto; 
+    overflow: hidden; background: #eee;
 }
+.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
 
-.profile-controls { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
-.profile-controls button { border: none; border-radius: 20px; padding: 6px 15px; font-weight: bold; cursor: pointer; }
-#save-profile-btn { background: #28a745; color: white; }
-#remove-profile-btn { background: #eee; color: #333; }
+/* Rotating Hype Text */
+#dynamic-greeting { font-weight: 500; transition: opacity 0.5s; height: 1.2em; }
 
-/* FIXED CHIPS: Touching Left & Right Ends */
+/* BOTTOM UI: Cards Touching Left/Right Ends */
 .bottom-ui-wrapper {
     position: fixed;
-    bottom: 20px;
+    bottom: 0;
     width: 100%;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    background: white;
+    padding-bottom: 20px;
 }
 
 .split-cards {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .chip {
-    width: 45%;
+    width: 46%;
     background: var(--dark);
     color: white;
-    padding: 12px 15px;
+    padding: 20px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    display: flex;
-    flex-direction: column;
 }
 
-.left-end {
-    border-radius: 0 20px 20px 0; /* Only right corners rounded */
-    align-self: flex-start;
-}
+.left-end { border-radius: 0 25px 25px 0; text-align: left; }
+.right-end { border-radius: 25px 0 0 25px; text-align: left; }
 
-.right-end {
-    border-radius: 20px 0 0 20px; /* Only left corners rounded */
-    align-self: flex-end;
-    text-align: right;
-}
+.chip strong { display: block; font-size: 1.2rem; margin-bottom: 10px; }
+.chip span { font-size: 0.8rem; opacity: 0.7; line-height: 1.4; }
 
-.chip strong { font-size: 1rem; }
-.chip span { font-size: 0.7rem; opacity: 0.8; }
-
-/* Polished Prompt Bar & Send Button */
+/* Polished Search & Send Button */
 .prompt-bar { 
-    background: var(--gray); 
-    border-radius: 50px; 
-    padding: 8px 8px 8px 20px; 
-    display: flex; 
-    align-items: center; 
-    gap: 10px; 
-    width: 90%; 
-    max-width: 500px; 
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+    background: var(--gray); border-radius: 50px; 
+    padding: 10px 10px 10px 20px; display: flex; 
+    align-items: center; margin: 0 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
-
 .prompt-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
 
 .send-icon-btn { 
-    background: var(--dark); 
-    border: none; 
-    width: 50px; 
-    height: 50px; 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    cursor: pointer;
-    transition: transform 0.2s ease;
+    background: var(--dark); border: none; 
+    width: 55px; height: 55px; border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; 
 }
 
-.send-icon-btn:active { transform: scale(0.9); }
-
-/* AI Result Store Animation */
-.generated-container {
-    perspective: 1000px;
-    margin-top: 15px;
-}
-
+/* AI Store Animation */
 .store-result-img {
-    width: 100%;
-    border-radius: 15px;
-    animation: storeEntrance 3s ease-out forwards;
+    width: 100%; border-radius: 15px;
+    animation: storeIn 1.5s ease-out;
 }
-
-@keyframes storeEntrance {
-    0% { transform: scale(0.8) translateZ(-500px); filter: blur(10px); opacity: 0; }
-    100% { transform: scale(1) translateZ(0); filter: blur(0); opacity: 1; }
+@keyframes storeIn {
+    from { transform: translateY(50px) scale(0.9); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
 }
-
-/* Rest of your existing CSS (Results, Overlays, etc.) */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; margin-bottom: 180px; }
-.result-item { background: var(--gray); border-radius: 15px; padding: 10px; text-align: center; cursor: pointer; }
-.result-item img { width: 100%; border-radius: 10px; height: 150px; object-fit: contain; }
-
-.overlay-panel { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-.panel-content { background: white; padding: 30px; border-radius: 30px; width: 90%; max-width: 400px; position: relative; }
-.close-btn { position: absolute; top: 15px; right: 15px; border: none; background: none; font-size: 20px; font-weight: bold; }
