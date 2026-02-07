@@ -1,3 +1,11 @@
+// CLOTHES DATABASE (To make search retrieval work)
+const clothes = [
+    { id: 1, name: "Premium Red Senator", keywords: "senator red native", img: "senator_red.jpg", price: "₦25,000" },
+    { id: 2, name: "Royal Blue Ankara", keywords: "ankara blue native", img: "ankara_blue.jpg", price: "₦22,000" },
+    { id: 3, name: "Black Dinner Suit", keywords: "dinner outfit black", img: "dinner_black.jpg", price: "₦45,000" },
+    { id: 4, name: "Slim Fit Trousers", keywords: "trousers black formal", img: "trousers_black.jpg", price: "₦15,000" }
+];
+
 const greetings = [
     "Nne, what are you looking for today?",
     "My guy, what are you looking for today?",
@@ -8,7 +16,7 @@ const greetings = [
 
 let gIndex = 0;
 
-// 1. HYPE MESSAGE ROTATION (3 Minutes)
+// 1. HYPE ROTATION
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (!el) return;
@@ -20,7 +28,7 @@ setInterval(() => {
     }, 500);
 }, 180000);
 
-// 2. PROFILE & SMART SAVE BUTTON
+// 2. PROFILE LOGIC
 window.onload = () => {
     const savedImg = localStorage.getItem('kingsley_profile_locked');
     if (savedImg) document.getElementById('owner-img').src = savedImg;
@@ -30,18 +38,14 @@ window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
         document.getElementById('owner-img').src = reader.result; 
-        // Show save button ONLY when a new photo is picked
         document.getElementById('save-btn').style.display = 'inline-block';
     };
     reader.readAsDataURL(e.target.files[0]);
 };
 
 window.saveProfileData = () => {
-    const currentSrc = document.getElementById('owner-img').src;
-    localStorage.setItem('kingsley_profile_locked', currentSrc);
-    // Disappear immediately after saving
+    localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
     document.getElementById('save-btn').style.display = 'none';
-    alert("Profile Saved!");
 };
 
 window.clearProfileData = () => {
@@ -50,40 +54,58 @@ window.clearProfileData = () => {
     document.getElementById('save-btn').style.display = 'none';
 };
 
-// 3. KEYWORD & SEARCH LOGIC
+// 3. SEARCH RETRIEVAL LOGIC (Senator/Ankara Fix)
+window.executeSearch = () => {
+    const query = document.getElementById('ai-input').value.toLowerCase();
+    const resultsArea = document.getElementById('ai-results');
+    
+    const filtered = clothes.filter(item => 
+        item.name.toLowerCase().includes(query) || item.keywords.toLowerCase().includes(query)
+    );
+
+    if (filtered.length > 0) {
+        resultsArea.innerHTML = filtered.map(item => `
+            <div class="result-card">
+                <img src="images/${item.img}" alt="${item.name}">
+                <h4>${item.name}</h4>
+                <p>${item.price}</p>
+            </div>
+        `).join('');
+        resultsArea.style.display = 'grid';
+    } else {
+        resultsArea.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No outfits found. Try 'Senator' or 'Ankara'.</p>";
+        resultsArea.style.display = 'grid';
+    }
+};
+
 window.quickSearch = (term) => {
     document.getElementById('ai-input').value = term;
-    executeSearch(); // Trigger search when card is tapped
+    executeSearch();
 };
 
-window.executeSearch = () => {
-    const val = document.getElementById('ai-input').value;
-    if(!val) return;
-    // Your actual search/filter logic goes here
-    console.log("Searching for:", val);
-    document.getElementById('ai-results').style.display = 'grid';
-};
-
-// 4. MIC/VOICE LOGIC RESTORED
+// 4. WHATSAPP STYLE VOICE POPUP
 const micBtn = document.getElementById('mic-btn');
+const voiceOverlay = document.getElementById('voice-overlay');
+
 if ('webkitSpeechRecognition' in window) {
     const recognition = new webkitSpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.lang = 'en-NG';
 
     micBtn.onclick = () => {
+        voiceOverlay.style.display = 'flex';
         recognition.start();
-        micBtn.style.color = "red";
     };
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         document.getElementById('ai-input').value = transcript;
-        micBtn.style.color = "black";
+        voiceOverlay.style.display = 'none';
         executeSearch();
     };
 
-    recognition.onerror = () => {
-        micBtn.style.color = "black";
-    };
+    recognition.onend = () => { voiceOverlay.style.display = 'none'; };
 }
+
+window.cancelVoice = () => {
+    voiceOverlay.style.display = 'none';
+};

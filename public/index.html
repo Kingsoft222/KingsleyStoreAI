@@ -21,11 +21,9 @@
                 </div>
                 <button class="mini-remove-btn" onclick="clearProfileData()">-</button>
             </div>
-            
             <input type="file" id="profile-input" hidden accept="image/*" onchange="handleProfileUpload(event)">
             <h1 class="store-name">Kingsley Store</h1>
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
-            
             <div class="profile-actions">
                 <button id="save-btn" class="action-btn save" style="display:none;" onclick="saveProfileData()">Save</button>
             </div>
@@ -33,6 +31,16 @@
 
         <div id="ai-results" class="results-grid" style="display:none;"></div>
     </main>
+
+    <div id="voice-overlay" class="voice-overlay" style="display:none;">
+        <div class="voice-modal">
+            <div class="wave-container">
+                <div class="wave"></div><div class="wave"></div><div class="wave"></div>
+            </div>
+            <p id="voice-status">Listening...</p>
+            <button class="cancel-voice" onclick="cancelVoice()">Cancel</button>
+        </div>
+    </div>
 
     <footer class="bottom-controls">
         <div class="split-cards">
@@ -48,9 +56,9 @@
 
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
-            <span class="mic-icon" id="mic-btn">🎙️</span>
+            <span class="mic-icon bolder-icon" id="mic-btn">🎙️</span>
             <button class="send-circle" onclick="executeSearch()">
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
+                <svg viewBox="0 0 24 24" class="bolder-svg"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
             </button>
         </div>
     </footer>
