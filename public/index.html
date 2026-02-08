@@ -10,7 +10,7 @@
 <body>
     <header class="app-header">
         <button class="menu-btn">☰</button>
-        <div class="cart-icon">🛒<span class="count">0</span></div>
+        <div class="cart-icon">🛒<span class="count" id="cart-count">0</span></div>
     </header>
 
     <main class="home-container">
@@ -34,15 +34,17 @@
 
     <div id="fitting-room-modal" class="voice-overlay" style="display:none;">
         <div class="voice-modal">
-            <h2 style="color:var(--accent); margin-bottom:5px;">AI Fitting Room</h2>
-            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to see yourself in this outfit</p>
+            <h2 style="color:var(--accent); margin-bottom:5px;">AI Showroom</h2>
+            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to start modeling</p>
             
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="handleUserFitUpload(event)">
             <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
             
             <div id="ai-fitting-result"></div>
+
+            <button id="add-to-cart-btn" class="primary-btn cart-btn" style="display:none;" onclick="addToCart()">Add to Cart 🛒</button>
             
-            <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Close</button>
+            <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Exit Showroom</button>
         </div>
     </div>
 
