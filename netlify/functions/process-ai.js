@@ -7,16 +7,15 @@ exports.handler = async (event) => {
         const { face, cloth, gender } = JSON.parse(event.body);
         const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
+        // NEW URL STRUCTURE: This targets the model, not a version ID.
+        // This is the most stable way to call Replicate.
         const response = await axios.post(
-            "https://api.replicate.com/v1/predictions",
+            "https://api.replicate.com/v1/models/cuuupid/idm-vton/predictions",
             {
-                // This is the gold-standard version for IDM-VTON
-                version: "69389280d0577d6124707e15546e7f8646f903e62095f99238d3845b4ef08f2a",
                 input: {
                     human_img: face,
                     garm_img: `https://${event.headers.host}/images/${cloth}`,
                     garment_des: `A ${gender} native outfit`,
-                    is_checked: true,
                     category: "upper_body"
                 }
             },
@@ -35,10 +34,12 @@ exports.handler = async (event) => {
         };
     } catch (error) {
         console.error("AI Brain Error:", error.response ? error.response.data : error.message);
+        // This will tell us the EXACT field that failed
+        const detailedError = error.response?.data?.detail || error.message;
         return { 
             statusCode: 500, 
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: error.response?.data?.detail || error.message }) 
+            body: JSON.stringify({ error: detailedError }) 
         };
     }
 };
