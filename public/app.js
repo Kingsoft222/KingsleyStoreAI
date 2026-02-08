@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE (Original Greetings)
+// 1. FAST HYPE (Preserved)
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -48,7 +48,7 @@ window.executeSearch = () => {
     }
 };
 
-// AUTO-OPTIMIZER (Handles Photo Prep)
+// AUTO-OPTIMIZER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -73,7 +73,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. THE MODELING VIDEO LOGIC
+// 3. THE MODELING VIDEO LOGIC (FULL SCREEN OUTPUT)
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -81,7 +81,7 @@ async function startModeling() {
     const cartBtn = document.getElementById('add-to-cart-btn');
     
     btn.style.display = 'none';
-    subtext.innerText = "Contacting AI Stylist...";
+    subtext.innerText = "Connecting to AI Stylist...";
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -102,19 +102,29 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // Get the video URL (it might be result.output or result.output[0])
-                const finalUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+                // Deep extraction for the URL
+                let finalUrl = "";
+                if (result.output) {
+                    finalUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+                    if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
+                }
 
+                // Restore Full-Screen Presentation
                 resultArea.innerHTML = `
-                    <div class="showroom-video-box">
-                        <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                    <div class="showroom-video-box" style="position:relative; width:100%; height:100%;">
+                        <video id="final-modeling-video" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div class="user-identity-bubble" style="position:absolute; bottom:10px; right:10px; width:60px; height:60px; border-radius:50%; border:2px solid white; overflow:hidden;">
+                        <div class="user-identity-bubble" style="position:absolute; bottom:20px; right:20px; width:65px; height:65px; border-radius:50%; border:3px solid white; overflow:hidden;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
+                
+                // Final safeguard: force play
+                const videoEl = document.getElementById('final-modeling-video');
+                if(videoEl) videoEl.play().catch(e => console.log("Auto-play blocked, user must click."));
+
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
                 throw new Error("Modeling failed. Try a clearer selfie.");
@@ -128,7 +138,25 @@ async function startModeling() {
     }
 }
 
-// 4. CLOSING LOGIC
+// 4. RESTORED MIC (Original Icon + Logic)
+const micBtn = document.getElementById('mic-btn');
+if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-NG';
+    
+    micBtn.onclick = () => {
+        recognition.start();
+        micBtn.style.color = "red"; // Subtle visual cue
+    };
+    
+    recognition.onresult = (e) => {
+        document.getElementById('ai-input').value = e.results[0][0].transcript;
+        micBtn.style.color = "black";
+        executeSearch();
+    };
+}
+
+// 5. CLOSING LOGIC
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
