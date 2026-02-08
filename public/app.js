@@ -16,7 +16,7 @@ let selectedCloth = null;
 let detectedGender = "male";
 let selectedBodyType = "slim";
 
-// 1. FAST HYPE
+// 1. FAST HYPE (Preserved your greetings)
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -39,7 +39,7 @@ window.executeSearch = () => {
         document.getElementById('body-type-selector').style.display = (detectedGender === "female") ? "block" : "none";
         
         results.innerHTML = matched.map(item => `
-            <div class="result-card">
+            <div class="result-card" onclick="quickSelect('${item.img}')">
                 <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
                 <p>${item.price}</p>
@@ -55,7 +55,7 @@ window.setBodyType = (type) => {
     document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase() === type));
 };
 
-// AUTO-OPTIMIZER: Shrinks photo automatically for non-tech customers
+// AUTO-OPTIMIZER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -82,7 +82,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. STABLE AI MODELING LOGIC
+// 3. STABLE AI MODELING LOGIC (Updated to handle Video vs Image)
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -110,19 +110,35 @@ async function startModeling() {
                 clearInterval(checkInterval);
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
-                resultArea.innerHTML = `
-                    <div class="showroom-video-box">
-                        <video autoplay loop muted playsinline class="modeling-video">
-                            <source src="${result.videoUrl}" type="video/mp4">
-                        </video>
-                        <div class="user-identity-bubble"><img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;"></div>
-                    </div>
-                `;
+                
+                const finalUrl = result.output || result.videoUrl;
+
+                // Detect if output is video or image
+                const isVideo = finalUrl.includes('.mp4') || finalUrl.includes('video');
+
+                if (isVideo) {
+                    resultArea.innerHTML = `
+                        <div class="showroom-video-box">
+                            <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px;">
+                                <source src="${finalUrl}" type="video/mp4">
+                            </video>
+                            <div class="user-identity-bubble">
+                                <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultArea.innerHTML = `
+                        <div class="showroom-image-box">
+                            <img src="${finalUrl}" style="width:100%; border-radius:15px;">
+                        </div>
+                    `;
+                }
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
                 throw new Error("AI could not map this photo.");
             }
-        }, 3000);
+        }, 4000);
 
     } catch (e) {
         handleAIFailure(resultArea, subtext, btn, e.message);
@@ -168,7 +184,7 @@ window.closeFittingRoom = () => {
     document.getElementById('ai-fitting-result').innerHTML = '';
     document.getElementById('modal-subtext').style.display = 'block';
     document.getElementById('fit-action-btn').style.display = 'block';
-    document.getElementById('add-to-cart-btn').style.display = 'none';
+    if(document.getElementById('add-to-cart-btn')) document.getElementById('add-to-cart-btn').style.display = 'none';
 };
 
 window.quickSearch = (t) => { document.getElementById('ai-input').value = t; executeSearch(); };
