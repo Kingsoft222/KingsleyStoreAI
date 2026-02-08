@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE
+// 1. FAST HYPE (Original Greetings)
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,7 +24,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH & TRIGGER
+// 2. SEARCH LOGIC
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -48,7 +48,7 @@ window.executeSearch = () => {
     }
 };
 
-// AUTO-OPTIMIZER
+// AUTO-OPTIMIZER (Handles Photo Prep)
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -73,7 +73,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. VIDEO MODELING LOGIC
+// 3. THE MODELING VIDEO LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -81,7 +81,7 @@ async function startModeling() {
     const cartBtn = document.getElementById('add-to-cart-btn');
     
     btn.style.display = 'none';
-    subtext.innerText = "Connecting to AI Stylist...";
+    subtext.innerText = "Contacting AI Stylist...";
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -93,7 +93,7 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Generating your modeling video... (45-90s)";
+            subtext.innerText = "Sewing your outfit & preparing the video... (45-90s)";
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
@@ -102,43 +102,33 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // Use the output URL from Replicate
-                const finalUrl = result.output;
+                // Get the video URL (it might be result.output or result.output[0])
+                const finalUrl = Array.isArray(result.output) ? result.output[0] : result.output;
 
                 resultArea.innerHTML = `
                     <div class="showroom-video-box">
-                        <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                        <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div class="user-identity-bubble">
-                            <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
+                        <div class="user-identity-bubble" style="position:absolute; bottom:10px; right:10px; width:60px; height:60px; border-radius:50%; border:2px solid white; overflow:hidden;">
+                            <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("AI could not generate the video.");
+                throw new Error("Modeling failed. Try a clearer selfie.");
             }
         }, 5000);
 
     } catch (e) {
         subtext.innerText = "Style Check Failed: " + e.message;
         btn.style.display = 'block';
+        btn.innerText = "Try Again";
     }
 }
 
-// 4. MIC & UTILS
-const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window) {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-NG';
-    micBtn.onclick = () => recognition.start();
-    recognition.onresult = (e) => {
-        document.getElementById('ai-input').value = e.results[0][0].transcript;
-        executeSearch();
-    };
-}
-
+// 4. CLOSING LOGIC
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
