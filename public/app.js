@@ -32,7 +32,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-// --- 2. PROFILE ACTIONS (FIXED REMOVE BUTTON) ---
+// --- 2. PROFILE ACTIONS (REPAIRING REMOVE BUTTON) ---
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
@@ -53,19 +53,21 @@ window.saveProfileData = () => {
     }
 };
 
-// FIXED REMOVE BUTTON LOGIC
 window.removeProfilePhoto = () => {
     const ownerImg = document.getElementById('owner-img');
     const saveBtn = document.getElementById('save-btn');
-    // Transparent pixel placeholder
-    const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    // Direct base64 for a blank/empty image to ensure it disappears
+    const emptyPixel = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     
     if (confirm("Clear profile photo?")) {
         localStorage.removeItem('kingsley_profile_locked');
         userPhoto = "";
-        if (ownerImg) ownerImg.src = placeholder;
+        if (ownerImg) {
+            ownerImg.src = emptyPixel; 
+            ownerImg.removeAttribute('src'); // Force clear for some browsers
+            ownerImg.src = "images/default-avatar.png"; // Set back to your default icon
+        }
         if (saveBtn) saveBtn.style.display = 'none';
-        alert("Cleared.");
     }
 };
 
@@ -95,19 +97,19 @@ window.promptShowroomChoice = (id) => {
     const resultArea = document.getElementById('ai-fitting-result');
     if (modal) modal.style.display = 'flex';
     
-    // RENAMED BUTTONS & REMOVED INITIAL UPLOAD PROMPT
+    // UPDATED LABELS: See How You Look (Photo) / (Video)
     resultArea.innerHTML = `
         <div id="choice-container" style="text-align:center; padding: 20px;">
             <h3 style="color:white;">Select Your Experience</h3>
             <div style="display:flex; flex-direction:column; gap:15px; align-items:center; margin-top:20px;">
-                <button onclick="prepareModeling('photo')" style="width:250px; background:#ffd700; color:black; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">📸 See How You Look Photo</button>
-                <button onclick="prepareModeling('video')" style="width:250px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid #ffd700; cursor:pointer; font-weight:bold;">🎥 See How You Look Video</button>
+                <button onclick="prepareModeling('photo')" style="width:250px; background:#ffd700; color:black; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">📸 See How You Look (Photo)</button>
+                <button onclick="prepareModeling('video')" style="width:250px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid #ffd700; cursor:pointer; font-weight:bold;">🎥 See How You Look (Video)</button>
             </div>
         </div>
     `;
 };
 
-// --- 4. THE VIRTUAL TRY-ON FLOW (UPDATED LABELS) ---
+// --- 4. THE VIRTUAL TRY-ON FLOW ---
 let currentMode = 'photo';
 window.prepareModeling = (mode) => {
     currentMode = mode;
@@ -133,7 +135,7 @@ window.handleModelingUpload = (e) => {
         const subtext = document.getElementById('modal-subtext');
         
         if (btn) {
-            btn.innerText = "Rock your cloth"; // TRANSFORMS BUTTON TEXT
+            btn.innerText = "Rock your cloth"; 
             subtext.innerText = "Looking good! Ready to generate result.";
             btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
         }
