@@ -16,18 +16,17 @@ exports.handler = async (event) => {
         const siteUrl = `https://${event.headers.host}`;
         const clothImageUrl = `${siteUrl}/images/${cloth}`;
 
-        // THIS IS THE STABLE VERSION ID THAT WORKS
+        // VERSION: Using the primary stable deployment of IDM-VTON
         const response = await axios.post(
             "https://api.replicate.com/v1/predictions",
             {
-                version: "03aa4011d65d7a64c8488b5505963b7d19dcb0456f93796a928783f363f406ec",
+                version: "69389280d0577d6124707e15546e7f8646f903e62095f99238d3845b4ef08f2a",
                 input: {
                     garm_img: clothImageUrl,
                     human_img: face,
                     garment_des: `A ${gender} native outfit`,
-                    category: "upper_body", 
-                    is_checked: true,
-                    denoise_steps: 30
+                    category: "upper_body",
+                    is_checked: true
                 }
             },
             {

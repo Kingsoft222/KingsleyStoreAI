@@ -55,7 +55,7 @@ window.setBodyType = (type) => {
     document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase() === type));
 };
 
-// AUTO-OPTIMIZER: Shrinks photo to keep things fast
+// AUTO-OPTIMIZER: Shrinks photo automatically for non-tech customers
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -72,8 +72,6 @@ window.handleUserFitUpload = (e) => {
 
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-            // Convert to low-weight JPG for the AI server
             userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
             
             const btn = document.getElementById('fit-action-btn');
@@ -84,7 +82,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. THE "STRICT" AI MODELING LOGIC
+// 3. STABLE AI MODELING LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -92,7 +90,7 @@ async function startModeling() {
     const cartBtn = document.getElementById('add-to-cart-btn');
     
     btn.style.display = 'none';
-    subtext.innerText = "Connecting to AI Showroom Engine...";
+    subtext.innerText = "Connecting to AI Stylist...";
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -100,16 +98,12 @@ async function startModeling() {
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img, gender: detectedGender })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Server Connection Busy");
-        }
-
-        const { predictionId } = await response.json();
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Our AI Stylist is refining your look...";
-            const check = await fetch(`/.netlify/functions/check-ai?id=${predictionId}`);
+            subtext.innerText = "Refining your look... (30-60s)";
+            const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
             if (result.status === "succeeded") {
@@ -148,7 +142,21 @@ function handleAIFailure(area, sub, btn, errorMsg) {
     btn.innerText = "Try a Clearer Photo";
 }
 
-// 4. MIC, CART, & PROFILE 
+// 4. RESTORED MIC & ORIGINAL FUNCTIONS
+const micBtn = document.getElementById('mic-btn');
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-NG';
+    micBtn.onclick = () => { recognition.start(); micBtn.style.color = "red"; };
+    recognition.onresult = (e) => {
+        document.getElementById('ai-input').value = e.results[0][0].transcript;
+        micBtn.style.color = "black";
+        executeSearch();
+    };
+    recognition.onend = () => { micBtn.style.color = "black"; };
+}
+
 window.addToCart = () => {
     const count = document.getElementById('cart-count');
     count.innerText = parseInt(count.innerText) + 1;
