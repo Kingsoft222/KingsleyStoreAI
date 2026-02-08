@@ -13,8 +13,8 @@ const greetings = [
 let gIndex = 0;
 let userPhoto = ""; 
 let selectedCloth = null; 
-let detectedGender = "male";
 
+// --- 1. INITIALIZATION & PERMANENCE ---
 window.addEventListener('DOMContentLoaded', () => {
     const savedProfile = localStorage.getItem('kingsley_profile_locked');
     if (savedProfile) {
@@ -32,7 +32,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-// --- PROFILE HANDLERS ---
+// --- 2. PROFILE ACTIONS (FIXED REMOVE) ---
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
@@ -46,32 +46,25 @@ window.handleProfileUpload = (e) => {
 };
 
 window.saveProfileData = () => {
-    const ownerImg = document.getElementById('owner-img');
-    if (ownerImg && ownerImg.src) {
-        localStorage.setItem('kingsley_profile_locked', ownerImg.src);
+    if (userPhoto) {
+        localStorage.setItem('kingsley_profile_locked', userPhoto);
         document.getElementById('save-btn').style.display = 'none';
-        alert("Profile saved!");
+        alert("Profile locked!");
     }
 };
 
-// FIXED REMOVE BUTTON
 window.removeProfilePhoto = () => {
-    const ownerImg = document.getElementById('owner-img');
-    const saveBtn = document.getElementById('save-btn');
-    
-    // Use an empty transparent pixel or a generic icon path
-    const placeholder = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    
-    if (confirm("Remove profile photo?")) {
+    if (confirm("Clear profile photo?")) {
         localStorage.removeItem('kingsley_profile_locked');
         userPhoto = "";
-        if (ownerImg) ownerImg.src = placeholder;
-        if (saveBtn) saveBtn.style.display = 'none';
-        alert("Removed.");
+        const ownerImg = document.getElementById('owner-img');
+        if (ownerImg) ownerImg.src = "images/default-avatar.png"; // Set to your default path
+        document.getElementById('save-btn').style.display = 'none';
+        alert("Cleared.");
     }
 };
 
-// --- SHOWROOM LOGIC ---
+// --- 3. SEARCH & DUAL SHOWROOM CHOICE ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -93,25 +86,58 @@ window.executeSearch = () => {
 
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-    const resultArea = document.getElementById('ai-fitting-result');
     const modal = document.getElementById('fitting-room-modal');
+    const resultArea = document.getElementById('ai-fitting-result');
     if (modal) modal.style.display = 'flex';
     
     resultArea.innerHTML = `
-        <div style="text-align:center; padding: 20px;">
+        <div id="choice-container" style="text-align:center; padding: 20px;">
             <h3 style="color:white;">Select Your Experience</h3>
             <div style="display:flex; flex-direction:column; gap:15px; align-items:center; margin-top:20px;">
-                <button onclick="startVertexModeling()" style="width:250px; background:#ffd700; color:black; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">
-                    📸 AI Photo Showroom (Vertex)
-                </button>
-                <button onclick="startModeling()" style="width:250px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid #ffd700; cursor:pointer; font-weight:bold;">
-                    🎥 AI Video Showroom (Replicate)
-                </button>
+                <button onclick="prepareModeling('photo')" style="width:250px; background:#ffd700; color:black; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">📸 AI Photo Showroom (Vertex)</button>
+                <button onclick="prepareModeling('video')" style="width:250px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid #ffd700; cursor:pointer; font-weight:bold;">🎥 AI Video Showroom (Replicate)</button>
             </div>
         </div>
     `;
 };
 
+// --- 4. THE VIRTUAL TRY-ON FLOW (FIXED BUTTON TRANSFORM) ---
+let currentMode = 'photo';
+window.prepareModeling = (mode) => {
+    currentMode = mode;
+    const resultArea = document.getElementById('ai-fitting-result');
+    
+    // Restore the modeling UI inside the modal
+    resultArea.innerHTML = `
+        <div style="text-align:center;">
+            <p id="modal-subtext" style="color:white; margin-bottom:15px;">Upload your photo to start ${mode} modeling</p>
+            <input type="file" id="user-fit-input" accept="image/*" onchange="handleModelingUpload(event)" style="display:none;">
+            <button id="fit-action-btn" onclick="document.getElementById('user-fit-input').click()" style="background:#ffd700; color:black; padding:12px 25px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;">
+                Upload Photo
+            </button>
+        </div>
+    `;
+};
+
+window.handleModelingUpload = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        userPhoto = event.target.result; // Update the global photo
+        const btn = document.getElementById('fit-action-btn');
+        const subtext = document.getElementById('modal-subtext');
+        
+        // TRANSFORM BUTTON
+        if (btn) {
+            btn.innerText = "Rock your cloth";
+            subtext.innerText = "Ready! Tap to see yourself in the " + selectedCloth.name;
+            btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
+        }
+    };
+    reader.readAsDataURL(file);
+};
+
+// --- 5. AI ENGINES ---
 async function startVertexModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     resultArea.innerHTML = `<p style="color:white; text-align:center;">Vertex AI is generating your photo...</p>`;
@@ -119,21 +145,14 @@ async function startVertexModeling() {
     try {
         const response = await fetch('/.netlify/functions/process-vertex', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
         });
-
-        // Error handling for empty/bad JSON
-        const text = await response.text();
-        if (!text) throw new Error("Empty response from server");
-        const data = JSON.parse(text);
+        const data = await response.json();
         
-        if (!response.ok) throw new Error(data.error || "Vertex processing failed");
-
         resultArea.innerHTML = `
-            <div style="width:100%; text-align:center;">
-                <img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
-                <p style="color:gold; margin-top:10px;">Vertex Photo Result</p>
+            <div style="width:100% !important; text-align:center;">
+                <img src="${data.outputImage}" style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
+                <p style="color:gold; margin-top:10px;">Vertex Results Ready!</p>
             </div>
         `;
     } catch (e) {
@@ -143,12 +162,11 @@ async function startVertexModeling() {
 
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
-    resultArea.innerHTML = `<p style="color:white; text-align:center;">Connecting to Replicate Video Engine...</p>`;
+    resultArea.innerHTML = `<p style="color:white; text-align:center;">Starting Replicate Video Engine...</p>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
         });
         const data = await response.json();
@@ -159,10 +177,7 @@ async function startModeling() {
             if (result.status === "succeeded") {
                 clearInterval(checkInterval);
                 let finalUrl = Array.isArray(result.output) ? result.output[0] : (result.output.url || result.output);
-                resultArea.innerHTML = `
-                    <video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
-                        <source src="${finalUrl}" type="video/mp4">
-                    </video>`;
+                resultArea.innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;"><source src="${finalUrl}" type="video/mp4"></video>`;
             }
         }, 5000);
     } catch (e) {
@@ -172,4 +187,5 @@ async function startModeling() {
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
+    document.getElementById('ai-fitting-result').innerHTML = '';
 };
