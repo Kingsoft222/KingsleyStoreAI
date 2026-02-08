@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE (Greeting Rotation)
+// 1. GREETING ROTATION
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,7 +24,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH & PROMPT LOGIC (FIXED)
+// 2. SEARCH & PROMPT FLOW
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -41,7 +41,6 @@ window.executeSearch = () => {
             </div>
         `).join('');
         results.style.display = 'grid';
-        // Logic: The prompt (modal) now triggers when the user clicks a result card.
     }
 };
 
@@ -50,21 +49,35 @@ window.selectItem = (id) => {
     const modal = document.getElementById('fitting-room-modal');
     if (modal) {
         modal.style.display = 'flex';
-        // Auto-detect gender for modeling instructions
         detectedGender = selectedCloth.tags.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
     }
 };
 
-// 3. PHOTO & PROFILE (RE-ENABLED)
+// 3. PERMANENT PROFILE LOGIC (FIXED)
+window.onload = () => {
+    const savedProfile = localStorage.getItem('kingsley_profile_locked');
+    if (savedProfile) {
+        document.getElementById('owner-img').src = savedProfile;
+    }
+};
+
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
         document.getElementById('owner-img').src = reader.result; 
-        localStorage.setItem('kingsley_profile_locked', reader.result);
+        document.getElementById('save-btn').style.display = 'inline-block'; // Ensure save button appears
     };
     reader.readAsDataURL(e.target.files[0]);
 };
 
+window.saveProfileData = () => {
+    const currentImg = document.getElementById('owner-img').src;
+    localStorage.setItem('kingsley_profile_locked', currentImg);
+    document.getElementById('save-btn').style.display = 'none';
+    alert("Profile saved permanently!");
+};
+
+// 4. VIDEO MODELING LOGIC (FULL SCREEN)
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -83,18 +96,17 @@ window.handleUserFitUpload = (e) => {
             
             const btn = document.getElementById('fit-action-btn');
             btn.innerText = "Rock your cloth";
+            btn.style.display = "block";
             btn.onclick = startModeling;
         };
     };
     reader.readAsDataURL(file);
 };
 
-// 4. FULL-SCREEN VIDEO RESULT
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
     const btn = document.getElementById('fit-action-btn');
-    const cartBtn = document.getElementById('add-to-cart-btn');
     
     btn.style.display = 'none';
     subtext.innerText = "Connecting to AI Stylist...";
@@ -109,38 +121,34 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Sewing your outfit & preparing video... (30-90s)";
+            subtext.innerText = "Sewing your outfit... (30-90s)";
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
             if (result.status === "succeeded") {
                 clearInterval(checkInterval);
                 subtext.style.display = 'none';
-                if(cartBtn) cartBtn.style.display = 'block'; 
                 
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
                 if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
-                // Forced Full-Screen Presentation
+                // FULL SCREEN PRESENTATION
                 resultArea.innerHTML = `
                     <div style="width:100% !important; position:relative; display:block;">
-                        <video id="final-video" autoplay loop muted playsinline style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
+                        <video id="v-player" autoplay loop muted playsinline style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:100;">
-                            <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
-                        </div>
                     </div>
                 `;
                 
-                const v = document.getElementById('final-video');
-                v.load();
-                v.play();
+                const player = document.getElementById('v-player');
+                player.load();
+                player.play();
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("AI modeling failed.");
+                throw new Error("Modeling failed.");
             }
         }, 5000);
 
@@ -150,21 +158,17 @@ async function startModeling() {
     }
 }
 
-// 5. MIC & UTILS (RESTORED)
+// 5. MIC & UTILS
 const micBtn = document.getElementById('mic-btn');
 if ('webkitSpeechRecognition' in window) {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-NG';
-    micBtn.onclick = () => {
-        recognition.start();
-        micBtn.style.color = "red";
-    };
+    micBtn.onclick = () => { recognition.start(); micBtn.style.color = "red"; };
     recognition.onresult = (e) => {
         document.getElementById('ai-input').value = e.results[0][0].transcript;
         micBtn.style.color = "black";
         executeSearch();
     };
-    recognition.onend = () => { micBtn.style.color = "black"; };
 }
 
 window.closeFittingRoom = () => {
