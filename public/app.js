@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. GREETING HYPE
+// 1. GREETING ROTATION
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -63,7 +63,7 @@ window.executeSearch = () => {
     }
 };
 
-// PHOTO HANDLER
+// PHOTO UPLOAD
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -87,7 +87,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. FULL-SCREEN VIDEO OUTPUT LOGIC
+// 3. THE ACTUAL FIX: FULL-SCREEN VIDEO
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -116,36 +116,35 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // URL Extraction Fix
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
                 if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
-                // RESTORE FULL MODAL WIDTH
+                // --- STICKING TO THE FULL-SCREEN INSTRUCTION ---
+                // We use inline styles to override any CSS that might be shrinking this.
                 resultArea.innerHTML = `
-                    <div style="width:100%; position:relative;">
-                        <video id="v-player" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                    <div id="video-container" style="width:100% !important; height:auto; position:relative; display:block;">
+                        <video id="v-player" autoplay loop muted playsinline style="width:100% !important; display:block; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:10;">
+                        <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:100;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
                 
-                // FORCE LOAD
                 const player = document.getElementById('v-player');
                 player.load();
                 player.play();
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("AI could not generate the video.");
+                throw new Error("AI modeling failed.");
             }
         }, 5000);
 
     } catch (e) {
-        subtext.innerText = "Style Check Failed: " + e.message;
+        subtext.innerText = "Error: " + e.message;
         btn.style.display = 'block';
     }
 }
