@@ -15,16 +15,36 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. GREETING ROTATION
-setInterval(() => {
-    const el = document.getElementById('dynamic-greeting');
-    if (el) {
-        gIndex = (gIndex + 1) % greetings.length;
-        el.innerText = greetings[gIndex];
+// --- 1. PERMANENT PROFILE MEMORY (Checks immediately on load) ---
+window.addEventListener('DOMContentLoaded', () => {
+    const savedProfile = localStorage.getItem('kingsley_profile_locked');
+    if (savedProfile) {
+        const ownerImg = document.getElementById('owner-img');
+        if (ownerImg) ownerImg.src = savedProfile;
     }
-}, 1000);
+});
 
-// 2. SEARCH & PROMPT FLOW
+// --- 2. PROFILE UPLOAD & SAVE (Fixed Visibility) ---
+window.handleProfileUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = () => { 
+        const ownerImg = document.getElementById('owner-img');
+        const saveBtn = document.getElementById('save-btn');
+        
+        if (ownerImg) ownerImg.src = reader.result; 
+        if (saveBtn) saveBtn.style.display = 'inline-block'; // FORCED APPEARANCE
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+window.saveProfileData = () => {
+    const currentImg = document.getElementById('owner-img').src;
+    localStorage.setItem('kingsley_profile_locked', currentImg);
+    document.getElementById('save-btn').style.display = 'none';
+    alert("Profile saved permanently!");
+};
+
+// --- 3. SEARCH & PROMPT FLOW ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -53,31 +73,7 @@ window.selectItem = (id) => {
     }
 };
 
-// 3. PERMANENT PROFILE LOGIC (FIXED)
-window.onload = () => {
-    const savedProfile = localStorage.getItem('kingsley_profile_locked');
-    if (savedProfile) {
-        document.getElementById('owner-img').src = savedProfile;
-    }
-};
-
-window.handleProfileUpload = (e) => {
-    const reader = new FileReader();
-    reader.onload = () => { 
-        document.getElementById('owner-img').src = reader.result; 
-        document.getElementById('save-btn').style.display = 'inline-block'; // Ensure save button appears
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
-
-window.saveProfileData = () => {
-    const currentImg = document.getElementById('owner-img').src;
-    localStorage.setItem('kingsley_profile_locked', currentImg);
-    document.getElementById('save-btn').style.display = 'none';
-    alert("Profile saved permanently!");
-};
-
-// 4. VIDEO MODELING LOGIC (FULL SCREEN)
+// --- 4. VIDEO MODELING LOGIC ---
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -95,9 +91,11 @@ window.handleUserFitUpload = (e) => {
             userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
             
             const btn = document.getElementById('fit-action-btn');
-            btn.innerText = "Rock your cloth";
-            btn.style.display = "block";
-            btn.onclick = startModeling;
+            if (btn) {
+                btn.innerText = "Rock your cloth";
+                btn.style.display = "block";
+                btn.onclick = startModeling;
+            }
         };
     };
     reader.readAsDataURL(file);
@@ -108,8 +106,8 @@ async function startModeling() {
     const subtext = document.getElementById('modal-subtext');
     const btn = document.getElementById('fit-action-btn');
     
-    btn.style.display = 'none';
-    subtext.innerText = "Connecting to AI Stylist...";
+    if (btn) btn.style.display = 'none';
+    if (subtext) subtext.innerText = "Connecting to AI Stylist...";
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -121,19 +119,18 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Sewing your outfit... (30-90s)";
+            if (subtext) subtext.innerText = "Sewing your outfit... (30-90s)";
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
             if (result.status === "succeeded") {
                 clearInterval(checkInterval);
-                subtext.style.display = 'none';
+                if (subtext) subtext.style.display = 'none';
                 
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
                 if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
-                // FULL SCREEN PRESENTATION
                 resultArea.innerHTML = `
                     <div style="width:100% !important; position:relative; display:block;">
                         <video id="v-player" autoplay loop muted playsinline style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
@@ -143,8 +140,10 @@ async function startModeling() {
                 `;
                 
                 const player = document.getElementById('v-player');
-                player.load();
-                player.play();
+                if (player) {
+                    player.load();
+                    player.play();
+                }
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
@@ -153,23 +152,19 @@ async function startModeling() {
         }, 5000);
 
     } catch (e) {
-        subtext.innerText = "Error: " + e.message;
-        btn.style.display = 'block';
+        if (subtext) subtext.innerText = "Error: " + e.message;
+        if (btn) btn.style.display = 'block';
     }
 }
 
-// 5. MIC & UTILS
-const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window) {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-NG';
-    micBtn.onclick = () => { recognition.start(); micBtn.style.color = "red"; };
-    recognition.onresult = (e) => {
-        document.getElementById('ai-input').value = e.results[0][0].transcript;
-        micBtn.style.color = "black";
-        executeSearch();
-    };
-}
+// --- 5. GREETINGS & UTILS ---
+setInterval(() => {
+    const el = document.getElementById('dynamic-greeting');
+    if (el) {
+        gIndex = (gIndex + 1) % greetings.length;
+        el.innerText = greetings[gIndex];
+    }
+}, 1000);
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
