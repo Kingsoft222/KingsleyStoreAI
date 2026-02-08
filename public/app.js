@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE
+// 1. GREETING HYPE
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,7 +24,23 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH & TRIGGER
+// 2. SEARCH & ORIGINAL MIC
+const micBtn = document.getElementById('mic-btn');
+if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-NG';
+    micBtn.onclick = () => {
+        recognition.start();
+        micBtn.style.color = "red";
+    };
+    recognition.onresult = (e) => {
+        document.getElementById('ai-input').value = e.results[0][0].transcript;
+        micBtn.style.color = "black";
+        executeSearch();
+    };
+    recognition.onend = () => { micBtn.style.color = "black"; };
+}
+
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -35,7 +51,6 @@ window.executeSearch = () => {
     if (matched.length > 0) {
         selectedCloth = matched[0];
         detectedGender = input.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
-        
         results.innerHTML = matched.map(item => `
             <div class="result-card">
                 <img src="images/${item.img}" alt="${item.name}">
@@ -48,7 +63,7 @@ window.executeSearch = () => {
     }
 };
 
-// AUTO-OPTIMIZER
+// PHOTO HANDLER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -64,7 +79,6 @@ window.handleUserFitUpload = (e) => {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
-            
             const btn = document.getElementById('fit-action-btn');
             btn.innerText = "Rock your cloth";
             btn.onclick = startModeling;
@@ -73,7 +87,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. FULL-SCREEN VIDEO MODELING LOGIC
+// 3. FULL-SCREEN VIDEO OUTPUT LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -102,15 +116,15 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // EXTRACT URL (Handling both strings and nested objects)
+                // URL Extraction Fix
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
                 if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
-                // RESTORE FULL WIDTH PRESENTATION
+                // RESTORE FULL MODAL WIDTH
                 resultArea.innerHTML = `
                     <div style="width:100%; position:relative;">
-                        <video id="finalVideo" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                        <video id="v-player" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
                         <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:10;">
@@ -119,10 +133,10 @@ async function startModeling() {
                     </div>
                 `;
                 
-                // FORCE THE VIDEO TO START
-                const v = document.getElementById('finalVideo');
-                v.load();
-                v.play();
+                // FORCE LOAD
+                const player = document.getElementById('v-player');
+                player.load();
+                player.play();
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
@@ -134,23 +148,6 @@ async function startModeling() {
         subtext.innerText = "Style Check Failed: " + e.message;
         btn.style.display = 'block';
     }
-}
-
-// 4. ORIGINAL MIC
-const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window) {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-NG';
-    micBtn.onclick = () => {
-        recognition.start();
-        micBtn.style.color = "red";
-    };
-    recognition.onresult = (e) => {
-        document.getElementById('ai-input').value = e.results[0][0].transcript;
-        micBtn.style.color = "black";
-        executeSearch();
-    };
-    recognition.onend = () => { micBtn.style.color = "black"; };
 }
 
 window.closeFittingRoom = () => {
