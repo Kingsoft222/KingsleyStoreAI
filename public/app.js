@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. GREETING ROTATION
+// 1. FAST HYPE (Your Original Greetings)
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -51,6 +51,7 @@ window.executeSearch = () => {
     if (matched.length > 0) {
         selectedCloth = matched[0];
         detectedGender = input.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
+        
         results.innerHTML = matched.map(item => `
             <div class="result-card">
                 <img src="images/${item.img}" alt="${item.name}">
@@ -63,7 +64,7 @@ window.executeSearch = () => {
     }
 };
 
-// PHOTO UPLOAD
+// PHOTO HANDLER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -87,7 +88,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. THE ACTUAL FIX: FULL-SCREEN VIDEO
+// 3. FULL-SCREEN VIDEO LOGIC (FIXED)
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -116,15 +117,15 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
+                // --- THE REPLICATE 2026 URL EXTRACTION FIX ---
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
-                if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
+                if (typeof finalUrl === 'object' && finalUrl !== null) finalUrl = finalUrl.url; 
 
-                // --- STICKING TO THE FULL-SCREEN INSTRUCTION ---
-                // We use inline styles to override any CSS that might be shrinking this.
+                // RESTORE FULL MODAL WIDTH
                 resultArea.innerHTML = `
-                    <div id="video-container" style="width:100% !important; height:auto; position:relative; display:block;">
-                        <video id="v-player" autoplay loop muted playsinline style="width:100% !important; display:block; border-radius:15px; border: 4px solid #ffd700;">
+                    <div style="width:100%; position:relative; display:block;">
+                        <video id="v-player" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
                         <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:100;">
@@ -133,18 +134,19 @@ async function startModeling() {
                     </div>
                 `;
                 
+                // FORCE THE PLAYER TO START
                 const player = document.getElementById('v-player');
                 player.load();
                 player.play();
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("AI modeling failed.");
+                throw new Error("AI could not generate the video.");
             }
         }, 5000);
 
     } catch (e) {
-        subtext.innerText = "Error: " + e.message;
+        subtext.innerText = "Style Check Failed: " + e.message;
         btn.style.display = 'block';
     }
 }
