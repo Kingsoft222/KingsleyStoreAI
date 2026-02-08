@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. GREETING ROTATION
+// 1. FAST HYPE (Greeting Rotation)
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,22 +24,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH & MIC (Restored to Original)
-const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window) {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = 'en-NG';
-    micBtn.onclick = () => {
-        recognition.start();
-        micBtn.style.color = "red";
-    };
-    recognition.onresult = (e) => {
-        document.getElementById('ai-input').value = e.results[0][0].transcript;
-        micBtn.style.color = "black";
-        executeSearch();
-    };
-}
-
+// 2. SEARCH & PROMPT LOGIC (FIXED)
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -48,8 +33,6 @@ window.executeSearch = () => {
     );
 
     if (matched.length > 0) {
-        selectedCloth = matched[0];
-        detectedGender = input.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="selectItem(${item.id})">
                 <img src="images/${item.img}" alt="${item.name}">
@@ -58,10 +41,21 @@ window.executeSearch = () => {
             </div>
         `).join('');
         results.style.display = 'grid';
+        // Logic: The prompt (modal) now triggers when the user clicks a result card.
     }
 };
 
-// 3. PROFILE & UPLOAD (Re-enabled & Never to be touched again)
+window.selectItem = (id) => {
+    selectedCloth = clothesCatalog.find(c => c.id === id);
+    const modal = document.getElementById('fitting-room-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Auto-detect gender for modeling instructions
+        detectedGender = selectedCloth.tags.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
+    }
+};
+
+// 3. PHOTO & PROFILE (RE-ENABLED)
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
@@ -87,17 +81,15 @@ window.handleUserFitUpload = (e) => {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
             
-            // Re-enable the Action Button
             const btn = document.getElementById('fit-action-btn');
             btn.innerText = "Rock your cloth";
-            btn.style.display = "block";
             btn.onclick = startModeling;
         };
     };
     reader.readAsDataURL(file);
 };
 
-// 4. FULL-SCREEN VIDEO OUTPUT LOGIC
+// 4. FULL-SCREEN VIDEO RESULT
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -130,32 +122,49 @@ async function startModeling() {
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
                 if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
-                // RESTORED FULL-SCREEN PRESENTATION
+                // Forced Full-Screen Presentation
                 resultArea.innerHTML = `
-                    <div style="width:100% !important; height:auto; position:relative; display:block;">
-                        <video id="v-player-final" autoplay loop muted playsinline style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
+                    <div style="width:100% !important; position:relative; display:block;">
+                        <video id="final-video" autoplay loop muted playsinline style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div style="position:absolute; bottom:15px; right:15px; width:75px; height:75px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:99;">
+                        <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:100;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
                 
-                const player = document.getElementById('v-player-final');
-                player.load();
-                player.play();
+                const v = document.getElementById('final-video');
+                v.load();
+                v.play();
 
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("Modeling failed. Try again.");
+                throw new Error("AI modeling failed.");
             }
         }, 5000);
 
     } catch (e) {
-        subtext.innerText = "Style Check Failed: " + e.message;
+        subtext.innerText = "Error: " + e.message;
         btn.style.display = 'block';
     }
+}
+
+// 5. MIC & UTILS (RESTORED)
+const micBtn = document.getElementById('mic-btn');
+if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-NG';
+    micBtn.onclick = () => {
+        recognition.start();
+        micBtn.style.color = "red";
+    };
+    recognition.onresult = (e) => {
+        document.getElementById('ai-input').value = e.results[0][0].transcript;
+        micBtn.style.color = "black";
+        executeSearch();
+    };
+    recognition.onend = () => { micBtn.style.color = "black"; };
 }
 
 window.closeFittingRoom = () => {
