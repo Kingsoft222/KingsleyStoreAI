@@ -73,7 +73,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. THE FIXED VIDEO LOGIC (FULL SCREEN)
+// 3. FULL-SCREEN VIDEO MODELING LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -102,21 +102,28 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // BULLETPROOF URL EXTRACTION
+                // EXTRACT URL (Handling both strings and nested objects)
                 let finalUrl = result.output;
                 if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
-                if (typeof finalUrl === 'object') finalUrl = finalUrl.url; // Handles the nested object error
+                if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
 
+                // RESTORE FULL WIDTH PRESENTATION
                 resultArea.innerHTML = `
-                    <div style="width:100%; height:auto; position:relative;">
-                        <video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                    <div style="width:100%; position:relative;">
+                        <video id="finalVideo" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div style="position:absolute; bottom:15px; right:15px; width:65px; height:65px; border-radius:50%; border:3px solid white; overflow:hidden;">
+                        <div style="position:absolute; bottom:15px; right:15px; width:70px; height:70px; border-radius:50%; border:3px solid white; overflow:hidden; z-index:10;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
+                
+                // FORCE THE VIDEO TO START
+                const v = document.getElementById('finalVideo');
+                v.load();
+                v.play();
+
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
                 throw new Error("AI could not generate the video.");
@@ -129,7 +136,7 @@ async function startModeling() {
     }
 }
 
-// 4. ORIGINAL MIC & UTILS
+// 4. ORIGINAL MIC
 const micBtn = document.getElementById('mic-btn');
 if ('webkitSpeechRecognition' in window) {
     const recognition = new webkitSpeechRecognition();
