@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE (Preserved)
+// 1. FAST HYPE
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,7 +24,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH LOGIC
+// 2. SEARCH & TRIGGER
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -73,7 +73,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. THE MODELING VIDEO LOGIC (FULL SCREEN OUTPUT)
+// 3. THE FIXED VIDEO LOGIC (FULL SCREEN)
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -93,7 +93,7 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Sewing your outfit & preparing the video... (45-90s)";
+            subtext.innerText = "Sewing your outfit & preparing video... (30-90s)";
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
@@ -102,63 +102,53 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // Deep extraction for the URL
-                let finalUrl = "";
-                if (result.output) {
-                    finalUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-                    if (typeof finalUrl === 'object') finalUrl = finalUrl.url; 
-                }
+                // BULLETPROOF URL EXTRACTION
+                let finalUrl = result.output;
+                if (Array.isArray(finalUrl)) finalUrl = finalUrl[0];
+                if (typeof finalUrl === 'object') finalUrl = finalUrl.url; // Handles the nested object error
 
-                // Restore Full-Screen Presentation
                 resultArea.innerHTML = `
-                    <div class="showroom-video-box" style="position:relative; width:100%; height:100%;">
-                        <video id="final-modeling-video" autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                    <div style="width:100%; height:auto; position:relative;">
+                        <video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
                             <source src="${finalUrl}" type="video/mp4">
                         </video>
-                        <div class="user-identity-bubble" style="position:absolute; bottom:20px; right:20px; width:65px; height:65px; border-radius:50%; border:3px solid white; overflow:hidden;">
+                        <div style="position:absolute; bottom:15px; right:15px; width:65px; height:65px; border-radius:50%; border:3px solid white; overflow:hidden;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
-                
-                // Final safeguard: force play
-                const videoEl = document.getElementById('final-modeling-video');
-                if(videoEl) videoEl.play().catch(e => console.log("Auto-play blocked, user must click."));
-
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("Modeling failed. Try a clearer selfie.");
+                throw new Error("AI could not generate the video.");
             }
         }, 5000);
 
     } catch (e) {
         subtext.innerText = "Style Check Failed: " + e.message;
         btn.style.display = 'block';
-        btn.innerText = "Try Again";
     }
 }
 
-// 4. RESTORED MIC (Original Icon + Logic)
+// 4. ORIGINAL MIC & UTILS
 const micBtn = document.getElementById('mic-btn');
 if ('webkitSpeechRecognition' in window) {
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-NG';
-    
     micBtn.onclick = () => {
         recognition.start();
-        micBtn.style.color = "red"; // Subtle visual cue
+        micBtn.style.color = "red";
     };
-    
     recognition.onresult = (e) => {
         document.getElementById('ai-input').value = e.results[0][0].transcript;
         micBtn.style.color = "black";
         executeSearch();
     };
+    recognition.onend = () => { micBtn.style.color = "black"; };
 }
 
-// 5. CLOSING LOGIC
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
     document.getElementById('fit-action-btn').style.display = 'block';
+    if(document.getElementById('add-to-cart-btn')) document.getElementById('add-to-cart-btn').style.display = 'none';
 };
