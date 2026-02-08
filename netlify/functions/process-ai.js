@@ -7,17 +7,17 @@ exports.handler = async (event) => {
         const { face, cloth, gender } = JSON.parse(event.body);
         const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 
-        // SWITCHING TO A NEWER, MORE STABLE PUBLIC MODEL
+        // Using the most widely accessible and verified public version
         const response = await axios.post(
             "https://api.replicate.com/v1/predictions",
             {
-                // This is a more modern, frequently updated deployment
-                version: "0a68434a428236173a193d9e4a3014a36266e55b48528559432bd21c7d7e985",
+                version: "69389280d0577d6124707e15546e7f8646f903e62095f99238d3845b4ef08f2a",
                 input: {
-                    image: face,
-                    garment_image: `https://${event.headers.host}/images/${cloth}`,
-                    description: `A ${gender} native outfit`,
-                    category: "upper_body"
+                    human_img: face,
+                    garm_img: `https://${event.headers.host}/images/${cloth}`,
+                    garment_des: `A ${gender} native outfit`,
+                    category: "upper_body",
+                    is_checked: true
                 }
             },
             {
