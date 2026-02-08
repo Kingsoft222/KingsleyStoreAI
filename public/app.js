@@ -32,7 +32,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 1000);
 });
 
-// --- 2. PROFILE ACTIONS (REPAIRING REMOVE BUTTON) ---
+// --- 2. PROFILE ACTIONS (FIXED REMOVE BUTTON) ---
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = () => { 
@@ -53,25 +53,28 @@ window.saveProfileData = () => {
     }
 };
 
+// FULLY FUNCTIONAL REMOVE BUTTON
 window.removeProfilePhoto = () => {
     const ownerImg = document.getElementById('owner-img');
     const saveBtn = document.getElementById('save-btn');
-    // Direct base64 for a blank/empty image to ensure it disappears
-    const emptyPixel = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     
-    if (confirm("Clear profile photo?")) {
+    // Transparent pixel to visually "clear" the frame
+    const transparentPixel = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    
+    if (confirm("Remove profile photo?")) {
         localStorage.removeItem('kingsley_profile_locked');
         userPhoto = "";
         if (ownerImg) {
-            ownerImg.src = emptyPixel; 
-            ownerImg.removeAttribute('src'); // Force clear for some browsers
-            ownerImg.src = "images/default-avatar.png"; // Set back to your default icon
+            ownerImg.src = transparentPixel; 
+            // Optional: If you have a default person icon, use that instead of transparentPixel
+            // ownerImg.src = "images/default-avatar.png"; 
         }
         if (saveBtn) saveBtn.style.display = 'none';
+        console.log("Profile cleared from memory and UI.");
     }
 };
 
-// --- 3. SEARCH & DUAL SHOWROOM CHOICE ---
+// --- 3. SEARCH & SHOWROOM CHOICE ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -97,13 +100,18 @@ window.promptShowroomChoice = (id) => {
     const resultArea = document.getElementById('ai-fitting-result');
     if (modal) modal.style.display = 'flex';
     
-    // UPDATED LABELS: See How You Look (Photo) / (Video)
+    // UPDATED: No "Upload Photo" button above choices
     resultArea.innerHTML = `
         <div id="choice-container" style="text-align:center; padding: 20px;">
-            <h3 style="color:white;">Select Your Experience</h3>
-            <div style="display:flex; flex-direction:column; gap:15px; align-items:center; margin-top:20px;">
-                <button onclick="prepareModeling('photo')" style="width:250px; background:#ffd700; color:black; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">📸 See How You Look (Photo)</button>
-                <button onclick="prepareModeling('video')" style="width:250px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid #ffd700; cursor:pointer; font-weight:bold;">🎥 See How You Look (Video)</button>
+            <h2 style="color:#d90429; margin-bottom:10px;">AI Showroom</h2>
+            <p style="color:white; margin-bottom:25px;">Select how you want to see yourself in this outfit</p>
+            <div style="display:flex; flex-direction:column; gap:15px; align-items:center;">
+                <button onclick="prepareModeling('photo')" style="width:280px; background:#ffd700; color:black; padding:18px; border-radius:12px; border:none; cursor:pointer; font-weight:bold; font-size:16px;">
+                    📸 See How You Look (Photo)
+                </button>
+                <button onclick="prepareModeling('video')" style="width:280px; background:#333; color:white; padding:18px; border-radius:12px; border:1px solid #ffd700; cursor:pointer; font-weight:bold; font-size:16px;">
+                    🎥 See How You Look (Video)
+                </button>
             </div>
         </div>
     `;
@@ -115,11 +123,12 @@ window.prepareModeling = (mode) => {
     currentMode = mode;
     const resultArea = document.getElementById('ai-fitting-result');
     
+    // UPDATED: No double buttons. Just the transformational action.
     resultArea.innerHTML = `
-        <div style="text-align:center;">
-            <p id="modal-subtext" style="color:white; margin-bottom:15px;">Upload your full photo to generate result</p>
+        <div style="text-align:center; padding: 20px;">
+            <p id="modal-subtext" style="color:white; margin-bottom:20px;">Upload your full photo to generate the ${mode} result</p>
             <input type="file" id="user-fit-input" accept="image/*" onchange="handleModelingUpload(event)" style="display:none;">
-            <button id="fit-action-btn" onclick="document.getElementById('user-fit-input').click()" style="background:#ffd700; color:black; padding:12px 25px; border-radius:8px; border:none; font-weight:bold; cursor:pointer;">
+            <button id="fit-action-btn" onclick="document.getElementById('user-fit-input').click()" style="background:#ffd700; color:black; padding:15px 30px; border-radius:10px; border:none; font-weight:bold; cursor:pointer; font-size:16px;">
                 Upload Photo
             </button>
         </div>
@@ -136,7 +145,7 @@ window.handleModelingUpload = (e) => {
         
         if (btn) {
             btn.innerText = "Rock your cloth"; 
-            subtext.innerText = "Looking good! Ready to generate result.";
+            subtext.innerText = "Ready! Tap the button to see the result.";
             btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
         }
     };
@@ -146,7 +155,7 @@ window.handleModelingUpload = (e) => {
 // --- 5. AI ENGINES ---
 async function startVertexModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
-    resultArea.innerHTML = `<p style="color:white; text-align:center;">Generating your photo result...</p>`;
+    resultArea.innerHTML = `<p style="color:white; text-align:center; margin-top:20px;">Generating your photo style...</p>`;
     
     try {
         const response = await fetch('/.netlify/functions/process-vertex', {
@@ -158,7 +167,7 @@ async function startVertexModeling() {
         resultArea.innerHTML = `
             <div style="width:100% !important; text-align:center;">
                 <img src="${data.outputImage}" style="width:100% !important; border-radius:15px; border: 4px solid #ffd700;">
-                <p style="color:gold; margin-top:10px;">Photo Style Applied!</p>
+                <p style="color:gold; margin-top:15px; font-weight:bold;">PHOTO RESULT READY</p>
             </div>
         `;
     } catch (e) {
@@ -168,7 +177,7 @@ async function startVertexModeling() {
 
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
-    resultArea.innerHTML = `<p style="color:white; text-align:center;">Generating your video result...</p>`;
+    resultArea.innerHTML = `<p style="color:white; text-align:center; margin-top:20px;">Sewing your video result...</p>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -183,7 +192,11 @@ async function startModeling() {
             if (result.status === "succeeded") {
                 clearInterval(checkInterval);
                 let finalUrl = Array.isArray(result.output) ? result.output[0] : (result.output.url || result.output);
-                resultArea.innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;"><source src="${finalUrl}" type="video/mp4"></video>`;
+                resultArea.innerHTML = `
+                    <video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                        <source src="${finalUrl}" type="video/mp4">
+                    </video>
+                    <p style="color:gold; margin-top:15px; font-weight:bold;">VIDEO RESULT READY</p>`;
             }
         }, 5000);
     } catch (e) {
