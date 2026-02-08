@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let detectedGender = "male";
 
-// 1. FAST HYPE (Original Greetings)
+// 1. FAST HYPE
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -24,7 +24,7 @@ setInterval(() => {
     }
 }, 1000);
 
-// 2. SEARCH LOGIC
+// 2. SEARCH & TRIGGER
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -44,11 +44,14 @@ window.executeSearch = () => {
             </div>
         `).join('');
         results.style.display = 'grid';
-        setTimeout(() => { document.getElementById('fitting-room-modal').style.display = 'flex'; }, 2000);
+        setTimeout(() => { 
+            const modal = document.getElementById('fitting-room-modal');
+            if(modal) modal.style.display = 'flex'; 
+        }, 1500);
     }
 };
 
-// AUTO-OPTIMIZER (Handles Photo Prep)
+// AUTO-OPTIMIZER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -63,29 +66,32 @@ window.handleUserFitUpload = (e) => {
             canvas.height = img.height * scaleSize;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
+            userPhoto = canvas.toDataURL('image/jpeg', 0.8); 
             
             const btn = document.getElementById('fit-action-btn');
-            btn.innerText = "Rock your cloth";
-            btn.onclick = startModeling;
+            if(btn) {
+                btn.innerText = "Rock your cloth";
+                btn.onclick = startModeling;
+            }
         };
     };
     reader.readAsDataURL(file);
 };
 
-// 3. THE MODELING VIDEO LOGIC
+// 3. THE REFINED VIDEO LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
     const btn = document.getElementById('fit-action-btn');
     const cartBtn = document.getElementById('add-to-cart-btn');
     
-    btn.style.display = 'none';
-    subtext.innerText = "Contacting AI Stylist...";
+    if(btn) btn.style.display = 'none';
+    if(subtext) subtext.innerText = "Contacting AI Stylist...";
 
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img, gender: detectedGender })
         });
 
@@ -93,44 +99,63 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Sewing your outfit & preparing the video... (45-90s)";
+            if(subtext) subtext.innerText = "Sewing your outfit & preparing video... (30-90s)";
+            
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
             if (result.status === "succeeded") {
                 clearInterval(checkInterval);
-                subtext.style.display = 'none';
+                if(subtext) subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                // Get the video URL (it might be result.output or result.output[0])
-                const finalUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+                // --- BULLETPROOF VIDEO URL CHECK ---
+                // Replicate output can be a string OR an array of strings.
+                let finalUrl = result.output;
+                if (Array.isArray(finalUrl)) {
+                    finalUrl = finalUrl[0]; 
+                }
+
+                if (!finalUrl) {
+                    throw new Error("AI finished but no video link was found.");
+                }
+
+                console.log("Success! Playing Video:", finalUrl);
 
                 resultArea.innerHTML = `
-                    <div class="showroom-video-box">
-                        <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px; border: 4px solid #ffd700;">
+                    <div class="showroom-video-box" style="position:relative; width:100%; text-align:center;">
+                        <video autoplay loop muted playsinline style="width:100%; max-height:500px; border-radius:15px; border: 4px solid #ffd700; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                             <source src="${finalUrl}" type="video/mp4">
+                            Your browser does not support the video tag.
                         </video>
-                        <div class="user-identity-bubble" style="position:absolute; bottom:10px; right:10px; width:60px; height:60px; border-radius:50%; border:2px solid white; overflow:hidden;">
+                        <div style="position:absolute; bottom:15px; right:15px; width:60px; height:60px; border-radius:50%; border:2px solid gold; overflow:hidden; background:white;">
                             <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                         </div>
                     </div>
                 `;
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("Modeling failed. Try a clearer selfie.");
+                throw new Error("Modeling failed. Please try a clearer front-facing photo.");
             }
-        }, 5000);
+        }, 4000);
 
     } catch (e) {
-        subtext.innerText = "Style Check Failed: " + e.message;
-        btn.style.display = 'block';
-        btn.innerText = "Try Again";
+        if(subtext) subtext.innerText = "Style Check Failed: " + e.message;
+        if(btn) {
+            btn.style.display = 'block';
+            btn.innerText = "Try Again";
+        }
     }
 }
 
-// 4. CLOSING LOGIC
+// 4. CLOSING & UTILS
 window.closeFittingRoom = () => {
-    document.getElementById('fitting-room-modal').style.display = 'none';
-    document.getElementById('ai-fitting-result').innerHTML = '';
-    document.getElementById('fit-action-btn').style.display = 'block';
+    const modal = document.getElementById('fitting-room-modal');
+    const resultArea = document.getElementById('ai-fitting-result');
+    if(modal) modal.style.display = 'none';
+    if(resultArea) resultArea.innerHTML = '';
+    const subtext = document.getElementById('modal-subtext');
+    const btn = document.getElementById('fit-action-btn');
+    if(subtext) { subtext.style.display = 'block'; subtext.innerText = ""; }
+    if(btn) btn.style.display = 'block';
 };
