@@ -16,7 +16,7 @@ exports.handler = async (event) => {
         const siteUrl = `https://${event.headers.host}`;
         const clothImageUrl = `${siteUrl}/images/${cloth}`;
 
-        // STABLE VERSION ID - Verified active as of today
+        // THIS IS THE STABLE VERSION ID THAT WORKS
         const response = await axios.post(
             "https://api.replicate.com/v1/predictions",
             {
@@ -45,7 +45,6 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // Detailed error logging for your Netlify dashboard
         console.error("AI Brain Error:", error.response ? error.response.data : error.message);
         return { 
             statusCode: 500, 
