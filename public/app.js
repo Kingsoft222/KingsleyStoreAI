@@ -14,9 +14,8 @@ let gIndex = 0;
 let userPhoto = ""; 
 let selectedCloth = null; 
 let detectedGender = "male";
-let selectedBodyType = "slim";
 
-// 1. FAST HYPE (Preserved your greetings)
+// 1. FAST HYPE
 setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
@@ -36,10 +35,9 @@ window.executeSearch = () => {
     if (matched.length > 0) {
         selectedCloth = matched[0];
         detectedGender = input.match(/ankara|dinner|nne|babe|baddie/) ? "female" : "male";
-        document.getElementById('body-type-selector').style.display = (detectedGender === "female") ? "block" : "none";
         
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="quickSelect('${item.img}')">
+            <div class="result-card">
                 <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
                 <p>${item.price}</p>
@@ -50,16 +48,10 @@ window.executeSearch = () => {
     }
 };
 
-window.setBodyType = (type) => {
-    selectedBodyType = type;
-    document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('active', b.innerText.toLowerCase() === type));
-};
-
 // AUTO-OPTIMIZER
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
-
     reader.onload = (event) => {
         const img = new Image();
         img.src = event.target.result;
@@ -69,7 +61,6 @@ window.handleUserFitUpload = (e) => {
             const scaleSize = MAX_WIDTH / img.width;
             canvas.width = MAX_WIDTH;
             canvas.height = img.height * scaleSize;
-
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             userPhoto = canvas.toDataURL('image/jpeg', 0.7); 
@@ -82,7 +73,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// 3. STABLE AI MODELING LOGIC (Updated to handle Video vs Image)
+// 3. VIDEO MODELING LOGIC
 async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const subtext = document.getElementById('modal-subtext');
@@ -102,7 +93,7 @@ async function startModeling() {
         if (!response.ok) throw new Error(data.error || "AI Brain Offline");
 
         let checkInterval = setInterval(async () => {
-            subtext.innerText = "Refining your look... (30-60s)";
+            subtext.innerText = "Generating your modeling video... (45-90s)";
             const check = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`);
             const result = await check.json();
 
@@ -111,97 +102,45 @@ async function startModeling() {
                 subtext.style.display = 'none';
                 if(cartBtn) cartBtn.style.display = 'block'; 
                 
-                const finalUrl = result.output || result.videoUrl;
+                // Use the output URL from Replicate
+                const finalUrl = result.output;
 
-                // Detect if output is video or image
-                const isVideo = finalUrl.includes('.mp4') || finalUrl.includes('video');
-
-                if (isVideo) {
-                    resultArea.innerHTML = `
-                        <div class="showroom-video-box">
-                            <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px;">
-                                <source src="${finalUrl}" type="video/mp4">
-                            </video>
-                            <div class="user-identity-bubble">
-                                <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
-                            </div>
+                resultArea.innerHTML = `
+                    <div class="showroom-video-box">
+                        <video autoplay loop muted playsinline class="modeling-video" style="width:100%; border-radius:15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+                            <source src="${finalUrl}" type="video/mp4">
+                        </video>
+                        <div class="user-identity-bubble">
+                            <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">
                         </div>
-                    `;
-                } else {
-                    resultArea.innerHTML = `
-                        <div class="showroom-image-box">
-                            <img src="${finalUrl}" style="width:100%; border-radius:15px;">
-                        </div>
-                    `;
-                }
+                    </div>
+                `;
             } else if (result.status === "failed") {
                 clearInterval(checkInterval);
-                throw new Error("AI could not map this photo.");
+                throw new Error("AI could not generate the video.");
             }
-        }, 4000);
+        }, 5000);
 
     } catch (e) {
-        handleAIFailure(resultArea, subtext, btn, e.message);
+        subtext.innerText = "Style Check Failed: " + e.message;
+        btn.style.display = 'block';
     }
 }
 
-function handleAIFailure(area, sub, btn, errorMsg) {
-    sub.innerText = "Style Check in Progress";
-    area.innerHTML = `
-        <div style="padding:30px; background:#f9f9f9; border-radius:20px; text-align:center; border: 1px solid #ddd; color: #333;">
-            <p style="font-weight:bold;">Refining your look...</p>
-            <p style="font-size:0.85rem; margin-bottom:10px;">Our AI Stylist needs a clearer photo. Please try a front-facing selfie in good lighting.</p>
-            <p style="font-size:0.7rem; color: #999;">Error log: ${errorMsg}</p>
-        </div>
-    `;
-    btn.style.display = 'block';
-    btn.innerText = "Try a Clearer Photo";
-}
-
-// 4. RESTORED MIC & ORIGINAL FUNCTIONS
+// 4. MIC & UTILS
 const micBtn = document.getElementById('mic-btn');
-if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+if ('webkitSpeechRecognition' in window) {
+    const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-NG';
-    micBtn.onclick = () => { recognition.start(); micBtn.style.color = "red"; };
+    micBtn.onclick = () => recognition.start();
     recognition.onresult = (e) => {
         document.getElementById('ai-input').value = e.results[0][0].transcript;
-        micBtn.style.color = "black";
         executeSearch();
     };
-    recognition.onend = () => { micBtn.style.color = "black"; };
 }
-
-window.addToCart = () => {
-    const count = document.getElementById('cart-count');
-    count.innerText = parseInt(count.innerText) + 1;
-    alert(`${selectedCloth.name} added to cart!`);
-};
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
-    document.getElementById('modal-subtext').style.display = 'block';
     document.getElementById('fit-action-btn').style.display = 'block';
-    if(document.getElementById('add-to-cart-btn')) document.getElementById('add-to-cart-btn').style.display = 'none';
-};
-
-window.quickSearch = (t) => { document.getElementById('ai-input').value = t; executeSearch(); };
-window.onload = () => {
-    const s = localStorage.getItem('kingsley_profile_locked');
-    if (s) document.getElementById('owner-img').src = s;
-};
-window.handleProfileUpload = (e) => {
-    const r = new FileReader();
-    r.onload = () => { document.getElementById('owner-img').src = r.result; document.getElementById('save-btn').style.display = 'inline-block'; };
-    r.readAsDataURL(e.target.files[0]);
-};
-window.saveProfileData = () => {
-    localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
-    document.getElementById('save-btn').style.display = 'none';
-};
-window.clearProfileData = () => {
-    localStorage.removeItem('kingsley_profile_locked');
-    document.getElementById('owner-img').src = 'images/kingsley.jpg';
 };
