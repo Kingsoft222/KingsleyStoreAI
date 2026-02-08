@@ -41,7 +41,7 @@ window.executeSearch = () => {
         selectedCloth = matched[0];
         
         // Gender Check for Body Type UI
-        if (input.includes("ankara") || input.includes("dinner") || input.includes("nne")) {
+        if (input.includes("ankara") || input.includes("dinner") || input.includes("nne") || input.includes("babe") || input.includes("baddie")) {
             detectedGender = "female";
             document.getElementById('body-type-selector').style.display = 'block';
         } else {
@@ -72,7 +72,7 @@ window.setBodyType = (type) => {
     event.target.classList.add('active');
 };
 
-// 3. MODELING LOGIC (Using slim_base.mp4 for now)
+// 3. MODELING LOGIC (With Simulation Overlays)
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -91,14 +91,22 @@ function startModeling() {
     const subtext = document.getElementById('modal-subtext');
     
     btn.style.display = 'none';
-    subtext.innerText = "Analyzing " + selectedBodyType + " body proportions...";
+    
+    // Outstanding UX: Realistic AI Processing Steps
+    subtext.innerText = "Scanning body proportions for " + selectedBodyType + " fit...";
+    
+    setTimeout(() => {
+        subtext.innerText = "Mapping face data to AI model...";
+    }, 1200);
 
     // Determine Video File
     let videoFile = "male_base.mp4";
     if (detectedGender === "female") {
-        // Once you have plump_base and athletic_base, the code is ready:
+        // Ready for tomorrow's plump/athletic files
         if (selectedBodyType === "slim") videoFile = "slim_base.mp4";
-        else videoFile = "slim_base.mp4"; // Fallback to slim until others are ready
+        else if (selectedBodyType === "plump") videoFile = "plump_base.mp4"; 
+        else if (selectedBodyType === "athletic") videoFile = "athletic_base.mp4";
+        else videoFile = "slim_base.mp4"; 
     }
 
     setTimeout(() => {
@@ -110,9 +118,14 @@ function startModeling() {
                 <video id="mod-vid" class="modeling-video" autoplay loop muted playsinline>
                     <source src="videos/${videoFile}" type="video/mp4">
                 </video>
+                
+                <img src="images/${selectedCloth.img}" style="position:absolute; top:20%; left:50%; transform:translateX(-50%); width:75%; opacity:0.7; mix-blend-mode:multiply; pointer-events:none; filter:contrast(1.2);">
+
                 <div class="user-identity-bubble">
                     <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
                 </div>
+
+                <div style="position:absolute; top:10px; right:10px; background:rgba(230,0,35,0.7); color:white; padding:4px 8px; border-radius:8px; font-size:10px; font-weight:bold;">AI LIVE TRY-ON</div>
             </div>
         `;
         document.getElementById('mod-vid').play();
@@ -149,19 +162,26 @@ window.closeFittingRoom = () => {
 };
 
 window.quickSearch = (t) => { document.getElementById('ai-input').value = t; executeSearch(); };
+
 window.onload = () => {
     const s = localStorage.getItem('kingsley_profile_locked');
     if (s) document.getElementById('owner-img').src = s;
 };
+
 window.handleProfileUpload = (e) => {
     const r = new FileReader();
-    r.onload = () => { document.getElementById('owner-img').src = r.result; document.getElementById('save-btn').style.display = 'inline-block'; };
+    r.onload = () => { 
+        document.getElementById('owner-img').src = r.result; 
+        document.getElementById('save-btn').style.display = 'inline-block'; 
+    };
     r.readAsDataURL(e.target.files[0]);
 };
+
 window.saveProfileData = () => {
     localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
     document.getElementById('save-btn').style.display = 'none';
 };
+
 window.clearProfileData = () => {
     localStorage.removeItem('kingsley_profile_locked');
     document.getElementById('owner-img').src = 'images/kingsley.jpg';
