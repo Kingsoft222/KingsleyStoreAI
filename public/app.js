@@ -1,3 +1,8 @@
+/**
+ * KingsleyStoreAI - Full Integrated App Logic
+ * Includes: Permanent Profile Persistence, Search-to-Modal Flow, and AI Modeling
+ */
+
 const clothesCatalog = [
     { id: 1, name: "Premium Red Senator", tags: "senator red native", img: "senator_red.jpg", price: "₦25k" },
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
@@ -21,6 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
     if (savedProfile) {
         const ownerImg = document.getElementById('owner-img');
         if (ownerImg) ownerImg.src = savedProfile;
+        // Also set userPhoto in case they want to model immediately
+        userPhoto = savedProfile;
     }
 });
 
@@ -38,10 +45,12 @@ window.handleProfileUpload = (e) => {
 };
 
 window.saveProfileData = () => {
-    const currentImg = document.getElementById('owner-img').src;
-    localStorage.setItem('kingsley_profile_locked', currentImg);
-    document.getElementById('save-btn').style.display = 'none';
-    alert("Profile saved permanently!");
+    const ownerImg = document.getElementById('owner-img');
+    if (ownerImg && ownerImg.src) {
+        localStorage.setItem('kingsley_profile_locked', ownerImg.src);
+        document.getElementById('save-btn').style.display = 'none';
+        alert("Profile saved permanently!");
+    }
 };
 
 // --- 3. SEARCH & PROMPT FLOW ---
@@ -54,7 +63,7 @@ window.executeSearch = () => {
 
     if (matched.length > 0) {
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="selectItem(${item.id})">
+            <div class="result-card" onclick="selectItem(${item.id})" style="cursor:pointer;">
                 <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
                 <p>${item.price}</p>
