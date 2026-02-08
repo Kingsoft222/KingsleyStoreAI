@@ -12,24 +12,19 @@ const greetings = [
 ];
 
 let gIndex = 0;
-let userModelImg = ""; 
+let userPhoto = ""; 
+let selectedClothImg = ""; 
 
-// 1. FAST HYPE ROTATION (1 Second)
-function fastCycleHype() {
+// 1. FAST HYPE (1 Second)
+setInterval(() => {
     const el = document.getElementById('dynamic-greeting');
     if (el) {
         gIndex = (gIndex + 1) % greetings.length;
         el.innerText = greetings[gIndex];
     }
-}
-setInterval(fastCycleHype, 1000); 
+}, 1000);
 
-// 2. PROFILE & SEARCH
-window.onload = () => {
-    const savedImg = localStorage.getItem('kingsley_profile_locked');
-    if (savedImg) document.getElementById('owner-img').src = savedImg;
-};
-
+// 2. SEARCH LOGIC
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -39,6 +34,7 @@ window.executeSearch = () => {
     );
 
     if (matched.length > 0) {
+        selectedClothImg = `images/${matched[0].img}`; 
         results.innerHTML = matched.map(item => `
             <div class="result-card">
                 <img src="images/${item.img}" alt="${item.name}">
@@ -48,14 +44,10 @@ window.executeSearch = () => {
         `).join('');
         results.style.display = 'grid';
 
-        // FAST POP-UP (2 Seconds)
+        // 2-SECOND POPUP
         setTimeout(() => {
             document.getElementById('fitting-room-modal').style.display = 'flex';
         }, 2000);
-
-    } else {
-        results.innerHTML = "<p>No results found.</p>";
-        results.style.display = 'grid';
     }
 };
 
@@ -64,14 +56,13 @@ window.quickSearch = (term) => {
     executeSearch();
 };
 
-// 3. AI FITTING ROOM: MODELING LOGIC
+// 3. FULL MODELING LOGIC (NO CROP)
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
-        userModelImg = event.target.result; 
+        userPhoto = event.target.result; 
         const btn = document.getElementById('fit-action-btn');
         btn.innerText = "Rock your cloth";
-        btn.style.background = "#28a745";
         btn.onclick = startModeling;
     };
     reader.readAsDataURL(e.target.files[0]);
@@ -81,15 +72,18 @@ function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const btn = document.getElementById('fit-action-btn');
     const subtext = document.getElementById('modal-subtext');
-
+    
     btn.style.display = 'none';
-    subtext.innerText = "Styling you in the showroom...";
+    subtext.innerText = "Generating your full modeling look...";
 
     setTimeout(() => {
-        subtext.innerText = "Looking sharp, Chief!";
+        subtext.innerText = "Perfect fit! You look amazing.";
         resultArea.innerHTML = `
             <div class="showroom-bg">
-                <img src="${userModelImg}" class="customer-modeling">
+                <div class="model-wrapper">
+                    <img src="${userPhoto}" class="customer-img">
+                    <img src="${selectedClothImg}" class="worn-cloth-overlay">
+                </div>
             </div>
         `;
     }, 1500);
@@ -97,11 +91,16 @@ function startModeling() {
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
+    document.getElementById('ai-fitting-result').innerHTML = '';
+    const btn = document.getElementById('fit-action-btn');
+    btn.innerText = "Upload Photo";
+    btn.style.display = 'block';
 };
 
-window.clearProfileData = () => {
-    localStorage.removeItem('kingsley_profile_locked');
-    document.getElementById('owner-img').src = 'images/kingsley.jpg';
+// Profile logic
+window.onload = () => {
+    const saved = localStorage.getItem('kingsley_profile_locked');
+    if (saved) document.getElementById('owner-img').src = saved;
 };
 
 window.handleProfileUpload = (e) => {
@@ -116,4 +115,9 @@ window.handleProfileUpload = (e) => {
 window.saveProfileData = () => {
     localStorage.setItem('kingsley_profile_locked', document.getElementById('owner-img').src);
     document.getElementById('save-btn').style.display = 'none';
+};
+
+window.clearProfileData = () => {
+    localStorage.removeItem('kingsley_profile_locked');
+    document.getElementById('owner-img').src = 'images/kingsley.jpg';
 };

@@ -35,22 +35,14 @@
     <div id="fitting-room-modal" class="voice-overlay" style="display:none;">
         <div class="voice-modal">
             <h2 style="color:var(--accent); margin-bottom:5px;">AI Fitting Room</h2>
-            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to checkout how this cloth looks on you</p>
+            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to see yourself in this outfit</p>
             
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="handleUserFitUpload(event)">
             <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
             
             <div id="ai-fitting-result"></div>
+            
             <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Close</button>
-        </div>
-    </div>
-
-    <div id="voice-overlay" class="voice-overlay" style="display:none;">
-        <div class="voice-modal">
-            <div class="wave-container">
-                <div class="wave"></div><div class="wave"></div><div class="wave"></div>
-            </div>
-            <p>Recording...</p>
         </div>
     </div>
 
@@ -58,14 +50,13 @@
         <div class="split-cards">
             <div class="chip left-end spaced-card" onclick="quickSearch('Dinner outfit')">
                 <strong>Dinner outfit</strong>
-                <span>See exclusive<br>female</span>
+                <span>See exclusive female</span>
             </div>
             <div class="chip right-end spaced-card" onclick="quickSearch('Trousers')">
                 <strong>Trousers</strong>
-                <span>Shop stylish<br>trousers</span>
+                <span>Shop stylish trousers</span>
             </div>
         </div>
-
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
             <span class="mic-icon bolder-icon" id="mic-btn">🎙️</span>
