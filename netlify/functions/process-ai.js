@@ -13,11 +13,10 @@ exports.handler = async (event) => {
             throw new Error("REPLICATE_API_TOKEN is missing in Netlify settings.");
         }
 
-        // Build the dynamic URL for your clothes images
         const siteUrl = `https://${event.headers.host}`;
         const clothImageUrl = `${siteUrl}/images/${cloth}`;
 
-        // STABLE VERSION: Using the verified IDM-VTON model
+        // STABLE VERSION ID - Verified active as of today
         const response = await axios.post(
             "https://api.replicate.com/v1/predictions",
             {
@@ -26,7 +25,7 @@ exports.handler = async (event) => {
                     garm_img: clothImageUrl,
                     human_img: face,
                     garment_des: `A ${gender} native outfit`,
-                    category: "upper_body", // Required for this version
+                    category: "upper_body", 
                     is_checked: true,
                     denoise_steps: 30
                 }
@@ -46,6 +45,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+        // Detailed error logging for your Netlify dashboard
         console.error("AI Brain Error:", error.response ? error.response.data : error.message);
         return { 
             statusCode: 500, 
