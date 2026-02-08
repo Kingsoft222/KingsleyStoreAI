@@ -17,7 +17,7 @@ let gIndex = 0;
 let userPhoto = ""; 
 let selectedCloth = null; 
 let detectedGender = "male";
-let selectedBodyType = "slim"; // Default for female
+let selectedBodyType = "slim"; 
 
 // 1. FAST HYPE (1 Second)
 setInterval(() => {
@@ -39,9 +39,7 @@ window.executeSearch = () => {
 
     if (matched.length > 0) {
         selectedCloth = matched[0];
-        
-        // Gender Check for Body Type UI
-        if (input.includes("ankara") || input.includes("dinner") || input.includes("nne") || input.includes("babe") || input.includes("baddie")) {
+        if (input.match(/ankara|dinner|nne|babe|baddie/)) {
             detectedGender = "female";
             document.getElementById('body-type-selector').style.display = 'block';
         } else {
@@ -64,7 +62,6 @@ window.executeSearch = () => {
     }
 };
 
-// Body Type Selector Logic
 window.setBodyType = (type) => {
     selectedBodyType = type;
     const btns = document.querySelectorAll('.type-btn');
@@ -72,7 +69,6 @@ window.setBodyType = (type) => {
     event.target.classList.add('active');
 };
 
-// 3. MODELING LOGIC (With Simulation Overlays)
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -84,55 +80,85 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-function startModeling() {
+// 3. DIAGNOSTIC MODELING LOGIC
+async function startModeling() {
     const resultArea = document.getElementById('ai-fitting-result');
     const btn = document.getElementById('fit-action-btn');
     const cartBtn = document.getElementById('add-to-cart-btn');
     const subtext = document.getElementById('modal-subtext');
     
     btn.style.display = 'none';
-    
-    // Outstanding UX: Realistic AI Processing Steps
-    subtext.innerText = "Scanning body proportions for " + selectedBodyType + " fit...";
-    
-    setTimeout(() => {
-        subtext.innerText = "Mapping face data to AI model...";
-    }, 1200);
+    subtext.innerText = "Connecting to AI Showroom Engine...";
 
-    // Determine Video File
-    let videoFile = "male_base.mp4";
-    if (detectedGender === "female") {
-        // Ready for tomorrow's plump/athletic files
-        if (selectedBodyType === "slim") videoFile = "slim_base.mp4";
-        else if (selectedBodyType === "plump") videoFile = "plump_base.mp4"; 
-        else if (selectedBodyType === "athletic") videoFile = "athletic_base.mp4";
-        else videoFile = "slim_base.mp4"; 
+    try {
+        // Step A: Send request to Netlify Function
+        const response = await fetch('/.netlify/functions/process-ai', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                face: userPhoto, 
+                cloth: selectedCloth.img, 
+                gender: detectedGender,
+                body: selectedBodyType
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server Error: ${response.status} - ${errorText}`);
+        }
+
+        const { predictionId } = await response.json();
+
+        // Step B: Poll for results
+        let checkInterval = setInterval(async () => {
+            subtext.innerText = "AI is re-painting the video with your face...";
+            
+            const check = await fetch(`/.netlify/functions/check-ai?id=${predictionId}`);
+            if (!check.ok) throw new Error("Connection lost while checking status");
+
+            const result = await check.json();
+
+            if (result.status === "succeeded") {
+                clearInterval(checkInterval);
+                subtext.style.display = 'none';
+                if(cartBtn) cartBtn.style.display = 'block'; 
+
+                resultArea.innerHTML = `
+                    <div class="showroom-video-box">
+                        <video id="mod-vid" class="modeling-video" autoplay loop muted playsinline>
+                            <source src="${result.videoUrl}" type="video/mp4">
+                        </video>
+                        <div class="user-identity-bubble">
+                            <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
+                        </div>
+                    </div>
+                `;
+            } else if (result.status === "failed") {
+                clearInterval(checkInterval);
+                throw new Error("AI could not process this photo.");
+            }
+        }, 3000);
+
+    } catch (e) {
+        console.error("DIAGNOSTIC ERROR:", e);
+        handleAIFailure(resultArea, subtext, btn, e.message);
     }
-
-    setTimeout(() => {
-        subtext.style.display = 'none'; 
-        if(cartBtn) cartBtn.style.display = 'block'; 
-
-        resultArea.innerHTML = `
-            <div class="showroom-video-box">
-                <video id="mod-vid" class="modeling-video" autoplay loop muted playsinline>
-                    <source src="videos/${videoFile}" type="video/mp4">
-                </video>
-                
-                <img src="images/${selectedCloth.img}" style="position:absolute; top:20%; left:50%; transform:translateX(-50%); width:75%; opacity:0.7; mix-blend-mode:multiply; pointer-events:none; filter:contrast(1.2);">
-
-                <div class="user-identity-bubble">
-                    <img src="${userPhoto}" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-
-                <div style="position:absolute; top:10px; right:10px; background:rgba(230,0,35,0.7); color:white; padding:4px 8px; border-radius:8px; font-size:10px; font-weight:bold;">AI LIVE TRY-ON</div>
-            </div>
-        `;
-        document.getElementById('mod-vid').play();
-    }, 3000);
 }
 
-// 4. MIC & CART
+function handleAIFailure(area, sub, btn, errorMsg) {
+    sub.innerText = "AI Connection Issue";
+    area.innerHTML = `
+        <div style="padding:30px; background:#fff5f5; border:2px dashed #ff4444; border-radius:20px; color:#cc0000; text-align:center;">
+            <p style="font-weight:bold;">Try Again</p>
+            <p style="font-size:0.85rem; margin-bottom:15px;">${errorMsg}</p>
+            <p style="font-size:0.8rem; color:#666;">Tip: Use a smaller photo (under 2MB) and ensure your face is clearly visible.</p>
+        </div>
+    `;
+    btn.style.display = 'block';
+    btn.innerText = "Try Another Photo";
+}
+
+// 4. MIC, CART, & PROFILE 
 const micBtn = document.getElementById('mic-btn');
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
