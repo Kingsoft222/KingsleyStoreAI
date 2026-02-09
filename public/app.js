@@ -1,6 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic
- * Matches index.html perfectly.
+ * Kingsley Store AI - Core Logic v3.1
+ * FIXED: Photo Try-On hand-off
+ * FIXED: Add to Cart visibility
+ * PRESERVED: Greetings, Remove Button, and UI Flow
  */
 
 const clothesCatalog = [
@@ -23,7 +25,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let currentMode = 'photo';
 
-// --- 1. BOOTSTRAP & MEMORY ---
+// --- 1. BOOTSTRAP (KEEPING THE FIXES) ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -32,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
         userPhoto = saved;
     }
     
-    // Greeting cycle
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
 });
 
-// --- 2. PROFILE ACTIONS (FIXED REMOVE) ---
+// --- 2. PROFILE ACTIONS ---
 window.handleProfileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -63,15 +64,12 @@ window.saveProfileData = () => {
     }
 };
 
-// This matches your HTML onclick="clearProfileData()"
 window.clearProfileData = () => {
     if (confirm("Remove profile photo?")) {
         localStorage.removeItem('kingsley_profile_locked');
         userPhoto = "";
         const img = document.getElementById('owner-img');
-        if (img) {
-            img.src = "images/kingsley.jpg"; // Reset to your default image
-        }
+        if (img) img.src = "images/kingsley.jpg";
         document.getElementById('save-btn').style.display = 'none';
     }
 };
@@ -110,7 +108,6 @@ window.promptShowroomChoice = (id) => {
 
     if (modal) modal.style.display = 'flex';
     
-    // Hide the default upload button initially to show choices
     uploadBtn.style.display = 'none';
     subtext.innerText = "Select how you want to see the " + selectedCloth.name;
 
@@ -133,11 +130,9 @@ window.initiateUploadFlow = (mode) => {
     const subtext = document.getElementById('modal-subtext');
 
     subtext.innerText = "Upload your photo for " + mode + " result";
-    resultArea.innerHTML = ""; // Clear choices
-    uploadBtn.style.display = 'block'; // Show the actual upload button from HTML
+    resultArea.innerHTML = ""; 
+    uploadBtn.style.display = 'block';
     uploadBtn.innerText = "Upload Photo";
-    
-    // Reset click action in case it was changed
     uploadBtn.onclick = () => document.getElementById('user-fit-input').click();
 };
 
@@ -145,7 +140,7 @@ window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
-        userPhoto = event.target.result;
+        userPhoto = event.target.result; // Update photo with the one for the fit
         const btn = document.getElementById('fit-action-btn');
         if (btn) {
             btn.innerText = "Rock your cloth"; 
@@ -155,24 +150,34 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// --- 4. ENGINES ---
+// --- 4. ENGINES (FIXED PHOTO TRY-ON & CART) ---
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
+    const cartBtn = document.getElementById('add-to-cart-btn');
     area.innerHTML = `<p style="color:#555; text-align:center;">Processing photo result...</p>`;
+    
     try {
         const response = await fetch('/.netlify/functions/process-vertex', {
             method: 'POST',
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
         });
         const data = await response.json();
-        area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
-        document.getElementById('fit-action-btn').style.display = 'none';
-        document.getElementById('add-to-cart-btn').style.display = 'block';
-    } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
+        
+        if (data.outputImage) {
+            area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
+            document.getElementById('fit-action-btn').style.display = 'none';
+            if (cartBtn) cartBtn.style.display = 'block'; // SHOW CART BUTTON
+        } else {
+            throw new Error("No image returned from Vertex");
+        }
+    } catch (e) { 
+        area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; 
+    }
 }
 
 async function startModeling() {
     const area = document.getElementById('ai-fitting-result');
+    const cartBtn = document.getElementById('add-to-cart-btn');
     area.innerHTML = `<p style="color:#555; text-align:center;">Sewing video result...</p>`;
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
@@ -187,7 +192,7 @@ async function startModeling() {
                 let url = Array.isArray(res.output) ? res.output[0] : res.output;
                 area.innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid var(--accent);"><source src="${url}" type="video/mp4"></video>`;
                 document.getElementById('fit-action-btn').style.display = 'none';
-                document.getElementById('add-to-cart-btn').style.display = 'block';
+                if (cartBtn) cartBtn.style.display = 'block'; // SHOW CART BUTTON
             }
         }, 5000);
     } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
