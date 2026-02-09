@@ -18,26 +18,24 @@ exports.handler = async (event) => {
         const token = (await client.getAccessToken()).token;
 
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
-        // Using the most robust model for clothing swaps
+        // Using @006 which supports automatic foreground masking
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const base64Image = image.split(';base64,').pop();
 
-        /** * THE ENFORCER PAYLOAD
-         * We are using 'inpainting-insert' with 'MASK_MODE_FOREGROUND'
-         * This forces the AI to detect the person and swap their clothes.
+        /** * THE "RESTORED" PAYLOAD
+         * This uses the specific Inpainting structure required for 2026
          */
         const payload = {
             instances: [{
-                prompt: `A professional, high-quality fashion photo of the person in the input image wearing a luxury ${cloth} senator native outfit. The new clothing must perfectly replace the current outfit. High-end fabric, 8k resolution.`,
+                prompt: `A high-quality fashion photo. The person is now wearing a luxury ${cloth} senator native outfit for men. Realistic fabric, professional lighting, maintain the person's face.`,
                 image: { 
-                    bytesBase64Encoded: base64Image,
-                    mimeType: "image/png" 
+                    bytesBase64Encoded: base64Image
                 }
             }],
             parameters: {
                 sampleCount: 1,
-                // These are the "Top Notch" settings that force the swap
+                // These parameters force the AI to 'edit' the person specifically
                 editMode: "inpainting-insert",
                 maskConfig: {
                     maskMode: "MASK_MODE_FOREGROUND" 
@@ -54,9 +52,9 @@ exports.handler = async (event) => {
             }
         });
 
-        // Get the generated image
         const prediction = response.data.predictions[0];
         
+        // Return the dressed image back to the app
         return {
             statusCode: 200,
             headers,
@@ -67,12 +65,12 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("CRITICAL_SWAP_ERROR:", error.response?.data || error.message);
+        console.error("TOP_NOTCH_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
-                error: 'Vertex AI Failed', 
+                error: 'Vertex AI Processing Failed', 
                 details: error.message 
             })
         };
