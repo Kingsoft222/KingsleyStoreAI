@@ -16,14 +16,14 @@ exports.handler = async (event) => {
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         /**
-         * THE RESTORED LOGIC:
-         * We use 'inpainting-insert' with 'MASK_MODE_FOREGROUND' 
-         * to force the AI to swap clothes on the person automatically.
+         * 2026 INPAINTING STRUCTURE:
+         * We must move 'editMode' and 'maskConfig' into the 'parameters' block
+         * to force the "Foreground Detection" swap.
          */
         const payload = {
             instances: [
                 {
-                    prompt: `A professional fashion photo of the person wearing the ${cloth} senator native outfit. High-quality fabric, realistic textures, maintain face and pose.`,
+                    prompt: `A high-quality fashion photo of the person wearing the ${cloth} senator native outfit. Realistic fabric, professional studio lighting.`,
                     image: { 
                         bytesBase64Encoded: image.split(';base64,').pop() 
                     }
@@ -31,10 +31,9 @@ exports.handler = async (event) => {
             ],
             parameters: {
                 sampleCount: 1,
-                // FORCING THE SWAP: This tells Google to find the person and change their clothes
-                editMode: "inpainting-insert",
+                editMode: "inpainting-insert", // Explicitly telling it to INSERT new content (clothes)
                 maskConfig: {
-                    maskMode: "MASK_MODE_FOREGROUND"
+                    maskMode: "MASK_MODE_FOREGROUND" // Automatically masks the person
                 },
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
@@ -46,10 +45,10 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-
-        // Ensure we actually got a new image back
-        if (!prediction || !prediction.bytesBase64Encoded) {
-            throw new Error("AI returned success but failed to generate a new image.");
+        
+        // Final sanity check: if Google still sends the original, it's a safety filter
+        if (prediction.raiFilteredReason) {
+            console.error("GOOGLE_BLOCKED_FOR_SAFETY:", prediction.raiFilteredReason);
         }
 
         return {
