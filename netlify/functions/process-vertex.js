@@ -8,10 +8,14 @@ exports.handler = async (event) => {
     };
 
     try {
-        console.log("--- START VERTEX CALL ---");
-        const { image, cloth } = JSON.parse(event.body);
+        const body = JSON.parse(event.body);
+        const { image, cloth } = body;
 
-        // 1. AUTH
+        if (!image || !cloth) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing image/cloth' }) };
+        }
+
+        // 1. AUTHENTICATION
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -20,31 +24,36 @@ exports.handler = async (event) => {
         const tokenResponse = await client.getAccessToken();
         const token = tokenResponse.token;
 
-        // 2. CONFIG (Restoring the image-generation@006 model)
+        // 2. ENDPOINT SETUP
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
         const LOCATION = 'us-central1';
+        // Restoring the specific model version that worked
         const apiURL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/image-generation@006:predict`;
 
+        // 3. DATA PREP (Strict cleaning)
         const base64Image = image.split(';base64,').pop();
 
-        /** * 3. THE RESTORED PROMPT
-         * Using the exact structure that previously triggered the clothing swap.
+        /** * 4. THE PAYLOAD (Corrected for image-generation@006)
+         * We explicitly add mimeType to the instance to stop silent failures.
          */
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo of the person in the input image wearing the ${cloth} senator native outfit. Maintain person's face and pose, realistic fabric textures, professional lighting.`,
-                image: { bytesBase64Encoded: base64Image }
+                prompt: `A professional fashion photo of the person provided wearing the ${cloth} senator native outfit. High quality fabric, realistic fit, professional lighting.`,
+                image: { 
+                    bytesBase64Encoded: base64Image,
+                    mimeType: "image/png" 
+                }
             }],
             parameters: {
                 sampleCount: 1,
                 aspectRatio: "1:1",
-                // Safety overrides to prevent silent failures
+                // Safety overrides: 'block_none' ensures the AI doesn't silently ignore the prompt
                 safetySetting: "block_none",
-                personGeneration: "allow_adult"
+                personGeneration: "allow_adult",
+                includeRaiReason: true
             }
         };
 
-        console.log("Requesting swap for cloth:", cloth);
         const response = await axios.post(apiURL, payload, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -52,39 +61,32 @@ exports.handler = async (event) => {
             }
         });
 
-        // 4. STRICT RESULT CHECK
-        if (!response.data.predictions || response.data.predictions.length === 0) {
-            console.error("GOOGLE_SILENT_FAIL: No prediction returned. Check Safety filters.");
-            throw new Error("AI returned success but no image was generated. Try a different photo.");
+        // 5. VALIDATION
+        const prediction = response.data.predictions && response.data.predictions[0];
+        
+        if (!prediction || !prediction.bytesBase64Encoded) {
+            throw new Error("AI successfully reached but returned no image bytes. Check Safety filters.");
         }
-
-        const prediction = response.data.predictions[0];
-        // If Google sends back the original image, we log it
-        if (prediction.raiFilteredReason) {
-            console.warn("SAFETY_FILTER_TRIGGERED:", prediction.raiFilteredReason);
-        }
-
-        const finalBase64 = prediction.bytesBase64Encoded;
 
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${finalBase64}`,
+                outputImage: `data:image/png;base64,${prediction.bytesBase64Encoded}`,
                 status: "success"
             })
         };
 
     } catch (error) {
-        // This will now DEFINITELY show up on your Netlify Dashboard
-        console.error("LOG_ERROR_DETAIL:", error.response ? JSON.stringify(error.response.data) : error.message);
+        // This console.error is what you will see in your Netlify dashboard logs
+        console.error("STRICT_VERTEX_ERROR:", error.response ? JSON.stringify(error.response.data) : error.message);
         
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
-                error: 'Vertex AI Processing Failed', 
-                details: error.response?.data?.error?.message || error.message 
+                error: 'Vertex Processing Failed', 
+                details: error.message 
             })
         };
     }
