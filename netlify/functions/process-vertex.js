@@ -13,7 +13,6 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing data' }) };
         }
 
-        // 1. AUTHENTICATION (Using your saved Netlify Variables)
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -22,31 +21,35 @@ exports.handler = async (event) => {
         const tokenResponse = await client.getAccessToken();
         const token = tokenResponse.token;
 
-        // 2. VERTEX SETUP
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
         const LOCATION = 'us-central1';
-        const apiURL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/image-generation@006:predict`;
-
-        // 3. IMAGE PREP
-        const base64Image = image.split(';base64,').pop();
-
+        
         /**
-         * 4. THE RESTORED PROMPT
-         * This prompt is designed specifically for clothing replacement.
+         * UPDATED MODEL: Using the dedicated 'virtual-try-on-001'
+         * This model expects a person image AND a product image.
          */
+        const apiURL = `https://${LOCATION-aiplatform.googleapis.com}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/virtual-try-on-001:predict`;
+
+        const base64Person = image.split(';base64,').pop();
+        
+        // IMPORTANT: In your catalog, the cloth is a filename (e.g., 'senator_red.jpg').
+        // We assume you have these stored in your public images folder.
+        // For the AI to work, we point it to that cloth image.
+        const clothUrl = `https://your-site.netlify.app/images/${cloth}`;
+
         const payload = {
             instances: [{
-                prompt: `A hyper-realistic fashion photograph of the person in the input image, now wearing the ${cloth} senator native outfit. The new clothing must perfectly replace the original outfit, maintaining the person's pose and background. High fashion, 8k resolution.`,
-                image: { bytesBase64Encoded: base64Image }
+                personImage: { bytesBase64Encoded: base64Person },
+                productImage: { 
+                    // We use the image URL of the garment from your store
+                    imageUri: clothUrl 
+                }
             }],
             parameters: {
                 sampleCount: 1,
-                aspectRatio: "1:1",
-                outputMimeType: "image/png",
-                // Ensuring the AI focuses on "edit" mode rather than "new image" mode
-                editConfig: {
-                    editMode: "CLOTHING_REPLACEMENT" 
-                }
+                // Setting safety to 'block_only_high' to prevent silent failures
+                safetySetting: "block_only_high", 
+                personGeneration: "allow_adult"
             }
         };
 
@@ -57,8 +60,9 @@ exports.handler = async (event) => {
             }
         });
 
-        // 5. EXTRACT & RETURN
+        // The virtual-try-on model returns an array of results
         const generatedBase64 = response.data.predictions[0].bytesBase64Encoded;
+
         return {
             statusCode: 200,
             headers,
@@ -69,11 +73,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("Vertex AI Error:", error.message);
+        console.error("Vertex AI Error:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'AI Swap Failed: ' + (error.response?.data?.error?.message || error.message) })
+            body: JSON.stringify({ error: 'Try-on failed: ' + (error.response?.data?.error?.message || error.message) })
         };
     }
 };
