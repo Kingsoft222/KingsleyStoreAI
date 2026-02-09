@@ -15,17 +15,29 @@ exports.handler = async (event) => {
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
+        /**
+         * THE RESTORED LOGIC:
+         * We use 'inpainting-insert' with 'MASK_MODE_FOREGROUND' 
+         * to force the AI to swap clothes on the person automatically.
+         */
         const payload = {
-            instances: [{
-                prompt: `A high-quality fashion photo. Change the person's clothes. They are now wearing a ${cloth} senator native outfit. High-end fabric, professional studio lighting.`,
-                image: { bytesBase64Encoded: image.split(';base64,').pop() }
-            }],
+            instances: [
+                {
+                    prompt: `A professional fashion photo of the person wearing the ${cloth} senator native outfit. High-quality fabric, realistic textures, maintain face and pose.`,
+                    image: { 
+                        bytesBase64Encoded: image.split(';base64,').pop() 
+                    }
+                }
+            ],
             parameters: {
                 sampleCount: 1,
-                // Setting safety to the lowest possible to prevent silent failures
+                // FORCING THE SWAP: This tells Google to find the person and change their clothes
+                editMode: "inpainting-insert",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND"
+                },
                 safetySetting: "block_only_high",
-                personGeneration: "allow_adult",
-                includeRaiReason: true // THIS IS THE KEY: It forces Google to tell us WHY it failed
+                personGeneration: "allow_adult"
             }
         };
 
@@ -35,10 +47,9 @@ exports.handler = async (event) => {
 
         const prediction = response.data.predictions[0];
 
-        // If Google returns the original image because it was filtered, throw an error
-        if (prediction.raiFilteredReason) {
-            console.error("GOOGLE_FILTERED_REASON:", prediction.raiFilteredReason);
-            throw new Error(`AI Filtered: ${prediction.raiFilteredReason}`);
+        // Ensure we actually got a new image back
+        if (!prediction || !prediction.bytesBase64Encoded) {
+            throw new Error("AI returned success but failed to generate a new image.");
         }
 
         return {
@@ -51,7 +62,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("CRITICAL_FAIL:", error.response?.data || error.message);
+        console.error("STRICT_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
