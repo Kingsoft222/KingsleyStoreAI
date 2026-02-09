@@ -3,14 +3,10 @@ const axios = require('axios');
 
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-
     try {
         const body = JSON.parse(event.body);
-        // We handle both potential key names ('image' from new code, 'face' from old code)
         const image = body.image || body.face;
         const cloth = body.cloth;
-
-        console.log(`Processing swap: Cloth=${cloth}, Project=${process.env.GOOGLE_PROJECT_ID}`);
 
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
@@ -19,22 +15,23 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // Using the 2026 stable try-on endpoint
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
+        /**
+         * 2026 UPDATED ENDPOINT: Dedicated Virtual Try-On
+         * Note: the model name is now 'virtual-try-on-001'
+         */
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
         const payload = {
             instances: [{
-                prompt: `A professional studio fashion photo. Change the person's outfit to a luxury ${cloth} senator native outfit. High-end fabric, realistic fit, maintain face identity.`,
-                image: { bytesBase64Encoded: image.split(';base64,').pop() }
+                // The new model requires these specific keys
+                person_image: { bytesBase64Encoded: image.split(';base64,').pop() },
+                garment_description: `A luxury ${cloth} senator native outfit for men`
             }],
             parameters: {
                 sampleCount: 1,
-                editMode: "inpainting-insert",
-                maskConfig: {
-                    maskMode: "MASK_MODE_FOREGROUND" 
-                },
-                safetySetting: "block_only_high",
-                personGeneration: "allow_adult"
+                // Higher guidance forces the model to actually change the pixels
+                guidanceScale: 75 
             }
         };
 
@@ -42,19 +39,21 @@ exports.handler = async (event) => {
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
 
+        // The try-on model returns 'image' inside the prediction
         const prediction = response.data.predictions[0];
-        
+        const output = prediction.bytesBase64Encoded || prediction.image?.bytesBase64Encoded;
+
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${prediction.bytesBase64Encoded}`,
+                outputImage: `data:image/png;base64,${output}`,
                 status: "success"
             })
         };
 
     } catch (error) {
-        console.error("LOG_ERROR:", error.response?.data || error.message);
+        console.error("TRY_ON_CRITICAL_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
