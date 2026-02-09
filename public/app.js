@@ -1,8 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v3.1
- * FIXED: Photo Try-On hand-off
- * FIXED: Add to Cart visibility
- * PRESERVED: Greetings, Remove Button, and UI Flow
+ * Kingsley Store AI - Core Logic v3.2
+ * FIXED: Vertex Photo Try-On Data Pass
+ * PRESERVED: UI, Colors, Greetings, and Cart Logic
  */
 
 const clothesCatalog = [
@@ -25,7 +24,7 @@ let userPhoto = "";
 let selectedCloth = null; 
 let currentMode = 'photo';
 
-// --- 1. BOOTSTRAP (KEEPING THE FIXES) ---
+// --- 1. BOOTSTRAP (PRESERVING ALL FIXES) ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -140,7 +139,7 @@ window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
-        userPhoto = event.target.result; // Update photo with the one for the fit
+        userPhoto = event.target.result;
         const btn = document.getElementById('fit-action-btn');
         if (btn) {
             btn.innerText = "Rock your cloth"; 
@@ -150,25 +149,31 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// --- 4. ENGINES (FIXED PHOTO TRY-ON & CART) ---
+// --- 4. ENGINES (CORRECTED DATA HAND-OFF) ---
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
     const cartBtn = document.getElementById('add-to-cart-btn');
     area.innerHTML = `<p style="color:#555; text-align:center;">Processing photo result...</p>`;
     
     try {
+        // We now send 'image' and 'cloth' as the standard keys for Vertex Try-On
         const response = await fetch('/.netlify/functions/process-vertex', {
             method: 'POST',
-            body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                image: userPhoto, 
+                cloth: selectedCloth.img 
+            })
         });
+        
         const data = await response.json();
         
         if (data.outputImage) {
             area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
-            if (cartBtn) cartBtn.style.display = 'block'; // SHOW CART BUTTON
+            if (cartBtn) cartBtn.style.display = 'block';
         } else {
-            throw new Error("No image returned from Vertex");
+            throw new Error("Modeling failed. Please try a clearer photo.");
         }
     } catch (e) { 
         area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; 
@@ -182,6 +187,7 @@ async function startModeling() {
     try {
         const response = await fetch('/.netlify/functions/process-ai', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
         });
         const data = await response.json();
@@ -192,7 +198,7 @@ async function startModeling() {
                 let url = Array.isArray(res.output) ? res.output[0] : res.output;
                 area.innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid var(--accent);"><source src="${url}" type="video/mp4"></video>`;
                 document.getElementById('fit-action-btn').style.display = 'none';
-                if (cartBtn) cartBtn.style.display = 'block'; // SHOW CART BUTTON
+                if (cartBtn) cartBtn.style.display = 'block';
             }
         }, 5000);
     } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
