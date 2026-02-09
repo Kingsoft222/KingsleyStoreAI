@@ -2,70 +2,43 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-    };
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
-        const body = JSON.parse(event.body);
-        const { image, cloth } = body;
-
-        if (!image || !cloth) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing image/cloth' }) };
-        }
-
-        // 1. AUTHENTICATION
+        const { image, cloth } = JSON.parse(event.body);
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
         });
         const client = await auth.getClient();
-        const tokenResponse = await client.getAccessToken();
-        const token = tokenResponse.token;
+        const token = (await client.getAccessToken()).token;
 
-        // 2. ENDPOINT SETUP
-        const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
-        const LOCATION = 'us-central1';
-        // Restoring the specific model version that worked
-        const apiURL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/image-generation@006:predict`;
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        // 3. DATA PREP (Strict cleaning)
-        const base64Image = image.split(';base64,').pop();
-
-        /** * 4. THE PAYLOAD (Corrected for image-generation@006)
-         * We explicitly add mimeType to the instance to stop silent failures.
-         */
         const payload = {
             instances: [{
-                prompt: `A professional fashion photo of the person provided wearing the ${cloth} senator native outfit. High quality fabric, realistic fit, professional lighting.`,
-                image: { 
-                    bytesBase64Encoded: base64Image,
-                    mimeType: "image/png" 
-                }
+                prompt: `A high-quality fashion photo. Change the person's clothes. They are now wearing a ${cloth} senator native outfit. High-end fabric, professional studio lighting.`,
+                image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                aspectRatio: "1:1",
-                // Safety overrides: 'block_none' ensures the AI doesn't silently ignore the prompt
-                safetySetting: "block_none",
+                // Setting safety to the lowest possible to prevent silent failures
+                safetySetting: "block_only_high",
                 personGeneration: "allow_adult",
-                includeRaiReason: true
+                includeRaiReason: true // THIS IS THE KEY: It forces Google to tell us WHY it failed
             }
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
 
-        // 5. VALIDATION
-        const prediction = response.data.predictions && response.data.predictions[0];
-        
-        if (!prediction || !prediction.bytesBase64Encoded) {
-            throw new Error("AI successfully reached but returned no image bytes. Check Safety filters.");
+        const prediction = response.data.predictions[0];
+
+        // If Google returns the original image because it was filtered, throw an error
+        if (prediction.raiFilteredReason) {
+            console.error("GOOGLE_FILTERED_REASON:", prediction.raiFilteredReason);
+            throw new Error(`AI Filtered: ${prediction.raiFilteredReason}`);
         }
 
         return {
@@ -78,16 +51,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // This console.error is what you will see in your Netlify dashboard logs
-        console.error("STRICT_VERTEX_ERROR:", error.response ? JSON.stringify(error.response.data) : error.message);
-        
+        console.error("CRITICAL_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
-                error: 'Vertex Processing Failed', 
-                details: error.message 
-            })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
