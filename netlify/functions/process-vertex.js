@@ -2,17 +2,10 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = { 
-        'Content-Type': 'application/json', 
-        'Access-Control-Allow-Origin': '*' 
-    };
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
-        // 1. Ensure we have data
-        if (!event.body) throw new Error("No body found in request");
         const { image, cloth } = JSON.parse(event.body);
-        
-        // 2. Auth with Google
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -20,20 +13,27 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // 3. Request Swap
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
-        
+        // Using the 2026 stable capability model for editing
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
+
+        const base64Image = image.split(';base64,').pop();
+
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. Realistic fabric, perfect fit.`,
-                image: { bytesBase64Encoded: image.split(';base64,').pop() }
+                // Forceful prompt for direct replacement
+                prompt: `A professional studio fashion photograph. The person is now wearing a premium ${cloth} senator native outfit. The new outfit perfectly replaces the original clothes. Maintain face and pose.`,
+                image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
+                // These specific keys bypass the silent return of the original image
                 editMode: "inpainting-insert",
-                maskMode: "foreground",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND" 
+                },
                 safetySetting: "block_only_high",
-                personGeneration: "allow_adult"
+                personGeneration: "allow_adult",
+                includeRaiReason: true
             }
         };
 
@@ -42,7 +42,8 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-        
+
+        // Return the dressed image
         return {
             statusCode: 200,
             headers,
@@ -53,11 +54,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("FAIL:", error.message);
+        console.error("SWAP_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
+            body: JSON.stringify({ error: 'AI Swap Failed', details: error.message })
         };
     }
 };
