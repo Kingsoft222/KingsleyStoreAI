@@ -2,10 +2,17 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+    const headers = { 
+        'Content-Type': 'application/json', 
+        'Access-Control-Allow-Origin': '*' 
+    };
 
     try {
+        // 1. Ensure we have data
+        if (!event.body) throw new Error("No body found in request");
         const { image, cloth } = JSON.parse(event.body);
+        
+        // 2. Auth with Google
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -13,24 +20,18 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
+        // 3. Request Swap
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
-
-        const base64Image = image.split(';base64,').pop();
-
-        /** * 2026 INSTRUCTION-BASED EDITING
-         * This forces the AI to detect people and swap clothes specifically.
-         */
+        
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. The fabric is sharp, the fit is perfect. Complete clothing replacement.`,
-                image: { bytesBase64Encoded: base64Image }
+                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. Realistic fabric, perfect fit.`,
+                image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                // These are the "Top Notch" force-swap keys for 2026
                 editMode: "inpainting-insert",
-                maskMode: "foreground", // This forces person detection
-                includeRaiReason: true, 
+                maskMode: "foreground",
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
             }
@@ -41,14 +42,7 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-
-        // CRITICAL DEBUG: If Google filtered it, this will now show in your logs
-        if (prediction.raiFilteredReason) {
-            console.error("GOOGLE_SILENT_FILTER_REASON:", prediction.raiFilteredReason);
-            // We force a 500 error so you know it was a filter fail, not a code fail
-            return { statusCode: 500, headers, body: JSON.stringify({ error: `AI Blocked: ${prediction.raiFilteredReason}` }) };
-        }
-
+        
         return {
             statusCode: 200,
             headers,
@@ -59,11 +53,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("STRICT_FAIL:", error.response?.data || error.message);
+        console.error("FAIL:", error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Vertex AI Processing Failed', details: error.message })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
