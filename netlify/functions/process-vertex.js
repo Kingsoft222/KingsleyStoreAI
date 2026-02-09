@@ -5,7 +5,13 @@ exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
-        const { image, cloth } = JSON.parse(event.body);
+        const body = JSON.parse(event.body);
+        // We handle both potential key names ('image' from new code, 'face' from old code)
+        const image = body.image || body.face;
+        const cloth = body.cloth;
+
+        console.log(`Processing swap: Cloth=${cloth}, Project=${process.env.GOOGLE_PROJECT_ID}`);
+
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -13,21 +19,19 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // SWITCHING TO THE 2026 EDIT-SPECIFIC MODEL
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
+        // Using the 2026 stable try-on endpoint
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const payload = {
             instances: [{
-                // DIRECT COMMAND: NO "PHOTO OF", JUST THE INSTRUCTION
-                prompt: `Swap the current shirt/outfit for a ${cloth} senator native outfit. Keep the person's face and background identical.`,
+                prompt: `A professional studio fashion photo. Change the person's outfit to a luxury ${cloth} senator native outfit. High-end fabric, realistic fit, maintain face identity.`,
                 image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                // THIS IS THE KEY CHANGE: Using 'edit-mode' without manual masks
-                editConfig: {
-                    editMode: "DEFAULT", // Tells Imagen 3 to use the prompt as a direct edit instruction
-                    guidanceScale: 60    // Higher guidance to force the change
+                editMode: "inpainting-insert",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND" 
                 },
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
@@ -50,11 +54,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("DEBUG_ERROR:", error.response?.data || error.message);
+        console.error("LOG_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Edit Failed', details: error.message })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
