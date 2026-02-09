@@ -9,6 +9,7 @@ exports.handler = async (event) => {
 
     try {
         const { image, cloth } = JSON.parse(event.body);
+        
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -18,29 +19,25 @@ exports.handler = async (event) => {
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        // Clean the image data
         const base64Image = image.split(';base64,').pop();
 
-        /** * THE 2026 "INPAINT-ADD" PAYLOAD
-         * This uses automatic mask detection to find the person 
-         * and replace their clothes specifically.
+        /** * THE "ENFORCER" PAYLOAD
+         * We increase guidance_scale to 100 to force the AI to follow the prompt.
+         * We also use 'inpainting-insert' with lowercase 'foreground'.
          */
         const payload = {
             instances: [{
-                prompt: `A high-quality, professional fashion photo of the person provided wearing a ${cloth} senator native outfit. The new clothing must perfectly replace the existing outfit. High-end fabric textures, maintain the person's identity and background.`,
-                image: { 
-                    bytesBase64Encoded: base64Image
-                }
+                // Using a more forceful, descriptive prompt
+                prompt: `High-resolution studio fashion photo. The man in the picture is now wearing a premium ${cloth} senator native outfit. The fabric is sharp, the fit is perfect, and it completely replaces the original clothes.`,
+                image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
-                // These specific keys are required for the @006 'Edit' mode
-                editConfig: {
-                    editMode: "inpainting-insert",
-                    maskConfig: {
-                        maskMode: "MASK_MODE_FOREGROUND" 
-                    }
-                },
+                editMode: "inpainting-insert",
+                maskMode: "foreground", 
+                // Increased guidance forces the AI to obey the text instruction
+                guidanceScale: 100, 
+                maskDilation: 0.03,
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
             }
@@ -54,7 +51,7 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-
+        
         return {
             statusCode: 200,
             headers,
@@ -65,8 +62,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // This will print the EXACT error from Google in your Netlify logs
-        console.error("GOOGLE_API_ERROR:", error.response?.data || error.message);
+        console.error("TOP_NOTCH_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
