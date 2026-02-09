@@ -2,14 +2,10 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = { 
-        'Content-Type': 'application/json', 
-        'Access-Control-Allow-Origin': '*' 
-    };
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
         const { image, cloth } = JSON.parse(event.body);
-        
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -21,37 +17,38 @@ exports.handler = async (event) => {
 
         const base64Image = image.split(';base64,').pop();
 
-        /** * THE "ENFORCER" PAYLOAD
-         * We increase guidance_scale to 100 to force the AI to follow the prompt.
-         * We also use 'inpainting-insert' with lowercase 'foreground'.
+        /** * 2026 INSTRUCTION-BASED EDITING
+         * This forces the AI to detect people and swap clothes specifically.
          */
         const payload = {
             instances: [{
-                // Using a more forceful, descriptive prompt
-                prompt: `High-resolution studio fashion photo. The man in the picture is now wearing a premium ${cloth} senator native outfit. The fabric is sharp, the fit is perfect, and it completely replaces the original clothes.`,
+                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. The fabric is sharp, the fit is perfect. Complete clothing replacement.`,
                 image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
+                // These are the "Top Notch" force-swap keys for 2026
                 editMode: "inpainting-insert",
-                maskMode: "foreground", 
-                // Increased guidance forces the AI to obey the text instruction
-                guidanceScale: 100, 
-                maskDilation: 0.03,
+                maskMode: "foreground", // This forces person detection
+                includeRaiReason: true, 
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
             }
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: { 
-                'Authorization': `Bearer ${token}`, 
-                'Content-Type': 'application/json' 
-            }
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
 
         const prediction = response.data.predictions[0];
-        
+
+        // CRITICAL DEBUG: If Google filtered it, this will now show in your logs
+        if (prediction.raiFilteredReason) {
+            console.error("GOOGLE_SILENT_FILTER_REASON:", prediction.raiFilteredReason);
+            // We force a 500 error so you know it was a filter fail, not a code fail
+            return { statusCode: 500, headers, body: JSON.stringify({ error: `AI Blocked: ${prediction.raiFilteredReason}` }) };
+        }
+
         return {
             statusCode: 200,
             headers,
@@ -62,14 +59,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("TOP_NOTCH_ERROR:", error.response?.data || error.message);
+        console.error("STRICT_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
-                error: 'Vertex AI Processing Failed', 
-                details: error.message 
-            })
+            body: JSON.stringify({ error: 'Vertex AI Processing Failed', details: error.message })
         };
     }
 };
