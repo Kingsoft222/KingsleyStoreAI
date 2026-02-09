@@ -18,25 +18,23 @@ exports.handler = async (event) => {
         const token = (await client.getAccessToken()).token;
 
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
-        // Using @006 which supports automatic foreground masking
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const base64Image = image.split(';base64,').pop();
 
-        /** * THE "RESTORED" PAYLOAD
-         * This uses the specific Inpainting structure required for 2026
+        /** * THE 2026 "MAGIC" PAYLOAD
+         * We use 'editMode: "product-image"' or 'inpainting-insert'
+         * paired with 'MASK_MODE_FOREGROUND' to force the clothing swap.
          */
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. The person is now wearing a luxury ${cloth} senator native outfit for men. Realistic fabric, professional lighting, maintain the person's face.`,
-                image: { 
-                    bytesBase64Encoded: base64Image
-                }
+                prompt: `A high-quality, professional fashion photo of the person provided wearing the ${cloth} senator native outfit. The new clothing must perfectly replace the existing outfit. High-end fabric textures.`,
+                image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
-                // These parameters force the AI to 'edit' the person specifically
-                editMode: "inpainting-insert",
+                // This is the specific instruction to "edit" instead of "generate"
+                editMode: "inpainting-insert", 
                 maskConfig: {
                     maskMode: "MASK_MODE_FOREGROUND" 
                 },
@@ -52,9 +50,9 @@ exports.handler = async (event) => {
             }
         });
 
+        // If Google sends back the original, we want to know why
         const prediction = response.data.predictions[0];
         
-        // Return the dressed image back to the app
         return {
             statusCode: 200,
             headers,
