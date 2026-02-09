@@ -10,7 +10,6 @@ exports.handler = async (event) => {
     try {
         const { image, cloth } = JSON.parse(event.body);
         
-        // 1. SECURE AUTH
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -18,23 +17,27 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // 2. STABLE MODEL (Using @005 for better "replacement" logic)
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@005:predict`;
+        // Using the most robust model for clothing swaps
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const base64Image = image.split(';base64,').pop();
 
-        /** * 3. THE "SWAP" CONFIGURATION
-         * We use 'inpainting-insert' to force the AI to REMOVE old clothes 
-         * and INSERT the new Senator outfit.
+        /** * THE ENFORCER PAYLOAD
+         * We are using 'inpainting-insert' with 'MASK_MODE_FOREGROUND'
+         * This forces the AI to detect the person and swap their clothes.
          */
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. Replace the current outfit with a luxury ${cloth} senator native outfit for men. Realistic fabric, perfectly fitted, maintain the person's face and background.`,
-                image: { bytesBase64Encoded: base64Image }
+                prompt: `A professional, high-quality fashion photo of the person in the input image wearing a luxury ${cloth} senator native outfit. The new clothing must perfectly replace the current outfit. High-end fabric, 8k resolution.`,
+                image: { 
+                    bytesBase64Encoded: base64Image,
+                    mimeType: "image/png" 
+                }
             }],
             parameters: {
                 sampleCount: 1,
+                // These are the "Top Notch" settings that force the swap
                 editMode: "inpainting-insert",
                 maskConfig: {
                     maskMode: "MASK_MODE_FOREGROUND" 
@@ -51,11 +54,9 @@ exports.handler = async (event) => {
             }
         });
 
-        // 4. RESULT HANDLING
+        // Get the generated image
         const prediction = response.data.predictions[0];
         
-        // If the AI returned the same image, it means the 'mask' failed
-        // We return the output directly to the app.js
         return {
             statusCode: 200,
             headers,
@@ -66,12 +67,12 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("TOP_NOTCH_ERROR:", error.response?.data || error.message);
+        console.error("CRITICAL_SWAP_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
-                error: 'Vertex AI Processing Failed', 
+                error: 'Vertex AI Failed', 
                 details: error.message 
             })
         };
