@@ -2,10 +2,15 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+    const headers = { 
+        'Content-Type': 'application/json', 
+        'Access-Control-Allow-Origin': '*' 
+    };
 
     try {
         const { image, cloth } = JSON.parse(event.body);
+        
+        // 1. SECURE AUTH
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -13,27 +18,26 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        // 2. STABLE MODEL (Using @005 for better "replacement" logic)
+        const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@005:predict`;
 
-        /**
-         * 2026 INPAINTING STRUCTURE:
-         * We must move 'editMode' and 'maskConfig' into the 'parameters' block
-         * to force the "Foreground Detection" swap.
+        const base64Image = image.split(';base64,').pop();
+
+        /** * 3. THE "SWAP" CONFIGURATION
+         * We use 'inpainting-insert' to force the AI to REMOVE old clothes 
+         * and INSERT the new Senator outfit.
          */
         const payload = {
-            instances: [
-                {
-                    prompt: `A high-quality fashion photo of the person wearing the ${cloth} senator native outfit. Realistic fabric, professional studio lighting.`,
-                    image: { 
-                        bytesBase64Encoded: image.split(';base64,').pop() 
-                    }
-                }
-            ],
+            instances: [{
+                prompt: `A high-quality fashion photo. Replace the current outfit with a luxury ${cloth} senator native outfit for men. Realistic fabric, perfectly fitted, maintain the person's face and background.`,
+                image: { bytesBase64Encoded: base64Image }
+            }],
             parameters: {
                 sampleCount: 1,
-                editMode: "inpainting-insert", // Explicitly telling it to INSERT new content (clothes)
+                editMode: "inpainting-insert",
                 maskConfig: {
-                    maskMode: "MASK_MODE_FOREGROUND" // Automatically masks the person
+                    maskMode: "MASK_MODE_FOREGROUND" 
                 },
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
@@ -41,16 +45,17 @@ exports.handler = async (event) => {
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            headers: { 
+                'Authorization': `Bearer ${token}`, 
+                'Content-Type': 'application/json' 
+            }
         });
 
+        // 4. RESULT HANDLING
         const prediction = response.data.predictions[0];
         
-        // Final sanity check: if Google still sends the original, it's a safety filter
-        if (prediction.raiFilteredReason) {
-            console.error("GOOGLE_BLOCKED_FOR_SAFETY:", prediction.raiFilteredReason);
-        }
-
+        // If the AI returned the same image, it means the 'mask' failed
+        // We return the output directly to the app.js
         return {
             statusCode: 200,
             headers,
@@ -61,11 +66,14 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("STRICT_FAIL:", error.response?.data || error.message);
+        console.error("TOP_NOTCH_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
+            body: JSON.stringify({ 
+                error: 'Vertex AI Processing Failed', 
+                details: error.message 
+            })
         };
     }
 };
