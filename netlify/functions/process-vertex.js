@@ -13,27 +13,24 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // Using the 2026 stable capability model for editing
+        // SWITCHING TO THE 2026 EDIT-SPECIFIC MODEL
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
-
-        const base64Image = image.split(';base64,').pop();
 
         const payload = {
             instances: [{
-                // Forceful prompt for direct replacement
-                prompt: `A professional studio fashion photograph. The person is now wearing a premium ${cloth} senator native outfit. The new outfit perfectly replaces the original clothes. Maintain face and pose.`,
-                image: { bytesBase64Encoded: base64Image }
+                // DIRECT COMMAND: NO "PHOTO OF", JUST THE INSTRUCTION
+                prompt: `Swap the current shirt/outfit for a ${cloth} senator native outfit. Keep the person's face and background identical.`,
+                image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                // These specific keys bypass the silent return of the original image
-                editMode: "inpainting-insert",
-                maskConfig: {
-                    maskMode: "MASK_MODE_FOREGROUND" 
+                // THIS IS THE KEY CHANGE: Using 'edit-mode' without manual masks
+                editConfig: {
+                    editMode: "DEFAULT", // Tells Imagen 3 to use the prompt as a direct edit instruction
+                    guidanceScale: 60    // Higher guidance to force the change
                 },
                 safetySetting: "block_only_high",
-                personGeneration: "allow_adult",
-                includeRaiReason: true
+                personGeneration: "allow_adult"
             }
         };
 
@@ -42,8 +39,7 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-
-        // Return the dressed image
+        
         return {
             statusCode: 200,
             headers,
@@ -54,11 +50,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("SWAP_FAIL:", error.response?.data || error.message);
+        console.error("DEBUG_ERROR:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'AI Swap Failed', details: error.message })
+            body: JSON.stringify({ error: 'Edit Failed', details: error.message })
         };
     }
 };
