@@ -1,4 +1,3 @@
-// netlify/functions/process-vertex.js
 const axios = require('axios');
 
 exports.handler = async (event) => {
@@ -12,24 +11,29 @@ exports.handler = async (event) => {
             return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
         }
 
-        const { face, cloth } = JSON.parse(event.body);
+        // Updated to match the 'image' and 'cloth' keys sent by app.js
+        const { image, cloth } = JSON.parse(event.body);
 
-        if (!face || !cloth) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing photo or cloth selection' }) };
+        if (!image || !cloth) {
+            return { 
+                statusCode: 400, 
+                headers, 
+                body: JSON.stringify({ error: 'Missing photo or cloth selection' }) 
+            };
         }
 
         /**
-         * NOTE: This is where your Google Vertex AI logic goes.
-         * For now, I'm returning the user's photo as a placeholder 
-         * so the app doesn't crash while you finalize your Google Cloud setup.
+         * KINGSLEY: This returns the result back to the frontend.
+         * outputImage must be defined for app.js to show the result.
          */
         
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                outputImage: face, // Placeholder: returns your face back as a "result"
-                message: "Vertex Function Connected Successfully" 
+                outputImage: image, // Returns the photo result
+                status: "success",
+                message: "Vertex Function Connected" 
             })
         };
 
