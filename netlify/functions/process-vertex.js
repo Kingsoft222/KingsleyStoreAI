@@ -8,10 +8,16 @@ exports.handler = async (event) => {
     };
 
     try {
-        const { image, cloth } = JSON.parse(event.body);
-        if (!image || !cloth) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing data' }) };
+        console.log("Function Triggered: Analyzing request body...");
+        const body = JSON.parse(event.body);
+        const { image, cloth } = body;
 
-        // 1. AUTH
+        if (!image || !cloth) {
+            console.error("Validation Error: Missing image or cloth data.");
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing image or cloth' }) };
+        }
+
+        // --- AUTH SECTION ---
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -20,40 +26,29 @@ exports.handler = async (event) => {
         const tokenResponse = await client.getAccessToken();
         const token = tokenResponse.token;
 
-        // 2. CONFIG
+        // --- RESTORED MODEL CONFIG ---
         const PROJECT_ID = process.env.GOOGLE_PROJECT_ID;
         const LOCATION = 'us-central1';
-        const apiURL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/virtual-try-on-001:predict`;
+        const modelId = 'image-generation@006';
+        const apiURL = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
 
-        // 3. PREPARE DATA
-        const base64Person = image.split(';base64,').pop();
-        
-        // This must be the FULL URL to the cloth image on your live site
-        const clothUrl = `https://kingsleystoreai.netlify.app/images/${cloth}`;
+        const base64Image = image.split(';base64,').pop();
 
-        /**
-         * 4. EXACT GOOGLE STRUCTURE (Updated for 2026)
-         * Note the nested "image" keys - this is where most people fail.
+        /** * RESTORED PAYLOAD:
+         * This matches the original prompt structure you said "worked" 
          */
         const payload = {
-            instances: [
-                {
-                    personImage: {
-                        image: { bytesBase64Encoded: base64Person }
-                    },
-                    productImages: [
-                        {
-                            image: { imageUri: clothUrl }
-                        }
-                    ]
-                }
-            ],
+            instances: [{
+                prompt: `A high-quality fashion photo of the person provided wearing the ${cloth} senator native outfit. Professional lighting, realistic fabric.`,
+                image: { bytesBase64Encoded: base64Image }
+            }],
             parameters: {
                 sampleCount: 1,
-                personGeneration: "allow_adult"
+                aspectRatio: "1:1"
             }
         };
 
+        console.log("Calling Vertex AI API...");
         const response = await axios.post(apiURL, payload, {
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -61,9 +56,14 @@ exports.handler = async (event) => {
             }
         });
 
-        // 5. EXTRACT
-        const prediction = response.data.predictions[0];
-        const generatedBase64 = prediction.bytesBase64Encoded;
+        // ERROR CATCH: Check if predictions exist
+        if (!response.data.predictions || response.data.predictions.length === 0) {
+            console.error("Vertex Error: API returned success but zero predictions.");
+            throw new Error("AI returned no results. Check if Billing or API is restricted.");
+        }
+
+        const generatedBase64 = response.data.predictions[0].bytesBase64Encoded;
+        console.log("Success: Image generated successfully.");
 
         return {
             statusCode: 200,
@@ -75,13 +75,17 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("LOG_ERROR:", error.response?.data || error.message);
+        // Detailed error for Netlify Dashboard
+        const errorDetail = error.response ? JSON.stringify(error.response.data) : error.message;
+        console.error("CRITICAL ERROR:", errorDetail);
+
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
-                error: 'AI Error', 
-                details: error.response?.data?.error?.message || error.message 
+                error: 'Vertex AI Processing Failed', 
+                message: error.message,
+                details: errorDetail 
             })
         };
     }
