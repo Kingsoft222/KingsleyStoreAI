@@ -3,11 +3,9 @@ const axios = require('axios');
 
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-    try {
-        const body = JSON.parse(event.body);
-        const image = body.image || body.face;
-        const cloth = body.cloth;
 
+    try {
+        const { image, cloth } = JSON.parse(event.body);
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -17,30 +15,34 @@ exports.handler = async (event) => {
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        /**
-         * 2026 BRUTE FORCE:
-         * We stop trying to "Inpaint" and instead use "Image-to-Image"
-         * with a very high prompt weight to force the change.
+        // 1. Clean the image data
+        const base64Image = image.split(';base64,').pop();
+
+        /** * RESTORED DAY 1 LOGIC:
+         * We remove 'editMode', 'maskMode', and 'inpainting'.
+         * This forces the AI to do a full 'Image-to-Image' generation 
+         * based on your prompt.
          */
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. Replace the current clothes with a luxury ${cloth} senator native outfit. Maintain the person's face and pose.`,
-                image: { bytesBase64Encoded: image.split(';base64,').pop() }
+                prompt: `A professional studio fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. High-end fabric textures, realistic fit, maintain the person's identity and background perfectly.`,
+                image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
-                // We remove editMode and maskConfig to stop the 'Silent Success' failure
+                // We set guidanceScale high to force the AI to change the clothes
+                guidanceScale: 60,
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
             }
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
 
         const prediction = response.data.predictions[0];
-        
+
         return {
             statusCode: 200,
             headers,
@@ -51,11 +53,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("DEBUG_FAIL:", error.message);
+        console.error("DAY_1_RESET_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Processing failed', details: error.message })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
