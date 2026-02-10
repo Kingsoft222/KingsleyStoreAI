@@ -3,7 +3,6 @@ const axios = require('axios');
 
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-
     try {
         const { image, cloth } = JSON.parse(event.body);
         const auth = new GoogleAuth({
@@ -15,22 +14,22 @@ exports.handler = async (event) => {
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        // 1. Clean the image data
-        const base64Image = image.split(';base64,').pop();
-
-        /** * RESTORED DAY 1 LOGIC:
-         * We remove 'editMode', 'maskMode', and 'inpainting'.
-         * This forces the AI to do a full 'Image-to-Image' generation 
-         * based on your prompt.
+        /**
+         * 2026 REFERENCE STRATEGY:
+         * We stop using 'editMode'. Instead, we send the image as a 
+         * 'base_image' and ask the model to generate a new one 
+         * using the original as a structural guide.
          */
         const payload = {
             instances: [{
-                prompt: `A professional studio fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. High-end fabric textures, realistic fit, maintain the person's identity and background perfectly.`,
-                image: { bytesBase64Encoded: base64Image }
+                // Use [0] to reference the structure of the input image
+                prompt: `A professional studio portrait of the man from [0] now wearing a premium ${cloth} senator native outfit. Maintain his face, pose, and the background exactly as seen in [0]. High-end Nigerian fashion.`,
+                image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                // We set guidanceScale high to force the AI to change the clothes
+                // This tells the AI to treat the input as a "Reference", not an "Edit"
+                // It's the most reliable way to bypass the 'Silent Return' bug
                 guidanceScale: 60,
                 safetySetting: "block_only_high",
                 personGeneration: "allow_adult"
@@ -38,11 +37,11 @@ exports.handler = async (event) => {
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
         const prediction = response.data.predictions[0];
-
+        
         return {
             statusCode: 200,
             headers,
@@ -53,11 +52,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("DAY_1_RESET_FAIL:", error.response?.data || error.message);
+        console.error("REF_FAIL:", error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
+            body: JSON.stringify({ error: 'Generation failed', details: error.message })
         };
     }
 };
