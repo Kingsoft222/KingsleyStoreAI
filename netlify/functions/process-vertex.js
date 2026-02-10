@@ -5,10 +5,7 @@ exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
-        const body = JSON.parse(event.body);
-        const image = body.image || body.face;
-        const cloth = body.cloth;
-
+        const { image, cloth } = JSON.parse(event.body);
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -16,49 +13,54 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        /**
-         * 2026 OFFICIAL ENDPOINT: Dedicated Virtual Try-On
-         * Replacing the general 'image-generation' with 'virtual-try-on-001'
-         */
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const payload = {
             instances: [{
-                // The new model requires these specific keys for success
-                person_image: { bytesBase64Encoded: image.split(';base64,').pop() },
-                garment_description: `A luxury ${cloth} senator native outfit for men`
+                prompt: `A high-quality fashion photo. The person is now wearing a luxury ${cloth} senator native outfit. Realistic fabric, perfect fit.`,
+                image: { bytesBase64Encoded: image.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
-                // Setting guidance higher forces the change
-                guidanceScale: 75, 
+                editMode: "inpainting-insert",
+                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" },
+                safetySetting: "block_none", // We use block_none to force the most permissive check
+                personGeneration: "allow_adult",
                 includeRaiReason: true
             }
         };
 
         const response = await axios.post(apiURL, payload, {
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // The try-on model returns 'image' inside the prediction result
         const prediction = response.data.predictions[0];
-        const output = prediction.bytesBase64Encoded || prediction.image?.bytesBase64Encoded;
+
+        /**
+         * THE DIAGNOSTIC CHECK: 
+         * If Google sends the same image back, we FORCE an error 
+         * so we can see the 'raiFilteredReason' in the logs.
+         */
+        if (prediction.raiFilteredReason || !prediction.bytesBase64Encoded) {
+            throw new Error(`GOOGLE_REJECTION: ${prediction.raiFilteredReason || 'Silent Filter'}`);
+        }
 
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${output}`,
+                outputImage: `data:image/png;base64,${prediction.bytesBase64Encoded}`,
                 status: "success"
             })
         };
 
     } catch (error) {
-        console.error("FINAL_TRYON_FAIL:", error.response?.data || error.message);
+        // This will now print the EXACT reason in your Netlify Function Logs
+        console.error("CRITICAL_DIAGNOSTIC:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
+            body: JSON.stringify({ error: 'Diagnostic Failed', details: error.message })
         };
     }
 };
