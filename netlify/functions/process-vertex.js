@@ -6,9 +6,8 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body);
-        // Supports both 'image' and 'face' keys from your different app versions
-        const imageData = body.image || body.face;
-        const clothName = body.cloth;
+        const image = body.image || body.face;
+        const cloth = body.cloth;
 
         const auth = new GoogleAuth({
             credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
@@ -17,20 +16,23 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        /**
+         * 2026 OFFICIAL ENDPOINT: Dedicated Virtual Try-On
+         * Replacing the general 'image-generation' with 'virtual-try-on-001'
+         */
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
         const payload = {
             instances: [{
-                // Forceful prompt for direct replacement
-                prompt: `A high-quality studio fashion photo of the man from the input image now wearing a premium ${clothName} senator native outfit. Maintain his face and pose exactly.`,
-                image: { bytesBase64Encoded: imageData.split(';base64,').pop() }
+                // The new model requires these specific keys for success
+                person_image: { bytesBase64Encoded: image.split(';base64,').pop() },
+                garment_description: `A luxury ${cloth} senator native outfit for men`
             }],
             parameters: {
                 sampleCount: 1,
-                // Bypassing the 'editMode' complex logic that causes silent fails
-                safetySetting: "block_only_high", 
-                personGeneration: "allow_adult",
-                includeRaiReason: true // Forces Google to log the specific safety reason if it fails
+                // Setting guidance higher forces the change
+                guidanceScale: 75, 
+                includeRaiReason: true
             }
         };
 
@@ -38,25 +40,25 @@ exports.handler = async (event) => {
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
 
+        // The try-on model returns 'image' inside the prediction result
         const prediction = response.data.predictions[0];
+        const output = prediction.bytesBase64Encoded || prediction.image?.bytesBase64Encoded;
 
-        // Return the final result
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${prediction.bytesBase64Encoded}`,
+                outputImage: `data:image/png;base64,${output}`,
                 status: "success"
             })
         };
 
     } catch (error) {
-        // This will now print the EXACT reason Google is rejecting the request
-        console.error("STRICT_FAIL:", error.response?.data || error.message);
+        console.error("FINAL_TRYON_FAIL:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'AI Processing Failed', details: error.message })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
