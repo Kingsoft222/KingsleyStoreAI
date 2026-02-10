@@ -13,21 +13,30 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // Switching back to @005 which is more stable for custom clothing swaps
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@005:predict`;
+        // Using @006 which supports the specific 2026 inpainting-insert mode
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
+        const base64Image = image.split(';base64,').pop();
+
+        /** * THE 2026 UNBLOCKER PAYLOAD
+         * We use 'inpainting-insert' with 'MASK_MODE_FOREGROUND'
+         * explicitly for clothing replacement.
+         */
         const payload = {
             instances: [{
-                // We use a simpler prompt to avoid triggering "deepfake" filters
-                prompt: `A man wearing a ${cloth} senator native outfit. Studio lighting, high quality.`,
-                image: { bytesBase64Encoded: image.split(';base64,').pop() }
+                prompt: `A professional studio fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. The fabric is sharp, the fit is perfect, and it completely replaces the original clothes.`,
+                image: { bytesBase64Encoded: base64Image }
             }],
             parameters: {
                 sampleCount: 1,
-                // These three settings are the key to bypassing the "Silent Fail"
-                safetySetting: "block_none", 
+                // These specific keys are required to break the "original image" loop
+                editMode: "inpainting-insert",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND" 
+                },
+                safetySetting: "block_only_high",
                 personGeneration: "allow_adult",
-                negativePrompt: "nude, shirtless, blurry, distorted face"
+                includeRaiReason: true
             }
         };
 
@@ -36,7 +45,8 @@ exports.handler = async (event) => {
         });
 
         const prediction = response.data.predictions[0];
-        
+
+        // Return the dressed image
         return {
             statusCode: 200,
             headers,
@@ -47,17 +57,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // This will now catch and show the EXACT reason Google is mad
-        const errorData = error.response?.data;
-        console.error("CRITICAL_FAIL:", JSON.stringify(errorData) || error.message);
-        
+        console.error("FAIL_DETAILS:", error.response?.data || error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
-                error: 'Vertex AI Blocked the Request', 
-                details: errorData?.error?.message || error.message 
-            })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
