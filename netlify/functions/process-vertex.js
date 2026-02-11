@@ -12,9 +12,16 @@ const INTERNAL_KEY = {
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
     try {
+        if (!event.body) throw new Error("Empty request body");
         const body = JSON.parse(event.body);
-        const rawImage = body.face || body.image || body.userPhoto;
+        
+        // Grab the image no matter what the field name is
+        const rawImage = body.face || body.image || body.userPhoto || body.photo;
         const cloth = body.cloth || "senator native outfit";
+
+        if (!rawImage) throw new Error("No image data found in request");
+
+        // Clean base64 string
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const auth = new GoogleAuth({ credentials: INTERNAL_KEY, scopes: 'https://www.googleapis.com/auth/cloud-platform' });
@@ -25,13 +32,13 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A high-quality fashion photo. Change the clothes of the person in the image to a premium ${cloth}. Keep the face and background identical.`,
+                prompt: `A high-quality fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric, maintain face.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
                 sampleCount: 1,
-                // NEW STRATEGY: Using "product-image" mode as it's more stable for clothing swaps without masks
-                editMode: "product-image", 
+                editMode: "inpainting-insert",
+                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" },
                 personGeneration: "allow_adult",
                 safetySetting: "block_none"
             }
@@ -42,7 +49,12 @@ exports.handler = async (event) => {
         const output = response.data.predictions[0].bytesBase64Encoded;
         return { statusCode: 200, headers, body: JSON.stringify({ outputImage: `data:image/png;base64,${output}`, status: "success" }) };
 
-    } catch (error) {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: "Modeling failed. Try again.", details: error.message }) };
+    } catch (e) {
+        console.error("FATAL_ERROR:", e.message);
+        return { 
+            statusCode: 500, 
+            headers, 
+            body: JSON.stringify({ error: "Modeling failed", details: e.message }) 
+        };
     }
 };
