@@ -1,7 +1,6 @@
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
-// SMARTER FIX: Hardcoding the key to stop the 'Env Key missing' loop once and for all.
 const INTERNAL_KEY = {
   "type": "service_account",
   "project_id": "kingsleystoreai",
@@ -11,15 +10,11 @@ const INTERNAL_KEY = {
 };
 
 exports.handler = async (event) => {
-    const headers = { 
-        'Content-Type': 'application/json', 
-        'Access-Control-Allow-Origin': '*' 
-    };
-
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
     try {
         const { face, cloth } = JSON.parse(event.body);
 
-        // Uses the hardcoded key directly
+        // No more process.env checks. We go straight to the hardcoded key.
         const auth = new GoogleAuth({
             credentials: INTERNAL_KEY,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -30,38 +25,22 @@ exports.handler = async (event) => {
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        const payload = {
+        const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional studio fashion photo. The person is now wearing a luxury ${cloth} senator native outfit. High quality, realistic fit.`,
+                prompt: `A man wearing a ${cloth} senator native outfit.`,
                 image: { bytesBase64Encoded: face.split(';base64,').pop() }
             }],
-            parameters: {
-                sampleCount: 1,
-                editMode: "inpainting-insert",
-                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" },
-                safetySetting: "block_none" 
-            }
-        };
-
-        const response = await axios.post(apiURL, payload, {
+            parameters: { sampleCount: 1, editMode: "inpainting-insert", maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }, safetySetting: "block_none" }
+        }, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}`,
-                status: "success"
-            })
+            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
         };
-
-    } catch (error) {
-        console.error("SMART_FIX_FAIL:", error.message);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ error: 'Modeling failed', details: error.message })
-        };
+    } catch (e) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
     }
 };
