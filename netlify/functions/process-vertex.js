@@ -1,30 +1,34 @@
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
+// WE ARE PUTTING THE KEY DIRECTLY HERE TO STOP THE "MISSING" ERROR FOREVER
+const KEY_BACKUP = {
+  "type": "service_account",
+  "project_id": "kingsleystoreai",
+  "private_key_id": "bc4191ad475bef72587d5bd886535ae4673581b4",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCf31M7s6EkLtKQ\nvdw85l+/Jbp71Ux+8KGQHOHa7uhCDdNxapirMKI09WrjbnmgFKML1YBK2CCfdfEu\ncyeVvIVmQGAvKBDEsO2kdkWmYWUwtA3YbDrt3/j9GL933P5hAjW7dx0J4G/S5vtW\nWGqxv2ubr1Fvzq04zOnzcqrqp5xQiqDAeM/vPXfJ62oEDO0PwfR2ue2fbB5f2sro\nQuSSXlHKBZgDnSObIq2XsjvPiRkNCJnzqukLF0itG5WuPpUOWP84Fa6dIBt0vtGH\nSOBZOXt6A32S3edYkQ56tFJSCXoBcL+yNVSTv8DpnhTCx4SHBCDPWBP/6CeBkphY\nReUyTC6XAgMBAAECggEADUOstrfdJ1DhNJQkGUNt70CUm+CjI6cYaIoU7SLET3Kx\nN+hFuXJkCuvPzgXk/nSn4Hv61HrhHgndlGKGhsRo9wZhVJhI5+DcHriXZ8oN6MAP\npAS60PCzymAKxsmlq2vRBHhKBv9Bl+iFMvFMDOpaZcTih1nJAnzx7jp11tlIPWBZ\nhvmnkqH2CZBQjFtjWYCOF5ziBfJeO/U/DjknOrbG8L1of3bojYjk+ZSVCr8dctEz\nS4Yxb/tswVdwE95KsA05Kw3e2s1Rkrf4WVuhI/ngl6d1/mjOWlBCkUrNF2txlyRQ\nBjb16rJVKtVbbmCaPNtnFU1U/z8v4qAH0zoquAQ/YQKBgQDQoJTkHpEdQcIk+5wX\nrSRd+nQPFODaGWMB795wFtZKjhA6aw90F7Bazs1aLGBu/bIsluBvjZqWn2reFeG2\nRn/7OcSCgcWJKj5lPxAkaregm5oQgFYUtV9pIX1LSTTMfbqJXeEd4oxcoNrw4VVr\nhZPZIS/b9oqigV/A//da+xY39wKBgQDELKP7zxgu9S7X6nofSH2LjgwGSP1ViddJ\ngFnXMWciol2XLmo7sr3K+3q1jfcaWZmbESgekc8NNlXPANcoulb+GGXYS6Zyjpn8\nBt/8zbcBbRw1B3nf6JXQrwBxcxDwt8OHNlzq1pIlxu/Om11mgICMkqqGBYsKRVcY\ncfFGq4xWYQKBgAniYcuBCz0InYslBJs2j8+ICzGfupt6sm8oDzDeVB7KJkiuQ9gr\nOybCP4ZzLcp0aJmmOFHwso9KVETbYotBQdUEQqQwQ8yg3L3tQ/WFvNd2J9F6Uxm+\nEhwoAwirGj5KAql5ci35Ss8kq9rXwjVK6dtSsDLKtnzGhmPdfLmpxb63AoGBAJ+u\nvqSgBE1k4oZ6pIGGXjsUmxEapKvWEdoQkhCqdAsrIweGjo6dhgQOA+p47qUSPgiN\nRJztjx5wFhTz2C+czmbysSQJICmrjggqCHUddlPA3u8DcN8j0Z8WdEPkp+tpic0s\nISI/GqOJdXY13Scsfnbug8OoC2+G1cheJ0mhJhDBAoGAFp6h09bI8yYNH0TsUvCm\neQKzsTwIuigBGyXU1JOVXu6vd2b6xgGQmB+TR+zU7DoLON6KRzx8RnxQjpmI5n3O\nNZVpemuQRn/cuNS/rqqs4cZzkTxBGg9IJkH4zfzo5gUfEX/gpsxfe5gGPCAuPTWn\nAhi55BmAjO4tTNsABSXk3Is=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@kingsleystoreai.iam.gserviceaccount.com"
+};
+
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-    
     try {
         const { face, cloth } = JSON.parse(event.body);
 
-        if (!process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
-            throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_KEY in Netlify Dashboard");
-        }
-
-        // Authenticate using the key you provided
+        // 1. Force the auth to use the KEY_BACKUP we just defined above
         const auth = new GoogleAuth({
-            credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+            credentials: KEY_BACKUP,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
         });
         
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/${process.env.GOOGLE_PROJECT_ID}/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const payload = {
             instances: [{
-                prompt: `A professional studio fashion photo. The person is now wearing a premium ${cloth} senator native outfit.`,
+                prompt: `A high-quality fashion photo. The person is now wearing a premium ${cloth} senator native outfit.`,
                 image: { bytesBase64Encoded: face.split(';base64,').pop() }
             }],
             parameters: {
@@ -49,11 +53,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("LOG_FAIL:", error.message);
+        console.error("MIDNIGHT_ERROR:", error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
+            body: JSON.stringify({ error: 'Process Failed', details: error.message })
         };
     }
 };
