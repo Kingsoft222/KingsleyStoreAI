@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kingsley Store | AI Virtual Try-On</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -28,29 +29,16 @@
                 <button id="save-btn" class="action-btn save" style="display:none;" onclick="saveProfileData()">Save</button>
             </div>
         </div>
-
         <div id="ai-results" class="results-grid" style="display:none;"></div>
     </main>
 
     <div id="fitting-room-modal" class="voice-overlay" style="display:none;">
         <div class="voice-modal">
             <h2 style="color:var(--accent); margin-bottom:5px;">AI Showroom</h2>
-            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your full image to see yourself in this outfit</p>
-            
-            <div id="body-type-selector" style="display:none; margin-bottom:20px;">
-                <p style="font-size:0.8rem; font-weight:bold; margin-bottom:10px;">Select your body type:</p>
-                <div style="display:flex; gap:10px; justify-content:center;">
-                    <button class="type-btn active" onclick="setBodyType('slim')">Slim</button>
-                    <button class="type-btn" onclick="setBodyType('athletic')">Athletic</button>
-                    <button class="type-btn" onclick="setBodyType('plump')">Plump</button>
-                </div>
-            </div>
-
+            <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your photo to begin</p>
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="handleUserFitUpload(event)">
             <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
-            
             <div id="ai-fitting-result"></div>
-
             <button id="add-to-cart-btn" class="primary-btn" style="display:none; background:#28a745; margin-top:10px;" onclick="addToCart()">Add to Cart 🛒</button>
             <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Exit Showroom</button>
         </div>
@@ -67,18 +55,16 @@
                 <span>Shop stylish trousers</span>
             </div>
         </div>
-
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
             <div class="input-icons">
-                <button class="icon-action-btn" id="mic-btn" type="button">🎙️</button>
+                <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 <button class="send-circle" onclick="executeSearch()">
                     <svg viewBox="0 0 24 24" class="bolder-svg"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
                 </button>
             </div>
         </div>
     </footer>
-
     <script src="app.js"></script>
 </body>
 </html>

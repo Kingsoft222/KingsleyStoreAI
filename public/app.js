@@ -1,5 +1,5 @@
 /**
- * Kingsley Store AI - Core Logic v3.3
+ * Kingsley Store AI - Core Logic v3.4
  * FIXED: Vertex Photo Try-On Data Pass & Gemini Mic Integration
  * PRESERVED: UI, Colors, Greetings, and Cart Logic
  */
@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
         micBtn.addEventListener('click', () => {
             try {
                 recognition.start();
+                micBtn.style.color = "#e60023"; // Brand red feedback
                 micBtn.classList.add('recording-pulse');
                 aiInput.placeholder = "Listening...";
             } catch (e) {
@@ -68,13 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const transcript = event.results[0][0].transcript;
             aiInput.value = transcript;
             stopRecordingUI();
-            executeSearch(); // Automatically trigger search after speaking
+            executeSearch(); // Trigger search automatically
         };
 
         recognition.onerror = () => stopRecordingUI();
         recognition.onend = () => stopRecordingUI();
 
         function stopRecordingUI() {
+            micBtn.style.color = "#5f6368"; // Reset to grey
             micBtn.classList.remove('recording-pulse');
             aiInput.placeholder = "Search Senator or Ankara...";
         }
@@ -193,7 +195,12 @@ window.handleUserFitUpload = (e) => {
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
     const cartBtn = document.getElementById('add-to-cart-btn');
-    area.innerHTML = `<p style="color:#555; text-align:center;">Processing photo result...</p>`;
+    area.innerHTML = `
+        <div style="text-align:center; padding:20px;">
+            <p style="color:#555;">Applying your ${selectedCloth.name}...</p>
+            <p style="font-size:0.8rem; color:#888;">This may take up to 20 seconds</p>
+        </div>
+    `;
     
     try {
         const response = await fetch('/.netlify/functions/process-vertex', {
@@ -208,14 +215,14 @@ async function startVertexModeling() {
         const data = await response.json();
         
         if (data.outputImage) {
-            area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
+            area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent); shadow: 0 4px 15px rgba(0,0,0,0.2);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
             if (cartBtn) cartBtn.style.display = 'block';
         } else {
-            throw new Error("Modeling failed. Please try a clearer photo.");
+            throw new Error(data.error || "Modeling failed. Please try a clearer photo.");
         }
     } catch (e) { 
-        area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; 
+        area.innerHTML = `<p style="color:red; font-weight:bold;">Error: ${e.message}</p>`; 
     }
 }
 
@@ -247,4 +254,5 @@ window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
     document.getElementById('add-to-cart-btn').style.display = 'none';
+    document.getElementById('fit-action-btn').innerText = "Upload Photo";
 };
