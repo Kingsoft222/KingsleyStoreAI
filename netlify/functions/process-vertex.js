@@ -14,15 +14,17 @@ exports.handler = async (event) => {
 
         if (!rawImage) throw new Error("No photo data received.");
 
-        // THE FINAL CLEANER: Fixes common copy-paste errors and invisible quotes
+        // 1. THE SANITIZER: Handles the Raw Key from Netlify
         const rawKey = process.env.GOOGLE_PRIVATE_KEY;
-        if (!rawKey) throw new Error("GOOGLE_PRIVATE_KEY is missing.");
+        if (!rawKey) throw new Error("GOOGLE_PRIVATE_KEY is missing in Netlify.");
 
+        // Strips accidental quotes and fixes newline formatting
         const privateKey = rawKey
-            .replace(/\\n/g, '\n') // Converts text \n to real breaks
-            .replace(/"/g, '')     // Removes accidental quotes
-            .trim();               // Removes accidental spaces
+            .trim()
+            .replace(/^"|"$/g, '')
+            .replace(/\\n/g, '\n');
 
+        // 2. THE HANDSHAKE: Using the verified Firebase Service Account
         const auth = new GoogleAuth({
             credentials: {
                 project_id: "kingsleystoreai",
@@ -35,13 +37,14 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
+        // 3. THE AI REQUEST: Calling Vertex AI Image Generation
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric textures.`,
+                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
@@ -64,7 +67,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("FINAL_CLEAN_LOG:", error.message);
+        console.error("FINAL_SYNC_LOG:", error.message);
         return { 
             statusCode: 500, 
             headers, 
