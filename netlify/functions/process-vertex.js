@@ -12,15 +12,15 @@ exports.handler = async (event) => {
         const rawImage = body.image || body.face;
         const cloth = body.cloth || "senator native outfit";
 
-        if (!rawImage) throw new Error("No photo received.");
+        if (!rawImage) throw new Error("No photo data received.");
 
-        // 1. Decode the Base64 key from Netlify
-        const decodedKey = Buffer.from(process.env.GOOGLE_PRIVATE_KEY, 'base64').toString('utf8');
+        // THE NUCLEAR DECODER: Restores the key perfectly from Base64
+        const rawKey = process.env.GOOGLE_PRIVATE_KEY.trim();
+        const decodedKey = Buffer.from(rawKey, 'base64').toString('utf8');
 
-        // 2. Hard-code the Project ID to ensure zero confusion
         const auth = new GoogleAuth({
             credentials: {
-                project_id: "kingsleystoreai", 
+                project_id: "kingsleystoreai",
                 client_email: process.env.GOOGLE_CLIENT_EMAIL,
                 private_key: decodedKey
             },
@@ -30,15 +30,13 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // 3. The API URL for Vertex AI
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
-        // 4. Send the request to Google
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric.`,
+                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
@@ -55,7 +53,9 @@ exports.handler = async (event) => {
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
+            body: JSON.stringify({ 
+                outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` 
+            })
         };
 
     } catch (error) {
