@@ -1,8 +1,8 @@
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
-// Hardcoding the key to bypass the "Env Key missing" error immediately
-const SERVICE_ACCOUNT_KEY = {
+// SMARTER FIX: Hardcoding the key to stop the 'Env Key missing' loop once and for all.
+const INTERNAL_KEY = {
   "type": "service_account",
   "project_id": "kingsleystoreai",
   "private_key_id": "bc4191ad475bef72587d5bd886535ae4673581b4",
@@ -11,14 +11,17 @@ const SERVICE_ACCOUNT_KEY = {
 };
 
 exports.handler = async (event) => {
-    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-    
+    const headers = { 
+        'Content-Type': 'application/json', 
+        'Access-Control-Allow-Origin': '*' 
+    };
+
     try {
         const { face, cloth } = JSON.parse(event.body);
 
-        // Direct Auth using the hardcoded key above
+        // Uses the hardcoded key directly
         const auth = new GoogleAuth({
-            credentials: SERVICE_ACCOUNT_KEY,
+            credentials: INTERNAL_KEY,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
         });
         
@@ -29,14 +32,14 @@ exports.handler = async (event) => {
 
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. Maintain face and pose exactly.`,
+                prompt: `A professional studio fashion photo. The person is now wearing a luxury ${cloth} senator native outfit. High quality, realistic fit.`,
                 image: { bytesBase64Encoded: face.split(';base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
                 editMode: "inpainting-insert",
                 maskConfig: { maskMode: "MASK_MODE_FOREGROUND" },
-                safetySetting: "block_none"
+                safetySetting: "block_none" 
             }
         };
 
@@ -54,7 +57,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("DEBUG_LOG:", error.message);
+        console.error("SMART_FIX_FAIL:", error.message);
         return {
             statusCode: 500,
             headers,
