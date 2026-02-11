@@ -14,13 +14,17 @@ exports.handler = async (event) => {
 
         if (!rawImage) throw new Error("No photo data received.");
 
-        // SECURITY: Pulling the key safely from Netlify
+        // --- THE ULTIMATE KEY REPAIR ---
+        // This handles cases where Netlify stores \n as a literal newline OR an escaped string
+        const formattedKey = process.env.GOOGLE_PRIVATE_KEY
+            .replace(/\\n/g, '\n')
+            .replace(/"/g, ''); // Removes accidental quotes if they were pasted
+
         const auth = new GoogleAuth({
             credentials: {
                 project_id: "kingsleystoreai",
                 client_email: process.env.GOOGLE_CLIENT_EMAIL,
-                // This fix converts the text "\n" into real line breaks
-                private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
+                private_key: formattedKey
             },
             scopes: 'https://www.googleapis.com/auth/cloud-platform'
         });
@@ -29,10 +33,12 @@ exports.handler = async (event) => {
         const token = (await client.getAccessToken()).token;
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
+        const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
+
         const response = await axios.post(apiURL, {
             instances: [{
                 prompt: `A high-quality fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric.`,
-                image: { bytesBase64Encoded: rawImage.split('base64,').pop() }
+                image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
                 sampleCount: 1,
@@ -45,16 +51,14 @@ exports.handler = async (event) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        const output = response.data.predictions[0].bytesBase64Encoded;
-
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ outputImage: `data:image/png;base64,${output}` })
+            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
         };
 
     } catch (error) {
-        console.error("3AM_FINAL_LOG:", error.message);
+        console.error("DECODER_FINAL_BOSS_ERROR:", error.message);
         return { 
             statusCode: 500, 
             headers, 
