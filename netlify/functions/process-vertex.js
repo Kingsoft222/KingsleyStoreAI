@@ -14,14 +14,14 @@ exports.handler = async (event) => {
 
         if (!rawImage) throw new Error("No photo data received.");
 
-        // THE CLEANER: This is the fix for the DECODER error. 
+        // THE SANITIZER: Automatically removes trailing quotes and fixes newlines
         const rawKey = process.env.GOOGLE_PRIVATE_KEY;
         if (!rawKey) throw new Error("GOOGLE_PRIVATE_KEY is missing in Netlify.");
 
         const privateKey = rawKey
-            .replace(/\\n/g, '\n')     // Fixes the newline characters
-            .replace(/"/g, '')         // Removes accidental quotes
-            .trim();                   // Removes accidental spaces
+            .trim()                    // Remove accidental spaces
+            .replace(/^"|"$/g, '')      // Remove quotes at the very start or very end
+            .replace(/\\n/g, '\n');    // Convert text \n to real line breaks
 
         const auth = new GoogleAuth({
             credentials: {
@@ -55,16 +55,16 @@ exports.handler = async (event) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        const output = response.data.predictions[0].bytesBase64Encoded;
-
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ outputImage: `data:image/png;base64,${output}` })
+            body: JSON.stringify({ 
+                outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` 
+            })
         };
 
     } catch (error) {
-        console.error("FINAL_ATTEMPT_LOG:", error.message);
+        console.error("FINAL_FIX_LOG:", error.message);
         return { 
             statusCode: 500, 
             headers, 
