@@ -1,8 +1,8 @@
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
-// WE ARE PUTTING THE KEY DIRECTLY HERE TO STOP THE "MISSING" ERROR FOREVER
-const KEY_BACKUP = {
+// Hardcoding the key to bypass the "Env Key missing" error immediately
+const SERVICE_ACCOUNT_KEY = {
   "type": "service_account",
   "project_id": "kingsleystoreai",
   "private_key_id": "bc4191ad475bef72587d5bd886535ae4673581b4",
@@ -12,12 +12,13 @@ const KEY_BACKUP = {
 
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+    
     try {
         const { face, cloth } = JSON.parse(event.body);
 
-        // 1. Force the auth to use the KEY_BACKUP we just defined above
+        // Direct Auth using the hardcoded key above
         const auth = new GoogleAuth({
-            credentials: KEY_BACKUP,
+            credentials: SERVICE_ACCOUNT_KEY,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
         });
         
@@ -28,7 +29,7 @@ exports.handler = async (event) => {
 
         const payload = {
             instances: [{
-                prompt: `A high-quality fashion photo. The person is now wearing a premium ${cloth} senator native outfit.`,
+                prompt: `A high-quality fashion photo. The person in the image is now wearing a premium ${cloth} senator native outfit. Maintain face and pose exactly.`,
                 image: { bytesBase64Encoded: face.split(';base64,').pop() }
             }],
             parameters: {
@@ -53,11 +54,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("MIDNIGHT_ERROR:", error.message);
+        console.error("DEBUG_LOG:", error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Process Failed', details: error.message })
+            body: JSON.stringify({ error: 'Modeling failed', details: error.message })
         };
     }
 };
