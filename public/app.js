@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - Core Logic v3.2
- * FIXED: Vertex Photo Try-On Data Pass
+ * Kingsley Store AI - Core Logic v3.3
+ * FIXED: Vertex Photo Try-On Data Pass & Gemini Mic Integration
  * PRESERVED: UI, Colors, Greetings, and Cart Logic
  */
 
@@ -28,11 +28,15 @@ let currentMode = 'photo';
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
+    const micBtn = document.getElementById('mic-btn');
+    const aiInput = document.getElementById('ai-input');
+
     if (saved && ownerImg) {
         ownerImg.src = saved;
         userPhoto = saved;
     }
     
+    // Greeting Rotation
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -40,6 +44,41 @@ document.addEventListener('DOMContentLoaded', () => {
             gIndex++;
         }
     }, 2000);
+
+    // --- MIC FUNCTIONALITY (GEMINI STYLE) ---
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        micBtn.addEventListener('click', () => {
+            try {
+                recognition.start();
+                micBtn.classList.add('recording-pulse');
+                aiInput.placeholder = "Listening...";
+            } catch (e) {
+                recognition.stop();
+            }
+        });
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            aiInput.value = transcript;
+            stopRecordingUI();
+            executeSearch(); // Automatically trigger search after speaking
+        };
+
+        recognition.onerror = () => stopRecordingUI();
+        recognition.onend = () => stopRecordingUI();
+
+        function stopRecordingUI() {
+            micBtn.classList.remove('recording-pulse');
+            aiInput.placeholder = "Search Senator or Ankara...";
+        }
+    }
 });
 
 // --- 2. PROFILE ACTIONS ---
@@ -73,7 +112,7 @@ window.clearProfileData = () => {
     }
 };
 
-// --- 3. SEARCH & SHOWROOM Choice ---
+// --- 3. SEARCH & SHOWROOM CHOICE ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -90,6 +129,7 @@ window.executeSearch = () => {
             </div>
         `).join('');
         results.style.display = 'grid';
+        results.scrollIntoView({ behavior: 'smooth' });
     }
 };
 
@@ -156,13 +196,12 @@ async function startVertexModeling() {
     area.innerHTML = `<p style="color:#555; text-align:center;">Processing photo result...</p>`;
     
     try {
-        // We now send 'image' and 'cloth' as the standard keys for Vertex Try-On
         const response = await fetch('/.netlify/functions/process-vertex', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 image: userPhoto, 
-                cloth: selectedCloth.img 
+                cloth: selectedCloth.name 
             })
         });
         
