@@ -1,7 +1,6 @@
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
-// FULL UPDATED CODE: Hardcoded key + Safety Bypass + Correct App Keys
 const INTERNAL_KEY = {
   "type": "service_account",
   "project_id": "kingsleystoreai",
@@ -11,69 +10,55 @@ const INTERNAL_KEY = {
 };
 
 exports.handler = async (event) => {
-    const headers = { 
-        'Content-Type': 'application/json', 
-        'Access-Control-Allow-Origin': '*' 
-    };
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
     try {
-        // 1. Parse image and cloth selection from your app.js
-        const { face, cloth } = JSON.parse(event.body);
-
-        // 2. Initialize Auth with the hardcoded key to bypass Netlify Env Var delays
-        const auth = new GoogleAuth({
-            credentials: INTERNAL_KEY,
-            scopes: 'https://www.googleapis.com/auth/cloud-platform',
-        });
+        const body = JSON.parse(event.body);
         
+        // BULLETPROOF FINDER: Grabs the image no matter what the frontend calls it
+        const rawImage = body.face || body.image || body.userPhoto;
+        const cloth = body.cloth || "senator native";
+
+        if (!rawImage) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: "No photo received by server" }) };
+        }
+
+        const auth = new GoogleAuth({ credentials: INTERNAL_KEY, scopes: 'https://www.googleapis.com/auth/cloud-platform' });
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // 3. Define the Vertex AI 2026 Model endpoint
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
-        // 4. Send the request with 2026 Safety Bypass parameters
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A high-quality fashion photo. The person in the image is now wearing a luxury ${cloth} senator native outfit. Realistic fabric, professional studio lighting.`,
-                image: { bytesBase64Encoded: face.split(';base64,').pop() }
+                prompt: `A high-quality fashion photo. The person is wearing a premium ${cloth} senator native outfit.`,
+                image: { bytesBase64Encoded: rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage }
             }],
             parameters: {
                 sampleCount: 1,
-                // CRITICAL: These parameters prevent the 350ms "Safe Rejection"
                 editMode: "inpainting-insert",
                 maskConfig: { maskMode: "MASK_MODE_FOREGROUND" },
                 personGeneration: "allow_adult",
                 safetySetting: "block_none"
             }
         }, {
-            headers: { 
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // 5. Extract the generated image
         const output = response.data.predictions[0].bytesBase64Encoded;
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${output}`,
-                status: "success"
-            })
+            body: JSON.stringify({ outputImage: `data:image/png;base64,${output}`, status: "success" })
         };
 
     } catch (error) {
-        console.error("FINAL_CODE_ERROR:", error.message);
+        console.error("FINAL_CRASH_LOG:", error.message);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ 
-                error: 'Try-on failed', 
-                details: error.message 
-            })
+            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
         };
     }
 };
