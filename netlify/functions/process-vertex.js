@@ -11,28 +11,22 @@ const INTERNAL_KEY = {
 
 exports.handler = async (event) => {
     const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
-
     try {
         const body = JSON.parse(event.body);
-        
-        // BULLETPROOF FINDER: Grabs the image no matter what the frontend calls it
         const rawImage = body.face || body.image || body.userPhoto;
         const cloth = body.cloth || "senator native";
-
-        if (!rawImage) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: "No photo received by server" }) };
-        }
 
         const auth = new GoogleAuth({ credentials: INTERNAL_KEY, scopes: 'https://www.googleapis.com/auth/cloud-platform' });
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
+        // FIXED 404 URL: This is the exact production path for image-generation@006
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A high-quality fashion photo. The person is wearing a premium ${cloth} senator native outfit.`,
-                image: { bytesBase64Encoded: rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage }
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth} senator native outfit.`,
+                image: { bytesBase64Encoded: rawImage.split('base64,').pop() }
             }],
             parameters: {
                 sampleCount: 1,
@@ -45,20 +39,12 @@ exports.handler = async (event) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        const output = response.data.predictions[0].bytesBase64Encoded;
-
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ outputImage: `data:image/png;base64,${output}`, status: "success" })
+            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
         };
-
-    } catch (error) {
-        console.error("FINAL_CRASH_LOG:", error.message);
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({ error: 'Try-on failed', details: error.message })
-        };
+    } catch (e) {
+        return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
     }
 };
