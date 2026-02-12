@@ -12,25 +12,16 @@ exports.handler = async (event) => {
         const rawImage = body.image || body.face;
         const cloth = body.cloth || "senator native outfit";
 
-        if (!rawImage) throw new Error("No photo data received.");
+        // Pull the entire minified JSON from Netlify
+        const jsonKeyString = process.env.GOOGLE_JSON_KEY;
+        if (!jsonKeyString) throw new Error("GOOGLE_JSON_KEY is missing in Netlify.");
 
-        // THE FINAL BOSS DECODER
-        const encodedKey = process.env.GOOGLE_PRIVATE_KEY;
-        if (!encodedKey) throw new Error("GOOGLE_PRIVATE_KEY is missing in Netlify.");
-
-        // 1. Decode from Base64
-        // 2. Clean up any literal "\n" strings that got inside the encoding
-        const privateKey = Buffer.from(encodedKey, 'base64')
-            .toString('utf8')
-            .replace(/\\n/g, '\n')
-            .trim();
+        // Parse the JSON and fix the private_key line breaks
+        const credentials = JSON.parse(jsonKeyString);
+        credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
 
         const auth = new GoogleAuth({
-            credentials: {
-                project_id: "kingsleystoreai",
-                client_email: process.env.GOOGLE_CLIENT_EMAIL,
-                private_key: privateKey
-            },
+            credentials,
             scopes: 'https://www.googleapis.com/auth/cloud-platform'
         });
 
@@ -38,12 +29,11 @@ exports.handler = async (event) => {
         const token = (await client.getAccessToken()).token;
 
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
-
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric textures.`,
+                prompt: `A high-quality professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric textures.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
@@ -66,7 +56,7 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        console.error("FINAL_SYNC_LOG:", error.message);
+        console.error("JSON_SYNC_LOG:", error.message);
         return { 
             statusCode: 500, 
             headers, 
