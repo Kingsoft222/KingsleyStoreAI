@@ -9,8 +9,6 @@ exports.handler = async (event) => {
         const cloth = body.cloth || "luxury nigerian senator outfit";
 
         const encodedKey = process.env.G_KEY_B64;
-        if (!encodedKey) throw new Error("G_KEY_B64 missing.");
-
         const privateKey = Buffer.from(encodedKey.trim(), 'base64')
             .toString('utf8')
             .replace(/\\n/g, '\n')
@@ -28,21 +26,24 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE UPDATED ENDPOINT: Imagen 3 (Fast) prevents 404s in 2026
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
-        
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
+        // IMAGEN 3 DATA STRUCTURE
         const response = await axios.post(apiURL, {
-            instances: [{
-                prompt: `A high-quality professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
-                image: { bytesBase64Encoded: cleanBase64 }
-            }],
+            instances: [
+                {
+                    prompt: `A high-quality fashion photo of a person wearing a luxury ${cloth}, realistic fabric, cinematic lighting.`,
+                    // For Imagen 3, we send the image as the 'image' field inside the instance
+                    image: { bytesBase64Encoded: cleanBase64 }
+                }
+            ],
             parameters: {
                 sampleCount: 1,
+                // These are the standard parameters for Imagen 3
                 aspectRatio: "1:1",
-                personGeneration: "allow_adult",
-                safetySetting: "block_none"
+                safetySetting: "block_none",
+                personGeneration: "allow_adult"
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
