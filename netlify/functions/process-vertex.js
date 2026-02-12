@@ -9,15 +9,16 @@ exports.handler = async (event) => {
         const cloth = body.cloth || "luxury nigerian senator outfit";
 
         const encodedKey = process.env.G_KEY_B64;
-        if (!encodedKey) throw new Error("G_KEY_B64 is missing.");
+        if (!encodedKey) throw new Error("G_KEY_B64 missing.");
 
-        // THE ULTIMATE DECODER FIX
-        // 1. Decode Base64 to string
-        // 2. Force any literal "\n" text to become REAL line breaks
-        const privateKey = Buffer.from(encodedKey, 'base64')
+        // Clean any possible whitespace or hidden characters from the environment variable
+        const sanitizedEncodedKey = encodedKey.trim();
+        
+        // Decode and force correct line breaks
+        const privateKey = Buffer.from(sanitizedEncodedKey, 'base64')
             .toString('utf8')
-            .split('\\n')
-            .join('\n');
+            .replace(/\\n/g, '\n')
+            .trim();
 
         const auth = new GoogleAuth({
             credentials: {
@@ -53,10 +54,16 @@ exports.handler = async (event) => {
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
+            body: JSON.stringify({ 
+                outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` 
+            })
         };
     } catch (error) {
         console.error("DEPLOY_LOG:", error.message);
-        return { statusCode: 500, headers, body: JSON.stringify({ error: "Still failing key decode", details: error.message }) };
+        return { 
+            statusCode: 500, 
+            headers, 
+            body: JSON.stringify({ error: "Key Auth Failed", details: error.message }) 
+        };
     }
 };
