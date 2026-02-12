@@ -8,10 +8,16 @@ exports.handler = async (event) => {
         const rawImage = body.image || body.face;
         const cloth = body.cloth || "luxury nigerian senator outfit";
 
-        // Reconstruct the key from the single Base64 variable
         const encodedKey = process.env.G_KEY_B64;
-        if (!encodedKey) throw new Error("G_KEY_B64 is missing in Netlify.");
-        const privateKey = Buffer.from(encodedKey, 'base64').toString('utf8');
+        if (!encodedKey) throw new Error("G_KEY_B64 is missing.");
+
+        // THE ULTIMATE DECODER FIX
+        // 1. Decode Base64 to string
+        // 2. Force any literal "\n" text to become REAL line breaks
+        const privateKey = Buffer.from(encodedKey, 'base64')
+            .toString('utf8')
+            .split('\\n')
+            .join('\n');
 
         const auth = new GoogleAuth({
             credentials: {
@@ -30,7 +36,7 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric.`,
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
@@ -51,6 +57,6 @@ exports.handler = async (event) => {
         };
     } catch (error) {
         console.error("DEPLOY_LOG:", error.message);
-        return { statusCode: 500, headers, body: JSON.stringify({ error: "Check Netlify Function Logs", details: error.message }) };
+        return { statusCode: 500, headers, body: JSON.stringify({ error: "Still failing key decode", details: error.message }) };
     }
 };
