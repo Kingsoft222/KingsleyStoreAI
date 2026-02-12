@@ -2,22 +2,21 @@ const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 
 exports.handler = async (event) => {
-    const headers = { 
-        'Content-Type': 'application/json', 
-        'Access-Control-Allow-Origin': '*' 
-    };
-
+    const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
     try {
         const body = JSON.parse(event.body);
         const rawImage = body.image || body.face;
         const cloth = body.cloth || "senator native outfit";
 
-        // Pull the entire minified JSON from Netlify
-        const jsonKeyString = process.env.GOOGLE_JSON_KEY;
-        if (!jsonKeyString) throw new Error("GOOGLE_JSON_KEY is missing in Netlify.");
+        // HARDCODED CREDENTIALS - TEST ONLY
+        const credentials = {
+            "type": "service_account",
+            "project_id": "kingsleystoreai",
+            "private_key": "-----BEGIN PRIVATE KEY-----\n[PASTE_YOUR_KEY_CONTENT_HERE]\n-----END PRIVATE KEY-----\n",
+            "client_email": "firebase-adminsdk-fbsvc@kingsleystoreai.iam.gserviceaccount.com"
+        };
 
-        // Parse the JSON and fix the private_key line breaks
-        const credentials = JSON.parse(jsonKeyString);
+        // Ensure real line breaks for the key
         credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
 
         const auth = new GoogleAuth({
@@ -33,7 +32,7 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A high-quality professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric textures.`,
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
@@ -50,17 +49,10 @@ exports.handler = async (event) => {
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-                outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` 
-            })
+            body: JSON.stringify({ outputImage: `data:image/png;base64,${response.data.predictions[0].bytesBase64Encoded}` })
         };
-
     } catch (error) {
-        console.error("JSON_SYNC_LOG:", error.message);
-        return { 
-            statusCode: 500, 
-            headers, 
-            body: JSON.stringify({ error: "Modeling failed", details: error.message }) 
-        };
+        console.error("HARDCODE_TEST_LOG:", error.message);
+        return { statusCode: 500, headers, body: JSON.stringify({ error: "Modeling failed", details: error.message }) };
     }
 };
