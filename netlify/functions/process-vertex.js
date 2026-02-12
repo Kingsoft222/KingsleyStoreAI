@@ -14,17 +14,17 @@ exports.handler = async (event) => {
 
         if (!rawImage) throw new Error("No photo data received.");
 
-        // 1. THE SANITIZER: Handles the Raw Key from Netlify
-        const rawKey = process.env.GOOGLE_PRIVATE_KEY;
-        if (!rawKey) throw new Error("GOOGLE_PRIVATE_KEY is missing in Netlify.");
+        // THE FINAL BOSS DECODER
+        const encodedKey = process.env.GOOGLE_PRIVATE_KEY;
+        if (!encodedKey) throw new Error("GOOGLE_PRIVATE_KEY is missing in Netlify.");
 
-        // Strips accidental quotes and fixes newline formatting
-        const privateKey = rawKey
-            .trim()
-            .replace(/^"|"$/g, '')
-            .replace(/\\n/g, '\n');
+        // 1. Decode from Base64
+        // 2. Clean up any literal "\n" strings that got inside the encoding
+        const privateKey = Buffer.from(encodedKey, 'base64')
+            .toString('utf8')
+            .replace(/\\n/g, '\n')
+            .trim();
 
-        // 2. THE HANDSHAKE: Using the verified Firebase Service Account
         const auth = new GoogleAuth({
             credentials: {
                 project_id: "kingsleystoreai",
@@ -37,14 +37,13 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // 3. THE AI REQUEST: Calling Vertex AI Image Generation
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
 
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric.`,
+                prompt: `A professional fashion photo. Change the clothing of the person to a luxury ${cloth}. Realistic fabric textures.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
