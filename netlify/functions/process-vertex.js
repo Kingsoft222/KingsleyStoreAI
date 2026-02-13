@@ -9,7 +9,8 @@ exports.handler = async (event) => {
         const cloth = body.cloth || "luxury nigerian senator outfit";
 
         const encodedKey = process.env.G_KEY_B64;
-        const privateKey = Buffer.from(encodedKey.trim(), 'base64').toString('utf8').replace(/\\n/g, '\n').trim();
+        const privateKey = Buffer.from(encodedKey.trim(), 'base64')
+            .toString('utf8').replace(/\\n/g, '\n').trim();
 
         const auth = new GoogleAuth({
             credentials: {
@@ -27,18 +28,14 @@ exports.handler = async (event) => {
         
         const cleanBase64 = rawImage.split(',').pop();
 
+        // THE 2026 MANDATORY STRUCTURE
         const response = await axios.post(apiURL, {
             instances: [{
-                // MANDATORY: Prompt must link to the reference image ID [1]
-                prompt: `A professional fashion photo. The person [1] is wearing a luxury ${cloth}. High quality textures.`,
-                referenceImages: [{
-                    referenceId: 1,
-                    referenceType: "REFERENCE_TYPE_RAW",
-                    image: { 
-                        bytesBase64Encoded: cleanBase64,
-                        mimeType: "image/png"
-                    }
-                }]
+                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. High quality textures.`,
+                image: { 
+                    bytesBase64Encoded: cleanBase64,
+                    mimeType: "image/png"
+                }
             }],
             parameters: {
                 sampleCount: 1,
