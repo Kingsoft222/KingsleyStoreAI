@@ -26,7 +26,7 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // The specific 2026 Editing Endpoint
+        // Using the definitive 2026 Capability model for Try-Ons
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
@@ -34,22 +34,24 @@ exports.handler = async (event) => {
         const response = await axios.post(apiURL, {
             instances: [{
                 image: { bytesBase64Encoded: cleanBase64 },
-                // Prompt belongs INSIDE the instance for Capability-001
-                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
+                // Prompt moves here for the 3.0 series
+                prompt: `A professional fashion photo. The person is wearing a luxury ${cloth}. High quality fabric.`
             }],
             parameters: {
                 sampleCount: 1,
-                // Using the specific 2026 edit mode syntax
-                editConfig: {
-                    editMode: "EDIT_MODE_INPAINT_INSERTION",
-                    maskConfig: {
-                        maskMode: "MASK_MODE_FOREGROUND"
-                    }
+                // New 2026 Edit Mode mapping
+                editMode: "EDIT_MODE_INPAINT_INSERTION",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND"
                 }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!response.data.predictions || response.data.predictions.length === 0) {
+            throw new Error("AI returned no results. Check if the photo clearly shows a person.");
+        }
 
         return {
             statusCode: 200,
@@ -64,7 +66,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
         };
     }
 };
