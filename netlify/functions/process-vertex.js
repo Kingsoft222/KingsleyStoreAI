@@ -26,20 +26,20 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+        // Using the most reliable 2026 Editing Endpoint
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
-        // Clean the base64 string (removes data:image/png;base64, if present)
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                image: {
-                    bytesBase64Encoded: cleanBase64
-                }
+                image: { bytesBase64Encoded: cleanBase64 },
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
             }],
             parameters: {
-                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric and lighting.`,
-                sampleCount: 1
+                sampleCount: 1,
+                editMode: "inpainting-insert",
+                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -54,11 +54,12 @@ exports.handler = async (event) => {
         };
     } catch (error) {
         console.error("FINAL_SYNC_LOG:", error.message);
+        // This will print the EXACT reason Google is mad in your Netlify logs
         const detail = error.response ? JSON.stringify(error.response.data) : error.message;
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
         };
     }
 };
