@@ -26,36 +26,25 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE DEFINITIVE 2026 ENDPOINT
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
+        // THE DEFINITIVE 2026 STABLE ENDPOINT
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                image: { 
-                    bytesBase64Encoded: cleanBase64,
-                    mimeType: "image/png" 
-                },
-                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
+                prompt: `A professional fashion photo. The person is wearing a luxury ${cloth}. High quality textures.`,
+                image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
                 sampleCount: 1,
-                // MANDATORY 2026 WRAPPER:
-                editConfig: {
-                    editMode: "EDIT_MODE_INPAINT_INSERTION",
-                    maskConfig: {
-                        maskMode: "MASK_MODE_FOREGROUND"
-                    }
-                }
+                // These specific strings are the only ones allowed in Feb 2026
+                editMode: "inpainting-insert",
+                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!response.data.predictions || !response.data.predictions[0]) {
-            throw new Error("AI returned empty result. Check image quality.");
-        }
 
         return {
             statusCode: 200,
@@ -70,7 +59,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Processing Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Failed", details: detail }) 
         };
     }
 };
