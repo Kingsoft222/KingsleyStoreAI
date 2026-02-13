@@ -10,9 +10,7 @@ exports.handler = async (event) => {
 
         const encodedKey = process.env.G_KEY_B64;
         const privateKey = Buffer.from(encodedKey.trim(), 'base64')
-            .toString('utf8')
-            .replace(/\\n/g, '\n')
-            .trim();
+            .toString('utf8').replace(/\\n/g, '\n').trim();
 
         const auth = new GoogleAuth({
             credentials: {
@@ -26,21 +24,18 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE DEFINITIVE 2026 STABLE ENDPOINT
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict`;
+        // THE DEFINITIVE 2026 GA ENDPOINT
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional fashion photo. The person is wearing a luxury ${cloth}. High quality textures.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
-                sampleCount: 1,
-                // These specific strings are the only ones allowed in Feb 2026
-                editMode: "inpainting-insert",
-                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
+                prompt: `A high-quality professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
+                sampleCount: 1
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -59,7 +54,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Failed", details: detail }) 
+            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
         };
     }
 };
