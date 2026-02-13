@@ -32,13 +32,15 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                image: { bytesBase64Encoded: cleanBase64 },
-                // Prompt must be paired with the image in the instance for 3.0 models
-                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. High quality fabric textures.`
+                image: { 
+                    bytesBase64Encoded: cleanBase64,
+                    mimeType: "image/png" // Explicitly required in 2026
+                },
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
             }],
             parameters: {
                 sampleCount: 1,
-                // The new unified 2026 editConfig object
+                // THE 2026 UNIFIED SCHEMA WRAPPER
                 editConfig: {
                     editMode: "EDIT_MODE_INPAINT_INSERTION",
                     maskConfig: {
