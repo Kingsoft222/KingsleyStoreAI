@@ -29,8 +29,8 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                // Prompt must reference the image via [1] in 2026
-                prompt: `A professional high-fashion photo. The person [1] is wearing a luxury ${cloth}. Realistic fabric.`,
+                // MANDATORY: Prompt must link to the reference image ID [1]
+                prompt: `A professional fashion photo. The person [1] is wearing a luxury ${cloth}. High quality textures.`,
                 referenceImages: [{
                     referenceId: 1,
                     referenceType: "REFERENCE_TYPE_RAW",
@@ -44,7 +44,9 @@ exports.handler = async (event) => {
                 sampleCount: 1,
                 editConfig: {
                     editMode: "EDIT_MODE_INPAINT_INSERTION",
-                    maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
+                    maskConfig: {
+                        maskMode: "MASK_MODE_FOREGROUND"
+                    }
                 }
             }
         }, {
@@ -64,7 +66,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Rendering Failed", details: detail }) 
         };
     }
 };
