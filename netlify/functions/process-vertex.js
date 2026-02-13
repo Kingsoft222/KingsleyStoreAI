@@ -26,29 +26,24 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // SWITCHING BACK TO THE EDITING MODEL
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        // THE STABLE UNIVERSAL URL
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation:predict`;
         
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
+                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric and lighting.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
                 sampleCount: 1,
                 editMode: "inpainting-insert",
-                // This 'MASK_MODE_FOREGROUND' automatically detects the person/clothes
                 maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!response.data.predictions || !response.data.predictions[0]) {
-            throw new Error("AI returned empty result. Check image size.");
-        }
 
         return {
             statusCode: 200,
@@ -63,7 +58,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
+            body: JSON.stringify({ error: "Modeling Failed", details: detail }) 
         };
     }
 };
