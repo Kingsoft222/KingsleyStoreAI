@@ -26,26 +26,25 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
+        // THE ONLY STABLE EDITING ENDPOINT FOR INPAINTING
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                image: { 
-                    bytesBase64Encoded: cleanBase64,
-                    mimeType: "image/png" // Explicitly required in 2026
-                },
-                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
+                // IMPORTANT: The prompt must be high-quality for Inpainting to trigger
+                prompt: `A professional fashion photo of a person wearing a luxury ${cloth}. High quality textures.`,
+                image: {
+                    bytesBase64Encoded: cleanBase64
+                }
             }],
             parameters: {
                 sampleCount: 1,
-                // THE 2026 UNIFIED SCHEMA WRAPPER
-                editConfig: {
-                    editMode: "EDIT_MODE_INPAINT_INSERTION",
-                    maskConfig: {
-                        maskMode: "MASK_MODE_FOREGROUND"
-                    }
+                // The 2026 specific editMode string
+                editMode: "inpainting-insert",
+                maskConfig: {
+                    maskMode: "MASK_MODE_FOREGROUND"
                 }
             }
         }, {
@@ -65,7 +64,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
         };
     }
 };
