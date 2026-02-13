@@ -23,15 +23,14 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE ONLY MODEL THAT ACCEPTS TEXT PROMPTS FOR EDITING IN 2026
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric.`,
-                // THE 2026 REFERENCE IMAGE SCHEMA:
+                // Prompt must reference the image via [1] in 2026
+                prompt: `A professional high-fashion photo. The person [1] is wearing a luxury ${cloth}. Realistic fabric.`,
                 referenceImages: [{
                     referenceId: 1,
                     referenceType: "REFERENCE_TYPE_RAW",
