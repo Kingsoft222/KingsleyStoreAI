@@ -26,7 +26,6 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE DEFINITIVE 2026 CAPABILITY ENDPOINT
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
@@ -34,11 +33,12 @@ exports.handler = async (event) => {
         const response = await axios.post(apiURL, {
             instances: [{
                 image: { bytesBase64Encoded: cleanBase64 },
-                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
+                // Prompt must be paired with the image in the instance for 3.0 models
+                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. High quality fabric textures.`
             }],
             parameters: {
                 sampleCount: 1,
-                // THE CRITICAL 2026 WRAPPER:
+                // The new unified 2026 editConfig object
                 editConfig: {
                     editMode: "EDIT_MODE_INPAINT_INSERTION",
                     maskConfig: {
@@ -63,7 +63,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Modeling Failed", details: detail }) 
+            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
         };
     }
 };
