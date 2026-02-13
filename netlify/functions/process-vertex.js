@@ -26,26 +26,18 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE ONLY STABLE EDITING ENDPOINT FOR INPAINTING
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        // THE NEW 2026 PERMANENT ENDPOINT
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                // IMPORTANT: The prompt must be high-quality for Inpainting to trigger
-                prompt: `A professional fashion photo of a person wearing a luxury ${cloth}. High quality textures.`,
-                image: {
-                    bytesBase64Encoded: cleanBase64
-                }
+                image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
-                sampleCount: 1,
-                // The 2026 specific editMode string
-                editMode: "inpainting-insert",
-                maskConfig: {
-                    maskMode: "MASK_MODE_FOREGROUND"
-                }
+                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
+                sampleCount: 1
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -64,7 +56,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
+            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
         };
     }
 };
