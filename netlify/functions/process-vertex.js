@@ -26,14 +26,14 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE STABLE UNIVERSAL URL
+        // THE UNIVERSAL STABLE URL
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation:predict`;
         
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
         const response = await axios.post(apiURL, {
             instances: [{
-                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric and lighting.`,
+                prompt: `A high-quality professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
                 image: { bytesBase64Encoded: cleanBase64 }
             }],
             parameters: {
