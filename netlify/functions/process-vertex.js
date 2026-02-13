@@ -9,8 +9,7 @@ exports.handler = async (event) => {
         const cloth = body.cloth || "luxury nigerian senator outfit";
 
         const encodedKey = process.env.G_KEY_B64;
-        const privateKey = Buffer.from(encodedKey.trim(), 'base64')
-            .toString('utf8').replace(/\\n/g, '\n').trim();
+        const privateKey = Buffer.from(encodedKey.trim(), 'base64').toString('utf8').replace(/\\n/g, '\n').trim();
 
         const auth = new GoogleAuth({
             credentials: {
@@ -24,18 +23,30 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // THE DEFINITIVE 2026 GA ENDPOINT
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+        // THE ONLY MODEL THAT ACCEPTS TEXT PROMPTS FOR EDITING IN 2026
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
 
         const response = await axios.post(apiURL, {
             instances: [{
-                image: { bytesBase64Encoded: cleanBase64 }
+                prompt: `A professional high-fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric.`,
+                // THE 2026 REFERENCE IMAGE SCHEMA:
+                referenceImages: [{
+                    referenceId: 1,
+                    referenceType: "REFERENCE_TYPE_RAW",
+                    image: { 
+                        bytesBase64Encoded: cleanBase64,
+                        mimeType: "image/png"
+                    }
+                }]
             }],
             parameters: {
-                prompt: `A high-quality professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
-                sampleCount: 1
+                sampleCount: 1,
+                editConfig: {
+                    editMode: "EDIT_MODE_INPAINT_INSERTION",
+                    maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
+                }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
