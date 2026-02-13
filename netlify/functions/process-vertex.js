@@ -26,7 +26,7 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        // Using the most reliable 2026 Editing Endpoint
+        // The specific 2026 Editing Endpoint
         const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-capability-001:predict`;
         
         const cleanBase64 = rawImage.split(',').pop();
@@ -34,12 +34,18 @@ exports.handler = async (event) => {
         const response = await axios.post(apiURL, {
             instances: [{
                 image: { bytesBase64Encoded: cleanBase64 },
+                // Prompt belongs INSIDE the instance for Capability-001
                 prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`
             }],
             parameters: {
                 sampleCount: 1,
-                editMode: "inpainting-insert",
-                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
+                // Using the specific 2026 edit mode syntax
+                editConfig: {
+                    editMode: "EDIT_MODE_INPAINT_INSERTION",
+                    maskConfig: {
+                        maskMode: "MASK_MODE_FOREGROUND"
+                    }
+                }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -54,12 +60,11 @@ exports.handler = async (event) => {
         };
     } catch (error) {
         console.error("FINAL_SYNC_LOG:", error.message);
-        // This will print the EXACT reason Google is mad in your Netlify logs
         const detail = error.response ? JSON.stringify(error.response.data) : error.message;
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
+            body: JSON.stringify({ error: "Try-On Failed", details: detail }) 
         };
     }
 };
