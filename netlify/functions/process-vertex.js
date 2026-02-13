@@ -26,28 +26,29 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = (await client.getAccessToken()).token;
 
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
+        // SWITCHING BACK TO THE EDITING MODEL
+        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/image-generation@006:predict`;
+        
         const cleanBase64 = rawImage.includes('base64,') ? rawImage.split('base64,').pop() : rawImage;
 
-        // IMAGEN 3 DATA STRUCTURE
         const response = await axios.post(apiURL, {
-            instances: [
-                {
-                    prompt: `A high-quality fashion photo of a person wearing a luxury ${cloth}, realistic fabric, cinematic lighting.`,
-                    // For Imagen 3, we send the image as the 'image' field inside the instance
-                    image: { bytesBase64Encoded: cleanBase64 }
-                }
-            ],
+            instances: [{
+                prompt: `A high-quality fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
+                image: { bytesBase64Encoded: cleanBase64 }
+            }],
             parameters: {
                 sampleCount: 1,
-                // These are the standard parameters for Imagen 3
-                aspectRatio: "1:1",
-                safetySetting: "block_none",
-                personGeneration: "allow_adult"
+                editMode: "inpainting-insert",
+                // This 'MASK_MODE_FOREGROUND' automatically detects the person/clothes
+                maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
             }
         }, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+
+        if (!response.data.predictions || !response.data.predictions[0]) {
+            throw new Error("AI returned empty result. Check image size.");
+        }
 
         return {
             statusCode: 200,
@@ -62,7 +63,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Request Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Edit Failed", details: detail }) 
         };
     }
 };
