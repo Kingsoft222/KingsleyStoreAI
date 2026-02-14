@@ -7,6 +7,101 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        .luxury-video-modal {
+            display: none; 
+            position: fixed;
+            z-index: 10000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        .modal-fashion-bg {
+            position: absolute;
+            width: 100%; height: 100%;
+            /* High-end runway background */
+            background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+            filter: blur(20px) brightness(0.3);
+            transform: scale(1.1);
+        }
+
+        .modal-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100dvh;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 400px; /* Mobile portrait focus */
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #000;
+        }
+
+        #boutique-video-player {
+            width: 100%;
+            display: block;
+            border-radius: 30px;
+        }
+
+        .video-info-overlay {
+            margin-top: 25px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .video-info-overlay h2 {
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .close-video-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            z-index: 10001;
+        }
+
+        .share-walk-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            background: white;
+            color: black;
+            border: none;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .share-walk-btn:active { transform: scale(0.95); }
+    </style>
 </head>
 <body>
     <header class="app-header">
@@ -40,7 +135,28 @@
             <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
             <div id="ai-fitting-result"></div>
             <button id="add-to-cart-btn" class="primary-btn" style="display:none; background:#28a745; margin-top:10px;" onclick="addToCart()">Add to Cart 🛒</button>
+            <button id="see-it-motion-btn" class="primary-btn" style="display:none; background:#6f42c1; margin-top:10px;" onclick="generateWalkCycle()">See How I Look (Walk) 🎬</button>
             <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Exit Showroom</button>
+        </div>
+    </div>
+
+    <div id="video-experience-modal" class="luxury-video-modal">
+        <div class="modal-fashion-bg"></div>
+        <button class="close-video-btn" onclick="closeVideoModal()">×</button>
+        
+        <div class="modal-container">
+            <div class="video-wrapper">
+                <video id="boutique-video-player" playsinline loop controls>
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            
+            <div class="video-info-overlay">
+                <h2>Kingsley Runway</h2>
+                <p>Strategy 2: Kinetic Fashion Reveal</p>
+                <button class="share-walk-btn" onclick="shareVideo()">SHARE MY WALK</button>
+            </div>
         </div>
     </div>
 
@@ -65,6 +181,20 @@
             </div>
         </div>
     </footer>
+    
+    <script>
+        // Logic to close the outstanding video window
+        function closeVideoModal() {
+            const modal = document.getElementById('video-experience-modal');
+            const video = document.getElementById('boutique-video-player');
+            video.pause();
+            modal.style.display = 'none';
+        }
+
+        function shareVideo() {
+            alert("Ready to post on Instagram/WhatsApp!");
+        }
+    </script>
     <script src="app.js"></script>
 </body>
 </html>

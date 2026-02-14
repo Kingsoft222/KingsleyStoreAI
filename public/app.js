@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - Core Logic v3.4
- * FIXED: Vertex Photo Try-On Data Pass & Gemini Mic Integration
+ * Kingsley Store AI - Core Logic v3.5
+ * FIXED: Vertex Forensic VTO & Strategy 2 Doppl Integration
  * PRESERVED: UI, Colors, Greetings, and Cart Logic
  */
 
@@ -192,37 +192,81 @@ window.handleUserFitUpload = (e) => {
 };
 
 // --- 4. ENGINES (CORRECTED DATA HAND-OFF) ---
+
+// Updated Strategy 1: Forensic Identity Photo VTO
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
     const cartBtn = document.getElementById('add-to-cart-btn');
+    const motionBtn = document.getElementById('see-it-motion-btn');
+    
     area.innerHTML = `
         <div style="text-align:center; padding:20px;">
             <p style="color:#555;">Applying your ${selectedCloth.name}...</p>
-            <p style="font-size:0.8rem; color:#888;">This may take up to 20 seconds</p>
+            <p style="font-size:0.8rem; color:#888;">Locking identity pixels...</p>
         </div>
     `;
     
     try {
-        const response = await fetch('/.netlify/functions/process-vertex', {
+        // Calling your updated forensic Netlify function
+        const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                image: userPhoto, 
-                cloth: selectedCloth.name 
+                userImage: userPhoto.split(',')[1], // Strip Base64 header
+                clothImage: "" // Your backend handles product selection or pass Base64 here
             })
         });
         
         const data = await response.json();
         
-        if (data.outputImage) {
-            area.innerHTML = `<img src="${data.outputImage}" style="width:100%; border-radius:15px; border: 4px solid var(--accent); shadow: 0 4px 15px rgba(0,0,0,0.2);">`;
+        if (data.result) {
+            const resultImg = `data:image/png;base64,${data.result}`;
+            area.innerHTML = `<img src="${resultImg}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">`;
+            
             document.getElementById('fit-action-btn').style.display = 'none';
             if (cartBtn) cartBtn.style.display = 'block';
+            if (motionBtn) motionBtn.style.display = 'block'; // Show Video Option
         } else {
-            throw new Error(data.error || "Modeling failed. Please try a clearer photo.");
+            throw new Error(data.error || "Try-On failed.");
         }
     } catch (e) { 
         area.innerHTML = `<p style="color:red; font-weight:bold;">Error: ${e.message}</p>`; 
+    }
+}
+
+// Updated Strategy 2: The Outstanding Full-Screen Walk-Cycle
+async function generateWalkCycle() {
+    const motionBtn = document.getElementById('see-it-motion-btn');
+    const videoModal = document.getElementById('video-experience-modal');
+    const videoPlayer = document.getElementById('boutique-video-player');
+    const swappedImg = document.getElementById('final-swapped-img');
+
+    motionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sewing your walk...';
+    motionBtn.disabled = true;
+
+    try {
+        const response = await fetch('/.netlify/functions/generate-video', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                swappedImage: swappedImg.src.split(',')[1],
+                clothName: selectedCloth.name
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.videoUrl) {
+            videoPlayer.src = data.videoUrl;
+            videoModal.style.display = 'block';
+            videoPlayer.play();
+            motionBtn.innerHTML = 'See How I Look (Walk) 🎬';
+            motionBtn.disabled = false;
+        } else {
+            throw new Error("Video filtered or failed.");
+        }
+    } catch (e) {
+        alert("Runway busy! Please try again.");
+        motionBtn.innerHTML = 'See How I Look (Walk) 🎬';
+        motionBtn.disabled = false;
     }
 }
 
@@ -254,5 +298,7 @@ window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
     document.getElementById('add-to-cart-btn').style.display = 'none';
+    document.getElementById('see-it-motion-btn').style.display = 'none';
     document.getElementById('fit-action-btn').innerText = "Upload Photo";
+    document.getElementById('fit-action-btn').style.display = 'block';
 };
