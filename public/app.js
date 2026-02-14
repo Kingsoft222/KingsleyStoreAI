@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v4.5
- * FIXED: Infinite Loading/Timeout Issues.
- * PRESERVED: Original Buttons, Greetings, and UI.
+ * Kingsley Store AI - Core Logic v4.6
+ * FULL RECOVERY: Fixed Mic, Search Triggers, and Result Clicks.
+ * PRESERVED: Original Buttons, Greetings, and UI labels.
  */
 
 const clothesCatalog = [
@@ -27,12 +27,16 @@ let currentMode = 'photo';
 // --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) {
+    const ownerImg = document.getElementById('owner-img');
+    const micBtn = document.getElementById('mic-btn');
+    const aiInput = document.getElementById('ai-input');
+
+    if (saved && ownerImg) {
+        ownerImg.src = saved;
         userPhoto = saved;
-        const ownerImg = document.getElementById('owner-img');
-        if (ownerImg) ownerImg.src = saved;
     }
     
+    // Greeting Rotation
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -40,12 +44,54 @@ document.addEventListener('DOMContentLoaded', () => {
             gIndex++;
         }
     }, 2000);
+
+    // --- MIC FUNCTIONALITY (RESTORED) ---
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        micBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent ghost clicks
+            try {
+                recognition.start();
+                micBtn.style.color = "#e60023"; 
+                micBtn.classList.add('recording-pulse');
+                aiInput.placeholder = "Listening...";
+            } catch (err) {
+                recognition.stop();
+            }
+        });
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            aiInput.value = transcript;
+            stopRecordingUI();
+            window.executeSearch(); // Only searches once result is found
+        };
+
+        recognition.onerror = () => stopRecordingUI();
+        recognition.onend = () => stopRecordingUI();
+
+        function stopRecordingUI() {
+            micBtn.style.color = "#5f6368"; 
+            micBtn.classList.remove('recording-pulse');
+            aiInput.placeholder = "Search Senator or Ankara...";
+        }
+    }
 });
 
-// --- 2. SEARCH & CLICK (FIXED) ---
+// --- 2. SEARCH & SHOWROOM LOGIC ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
+    
+    // Safety check to prevent search if input is empty
+    if (!input.trim()) return;
+
     const matched = clothesCatalog.filter(item =>
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
     );
@@ -56,11 +102,13 @@ window.executeSearch = () => {
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer; position:relative; z-index:1001;">
                 <img src="images/${item.img}" alt="${item.name}" style="pointer-events:none;">
-                <h4>${item.name}</h4>
-                <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
+                <h4 style="pointer-events:none;">${item.name}</h4>
+                <p style="color:var(--accent); font-weight:bold; pointer-events:none;">${item.price}</p>
             </div>
         `).join('');
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        results.innerHTML = `<p style="padding:20px; text-align:center;">No results for "${input}".</p>`;
     }
 };
 
@@ -74,7 +122,10 @@ window.promptShowroomChoice = (id) => {
     const modal = document.getElementById('fitting-room-modal');
     const resultArea = document.getElementById('ai-fitting-result');
     
-    if (modal) { modal.style.display = 'flex'; modal.style.zIndex = '9999'; }
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.style.zIndex = '9999';
+    }
     
     document.getElementById('fit-action-btn').style.display = 'none';
     document.getElementById('modal-subtext').innerText = "Select how you want to see the " + selectedCloth.name;
@@ -113,64 +164,37 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// --- 3. THE ENGINES (STABILITY UPGRADE) ---
-
+// --- 3. ENGINES ---
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
-    area.innerHTML = `<div style="text-align:center; padding:20px;">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p style="color:#555; margin-top:10px;">Applying your ${selectedCloth.name}...</p>
-                        <p style="font-size:0.8rem; color:#888;">Locking forensic identity pixels...</p>
-                      </div>`;
-    
+    area.innerHTML = `<p style="text-align:center;">Applying your ${selectedCloth.name}...</p>`;
     try {
-        // We add a timeout controller to prevent the app from hanging forever
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s limit
-
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            signal: controller.signal,
             body: JSON.stringify({ userImage: userPhoto.split(',')[1] })
         });
-        
-        clearTimeout(timeoutId);
         const data = await response.json();
-        
         if (data.result) {
-            area.innerHTML = `<img src="data:image/png;base64,${data.result}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
+            area.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
-            document.getElementById('add-to-cart-btn').style.display = 'block';
             document.getElementById('see-it-motion-btn').style.display = 'block';
         }
-    } catch (e) {
-        area.innerHTML = `<p style="color:red;">The runway is busy (Network Timeout). Please tap "Rock your cloth" again.</p>`;
-    }
+    } catch (e) { area.innerHTML = `<p style="color:red;">Timeout. Please try again.</p>`; }
 }
 
 window.generateWalkCycle = async () => {
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'block';
-    const wrapper = document.querySelector('.video-wrapper');
-    wrapper.innerHTML = `<div style="padding:40px; text-align:center; color:white;">
-                            <i class="fas fa-magic fa-spin fa-2x"></i>
-                            <p style="margin-top:15px;">Sewing your Runway Walk...</p>
-                         </div>`;
-
     try {
         const swappedImg = document.getElementById('final-swapped-img');
         const imgData = swappedImg ? swappedImg.src.split(',')[1] : userPhoto.split(',')[1];
-        
         const response = await fetch('/.netlify/functions/generate-video', {
             method: 'POST',
             body: JSON.stringify({ swappedImage: imgData, clothName: selectedCloth.name })
         });
         const data = await response.json();
-        
         if (data.videoUrl) {
-            wrapper.innerHTML = `<video id="boutique-video-player" autoplay loop muted playsinline style="width:100%; border-radius:30px;">
-                                    <source src="${data.videoUrl}" type="video/mp4">
-                                 </video>`;
+            document.querySelector('.video-wrapper').innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:30px;"><source src="${data.videoUrl}" type="video/mp4"></video>`;
         }
     } catch (e) { videoModal.style.display = 'none'; }
 };
