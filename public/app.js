@@ -1,5 +1,6 @@
 /**
- * Kingsley Store AI - Core Logic v3.6
+ * Kingsley Store AI - Core Logic v3.7
+ * FIXED: Search Result Clickability & Modal Pop-up
  * UPDATED: Doppl-Style "Fast" Immersive Walk
  * PRESERVED: Forensic Identity & Mic Logic
  */
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userPhoto = saved;
     }
     
+    // Greeting Rotation
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -44,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 2000);
 
+    // Mic Recognition Logic
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -63,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recognition.onresult = (event) => {
             aiInput.value = event.results[0][0].transcript;
             stopRecordingUI();
-            executeSearch(); 
+            window.executeSearch(); 
         };
 
         recognition.onerror = () => stopRecordingUI();
@@ -98,24 +101,28 @@ window.saveProfileData = () => {
     }
 };
 
-// --- 3. SEARCH & SHOWROOM ---
+// --- 3. SEARCH & SHOWROOM (FIXED CLICK LOGIC) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
+    
+    // Filter Catalog
     const matched = clothesCatalog.filter(item =>
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
     );
 
     if (matched.length > 0) {
+        results.style.display = 'grid'; // Ensure it's visible
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="promptShowroomChoice(${item.id})">
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer;">
                 <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
-                <p>${item.price}</p>
+                <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
-        results.style.display = 'grid';
-        results.scrollIntoView({ behavior: 'smooth' });
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        results.innerHTML = `<p style="padding:20px; text-align:center;">Keep looking, Boss. No results for "${input}".</p>`;
     }
 };
 
@@ -123,6 +130,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
     const resultArea = document.getElementById('ai-fitting-result');
+    
     if (modal) modal.style.display = 'flex';
     
     document.getElementById('fit-action-btn').style.display = 'none';
@@ -130,8 +138,8 @@ window.promptShowroomChoice = (id) => {
 
     resultArea.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px;">
-            <button onclick="initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 Photo Try-On</button>
-            <button onclick="initiateUploadFlow('video')" class="primary-btn">🎥 Video Walk</button>
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 Photo Try-On</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn">🎥 Video Walk</button>
         </div>
     `;
 };
@@ -184,13 +192,12 @@ async function startVertexModeling() {
 // STRATEGY 2: DOPPL IMMERSIVE WALK (The Fast One)
 window.generateWalkCycle = async () => {
     const videoModal = document.getElementById('video-experience-modal');
-    const videoPlayer = document.getElementById('boutique-video-player');
     const swappedImg = document.getElementById('final-swapped-img');
 
-    // 1. INSTANT UI REVEAL (Strategy: Perception of Speed)
+    // 1. INSTANT UI REVEAL
     videoModal.style.display = 'block';
-    // Use a placeholder/shimmer in the modal while the video generates
-    document.querySelector('.video-wrapper').innerHTML = `
+    const wrapper = document.querySelector('.video-wrapper');
+    wrapper.innerHTML = `
         <div id="loader-placeholder" class="shimmer-overlay" style="height:100%; position:absolute; width:100%; z-index:100;">
             <i class="fas fa-magic fa-spin fa-2x"></i>
             <p style="margin-top:15px; font-weight:bold;">Sewing your Runway Walk...</p>
