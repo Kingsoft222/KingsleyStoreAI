@@ -1,139 +1,106 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
     <title>Kingsley Store | AI Virtual Try-On</title>
-
     <link rel="stylesheet" href="style.css">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
+    
+    <style>
+        .luxury-video-modal { display: none; position: fixed; inset: 0; z-index: 10000; background: #000; overflow: hidden; }
+        .modal-fashion-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop') center/cover; filter: blur(20px) brightness(0.3); transform: scale(1.1); }
+        .modal-container { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100dvh; padding: 20px; }
+        .video-wrapper { position: relative; width: 100%; max-width: 400px; border-radius: 30px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.7); border: 1px solid rgba(255, 255, 255, 0.2); }
+        #boutique-video-player { width: 100%; display: block; }
+        .close-video-btn { position: absolute; top: 25px; right: 25px; background: rgba(255, 255, 255, 0.1); border: none; color: white; width: 45px; height: 45px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 10001; }
+        .share-walk-btn { margin-top: 20px; padding: 15px 40px; background: white; color: black; border: none; border-radius: 50px; font-weight: 700; cursor: pointer; }
+    </style>
 </head>
-
 <body>
-
     <header class="app-header">
-
         <button class="menu-btn">☰</button>
-
         <div class="cart-icon">🛒<span class="count" id="cart-count">0</span></div>
-
     </header>
 
-
-
     <main class="home-container">
-
         <div class="store-profile">
-
             <div class="profile-pic-container">
-
                 <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-
                     <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
-
                 </div>
-
                 <button class="mini-remove-btn" onclick="clearProfileData()">-</button>
-
             </div>
-
             <input type="file" id="profile-input" hidden accept="image/*" onchange="handleProfileUpload(event)">
-
             <h1 class="store-name">Kingsley Store</h1>
-
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
-
             <div class="profile-actions">
-
                 <button id="save-btn" class="action-btn save" style="display:none;" onclick="saveProfileData()">Save</button>
-
             </div>
-
         </div>
-
         <div id="ai-results" class="results-grid" style="display:none;"></div>
-
     </main>
 
-
-
     <div id="fitting-room-modal" class="voice-overlay" style="display:none;">
-
         <div class="voice-modal">
-
             <h2 style="color:var(--accent); margin-bottom:5px;">AI Showroom</h2>
-
             <p id="modal-subtext" style="font-size:0.9rem; color:#555; margin-bottom:20px;">Upload your photo to begin</p>
-
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="handleUserFitUpload(event)">
-
             <button id="fit-action-btn" class="primary-btn" onclick="document.getElementById('user-fit-input').click()">Upload Photo</button>
-
             <div id="ai-fitting-result"></div>
-
             <button id="add-to-cart-btn" class="primary-btn" style="display:none; background:#28a745; margin-top:10px;" onclick="addToCart()">Add to Cart 🛒</button>
-
+            
+            <button id="see-it-motion-btn" class="primary-btn" style="display:none; background:#6f42c1; margin-top:10px;" onclick="generateWalkCycle()">See How I Look (Walk) 🎬</button>
+            
             <button class="cancel-voice" onclick="closeFittingRoom()" style="margin-top:15px; background:none; border:1px solid #ddd;">Exit Showroom</button>
-
         </div>
-
     </div>
 
-
+    <div id="video-experience-modal" class="luxury-video-modal">
+        <div class="modal-fashion-bg"></div>
+        <button class="close-video-btn" onclick="closeVideoModal()">×</button>
+        <div class="modal-container">
+            <div class="video-wrapper">
+                <video id="boutique-video-player" playsinline loop controls>
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+            <div class="video-info-overlay" style="color: white; margin-top: 20px;">
+                <h2 style="text-transform: uppercase;">Kingsley Runway</h2>
+                <button class="share-walk-btn" onclick="alert('Ready to share!')">SHARE MY WALK</button>
+            </div>
+        </div>
+    </div>
 
     <footer class="bottom-controls">
-
         <div class="split-cards">
-
             <div class="chip left-end spaced-card" onclick="quickSearch('Dinner outfit')">
-
                 <strong>Dinner outfit</strong>
-
                 <span>See exclusive female</span>
-
             </div>
-
             <div class="chip right-end spaced-card" onclick="quickSearch('Trousers')">
-
                 <strong>Trousers</strong>
-
                 <span>Shop stylish trousers</span>
-
             </div>
-
         </div>
-
         <div class="search-bar">
-
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
-
             <div class="input-icons">
-
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
-
                 <button class="send-circle" onclick="executeSearch()">
-
                     <svg viewBox="0 0 24 24" class="bolder-svg"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
-
                 </button>
-
             </div>
-
         </div>
-
     </footer>
-
+    
+    <script>
+        function closeVideoModal() {
+            document.getElementById('video-experience-modal').style.display = 'none';
+            document.getElementById('boutique-video-player').pause();
+        }
+    </script>
     <script src="app.js"></script>
-
 </body>
-
 </html>
