@@ -1,8 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v3.7
- * FIXED: Search Result Clickability & Modal Pop-up
- * UPDATED: Doppl-Style "Fast" Immersive Walk
- * PRESERVED: Forensic Identity & Mic Logic
+ * Kingsley Store AI - Core Logic v4.0
+ * FULL UPDATED CODE: Integrated Social Sharing, Fixed Pop-up Clicks, 
+ * and Preserved Mic/Forensic Logic.
  */
 
 const clothesCatalog = [
@@ -46,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 2000);
 
-    // Mic Recognition Logic
+    // Mic Recognition Logic (Gemini Style)
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
@@ -106,18 +105,18 @@ window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     
-    // Filter Catalog
     const matched = clothesCatalog.filter(item =>
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
     );
 
     if (matched.length > 0) {
-        results.style.display = 'grid'; // Ensure it's visible
+        results.style.display = 'grid';
+        results.style.zIndex = '1000'; // Ensure it's above background elements
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer;">
-                <img src="images/${item.img}" alt="${item.name}">
-                <h4>${item.name}</h4>
-                <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer; position:relative; z-index:1001;">
+                <img src="images/${item.img}" alt="${item.name}" style="pointer-events:none;">
+                <h4 style="pointer-events:none;">${item.name}</h4>
+                <p style="color:var(--accent); font-weight:bold; pointer-events:none;">${item.price}</p>
             </div>
         `).join('');
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -131,15 +130,18 @@ window.promptShowroomChoice = (id) => {
     const modal = document.getElementById('fitting-room-modal');
     const resultArea = document.getElementById('ai-fitting-result');
     
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.style.zIndex = '9999'; // Force to front
+    }
     
     document.getElementById('fit-action-btn').style.display = 'none';
     document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
 
     resultArea.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px;">
-            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 Photo Try-On</button>
-            <button onclick="window.initiateUploadFlow('video')" class="primary-btn">🎥 Video Walk</button>
+        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px; width:100%;">
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent); z-index:10000;">📸 Photo Try-On</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="z-index:10000;">🎥 Video Walk</button>
         </div>
     `;
 };
@@ -161,7 +163,7 @@ window.handleUserFitUpload = (e) => {
         userPhoto = event.target.result;
         const btn = document.getElementById('fit-action-btn');
         btn.innerText = "Rock your cloth";
-        btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
+        btn.onclick = (currentMode === 'photo') ? startVertexModeling : generateWalkCycle;
     };
     reader.readAsDataURL(file);
 };
@@ -183,8 +185,7 @@ async function startVertexModeling() {
             const finalImg = `data:image/png;base64,${data.result}`;
             area.innerHTML = `<img src="${finalImg}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
-            document.getElementById('add-to-cart-btn').style.display = 'block';
-            document.getElementById('see-it-motion-btn').style.display = 'block';
+            document.getElementById('see-it-motion-btn').style.display = 'block'; // Reveal the walk button
         }
     } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
 }
@@ -194,7 +195,6 @@ window.generateWalkCycle = async () => {
     const videoModal = document.getElementById('video-experience-modal');
     const swappedImg = document.getElementById('final-swapped-img');
 
-    // 1. INSTANT UI REVEAL
     videoModal.style.display = 'block';
     const wrapper = document.querySelector('.video-wrapper');
     wrapper.innerHTML = `
@@ -209,7 +209,7 @@ window.generateWalkCycle = async () => {
         const response = await fetch('/.netlify/functions/generate-video', {
             method: 'POST',
             body: JSON.stringify({ 
-                swappedImage: swappedImg.src.split(',')[1],
+                swappedImage: swappedImg ? swappedImg.src.split(',')[1] : userPhoto.split(',')[1],
                 clothName: selectedCloth.name
             })
         });
@@ -221,6 +221,17 @@ window.generateWalkCycle = async () => {
             
             player.src = data.videoUrl;
             player.style.display = 'block';
+            
+            // Add Share Button Overlay
+            const shareBtn = `
+                <div class="video-info-overlay" style="z-index: 200;">
+                    <button onclick="window.shareMyWalk()" class="share-walk-btn">
+                        <i class="fab fa-whatsapp"></i> Share on Status
+                    </button>
+                </div>
+            `;
+            wrapper.insertAdjacentHTML('beforeend', shareBtn);
+
             player.onloadeddata = () => {
                 loader.style.display = 'none';
                 player.play();
@@ -229,6 +240,23 @@ window.generateWalkCycle = async () => {
     } catch (e) {
         alert("Runway busy! Please try again.");
         videoModal.style.display = 'none';
+    }
+};
+
+// --- 5. SOCIAL SHARING ---
+window.shareMyWalk = async () => {
+    const videoUrl = document.getElementById('boutique-video-player').src;
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: 'Check my new Native Wear!',
+                text: 'Just tried this Senator outfit on Kingsley Store AI. What do you think?',
+                url: videoUrl,
+            });
+        } catch (e) { console.log("Share failed", e); }
+    } else {
+        navigator.clipboard.writeText(videoUrl);
+        alert("Link copied! Paste it on your WhatsApp.");
     }
 };
 
@@ -242,7 +270,6 @@ window.closeVideoModal = () => {
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
-    document.getElementById('add-to-cart-btn').style.display = 'none';
     document.getElementById('see-it-motion-btn').style.display = 'none';
     document.getElementById('fit-action-btn').style.display = 'block';
 };
