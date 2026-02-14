@@ -29,22 +29,23 @@ exports.handler = async (event) => {
 
         const response = await axios.post(apiURL, {
             instances: [{
-                // The prompt must be paired with the image inside the instance
-                prompt: `A high-quality professional fashion photo. The person is wearing a luxury ${cloth}. Realistic fabric textures.`,
-                image: { 
-                    bytesBase64Encoded: cleanBase64,
-                    mimeType: "image/png"
-                }
+                // MANDATORY: Link the prompt to the image ID [1]
+                prompt: `A professional fashion photo. The person [1] is wearing a luxury ${cloth}. High quality textures.`,
+                referenceImages: [{
+                    referenceId: 1,
+                    referenceType: "REFERENCE_TYPE_RAW",
+                    image: { 
+                        bytesBase64Encoded: cleanBase64,
+                        mimeType: "image/png"
+                    }
+                }]
             }],
             parameters: {
                 sampleCount: 1,
-                // THE 2026 MANDATORY PARAMETERS
-                personGeneration: "allow_all", 
+                personGeneration: "allow_all", // New 2026 safety requirement
                 editConfig: {
                     editMode: "EDIT_MODE_INPAINT_INSERTION",
-                    maskConfig: {
-                        maskMode: "MASK_MODE_FOREGROUND"
-                    }
+                    maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
                 }
             }
         }, {
@@ -64,7 +65,7 @@ exports.handler = async (event) => {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "AI Processing Failed", details: detail }) 
+            body: JSON.stringify({ error: "AI Rendering Failed", details: detail }) 
         };
     }
 };
