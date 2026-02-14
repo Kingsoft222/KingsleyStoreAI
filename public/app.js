@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v4.0
- * FULL UPDATED CODE: Integrated Social Sharing, Fixed Pop-up Clicks, 
- * and Preserved Mic/Forensic Logic.
+ * Kingsley Store AI - Core Logic v4.2
+ * FULL UPDATED CODE: Restored Greetings, Fixed Pop-up Clicks, 
+ * Social Sharing, and Immersive Doppl Logic.
  */
 
 const clothesCatalog = [
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         userPhoto = saved;
     }
     
-    // Greeting Rotation
+    // Greeting Rotation - Restored full list
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -100,6 +100,16 @@ window.saveProfileData = () => {
     }
 };
 
+window.clearProfileData = () => {
+    if (confirm("Remove profile photo?")) {
+        localStorage.removeItem('kingsley_profile_locked');
+        userPhoto = "";
+        const img = document.getElementById('owner-img');
+        if (img) img.src = "images/kingsley.jpg";
+        document.getElementById('save-btn').style.display = 'none';
+    }
+};
+
 // --- 3. SEARCH & SHOWROOM (FIXED CLICK LOGIC) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
@@ -111,7 +121,7 @@ window.executeSearch = () => {
 
     if (matched.length > 0) {
         results.style.display = 'grid';
-        results.style.zIndex = '1000'; // Ensure it's above background elements
+        results.style.zIndex = '1000'; 
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer; position:relative; z-index:1001;">
                 <img src="images/${item.img}" alt="${item.name}" style="pointer-events:none;">
@@ -125,6 +135,11 @@ window.executeSearch = () => {
     }
 };
 
+window.quickSearch = (query) => {
+    document.getElementById('ai-input').value = query;
+    window.executeSearch();
+};
+
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
@@ -132,7 +147,7 @@ window.promptShowroomChoice = (id) => {
     
     if (modal) {
         modal.style.display = 'flex';
-        modal.style.zIndex = '9999'; // Force to front
+        modal.style.zIndex = '9999';
     }
     
     document.getElementById('fit-action-btn').style.display = 'none';
@@ -185,7 +200,7 @@ async function startVertexModeling() {
             const finalImg = `data:image/png;base64,${data.result}`;
             area.innerHTML = `<img src="${finalImg}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
-            document.getElementById('see-it-motion-btn').style.display = 'block'; // Reveal the walk button
+            document.getElementById('see-it-motion-btn').style.display = 'block';
         }
     } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
 }
