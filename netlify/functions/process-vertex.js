@@ -1,4 +1,5 @@
-import { GoogleAuth } from 'google-auth-library';
+import pkg from 'google-auth-library';
+const { GoogleAuth } = pkg; // Fixes the "not a constructor" error
 import axios from 'axios';
 
 export const handler = async (event) => {
@@ -28,10 +29,11 @@ export const handler = async (event) => {
         
         const cleanBase64 = rawImage.split(',').pop();
 
+        // 2026 SUBJECT CUSTOMIZATION SCHEMA
         const response = await axios.post(apiURL, {
             instances: [{
-                // MANDATORY: Link the prompt to the image ID [1]
-                prompt: `A professional fashion photo. The person [1] is wearing a luxury ${cloth}. High quality textures.`,
+                // You must use [1] to link the prompt to the reference image ID
+                prompt: `Generate a photo of the person [1] wearing a luxury ${cloth}. High quality textures, realistic fabric.`,
                 referenceImages: [{
                     referenceId: 1,
                     referenceType: "REFERENCE_TYPE_RAW",
@@ -43,7 +45,7 @@ export const handler = async (event) => {
             }],
             parameters: {
                 sampleCount: 1,
-                person_generation: "allow_all", // 2026 Safety bypass
+                personGeneration: "allow_all", // Mandatory for humans in 2026
                 editConfig: {
                     editMode: "EDIT_MODE_INPAINT_INSERTION",
                     maskConfig: { maskMode: "MASK_MODE_FOREGROUND" }
