@@ -25,36 +25,64 @@ body, html {
 .result-card { background: var(--gray); border-radius: 12px; padding: 8px; text-align: center; }
 .result-card img { width: 100%; height: 140px; object-fit: contain; border-radius: 8px; background: white; }
 
-/* Modal & Overlay */
-.voice-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-.voice-modal { background: white; padding: 25px; border-radius: 25px; text-align: center; width: 85%; }
-
-/* Body Type Buttons */
-.type-btn { background: #eee; border: 1px solid #ddd; padding: 8px 12px; border-radius: 10px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
-.type-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-.primary-btn { background: var(--dark); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
-
-/* Showroom Result */
-.showroom-video-box {
-    margin-top: 15px;
-    height: 480px;
-    border-radius: 20px;
+/* --- THE DOPPL "FAST" SHOWROOM STAGE --- */
+.doppl-stage {
+    margin: 15px auto;
+    width: 92%;
+    height: 520px; /* Taller, immersive fashion height */
+    border-radius: 24px;
     position: relative;
     overflow: hidden;
     background: #000;
-    border: 4px solid #fff;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
 }
-.modeling-video { width: 100%; height: 100%; object-fit: cover; }
-.user-identity-bubble { position: absolute; bottom: 20px; left: 20px; width: 65px; height: 65px; border-radius: 50%; border: 2px solid white; overflow: hidden; z-index: 10; background: #fff; }
+
+.doppl-video { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    transition: opacity 0.5s ease-in;
+}
+
+/* Skeleton Loader for "Fast" Perception */
+.shimmer-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 200% 100%;
+    animation: loading-shimmer 1.5s infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    z-index: 5;
+}
+
+@keyframes loading-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.user-identity-bubble { 
+    position: absolute; 
+    bottom: 20px; 
+    left: 20px; 
+    width: 65px; 
+    height: 65px; 
+    border-radius: 50%; 
+    border: 2px solid white; 
+    overflow: hidden; 
+    z-index: 10; 
+    background: #fff; 
+}
 
 /* Bottom Controls & Gemini Search Bar */
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
 .split-cards { display: flex; justify-content: space-between; width: 100%; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; }
-.spaced-card { width: 47% !important; border-radius: 15px !important; background: var(--dark); color: white; padding: 20px; }
+.spaced-card { width: 47% !important; border-radius: 15px !important; background: var(--dark); color: white; padding: 20px; border: none; font-weight: bold; cursor: pointer;}
 
-/* REFINED GEMINI SEARCH BAR */
 .search-bar {
     background: var(--gray);
     border-radius: 50px;
@@ -66,128 +94,6 @@ body, html {
 }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); }
 
-/* Icon Grouping */
 .input-icons { display: flex; align-items: center; gap: 8px; }
-
-.mic-icon {
-    font-size: 1.8rem;
-    cursor: pointer;
-    padding: 5px;
-    transition: transform 0.2s;
-}
-
-.send-circle {
-    background: var(--dark);
-    border: none;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background 0.3s;
-}
-
-.send-circle:active { background: var(--accent); }
-.bolder-svg { width: 24px; height: 24px; }
-
-/* Recording State */
-.recording-pulse {
-    animation: pulse-red 1.5s infinite;
-    filter: grayscale(0) contrast(2);
-}
-
-@keyframes pulse-red {
-    0% { transform: scale(1); filter: drop-shadow(0 0 0px red); }
-    50% { transform: scale(1.2); filter: drop-shadow(0 0 10px red); }
-    100% { transform: scale(1); filter: drop-shadow(0 0 0px red); }
-}
-
-/* --- ADDED: LUXURY VIDEO MODAL (STRATEGY 2) --- */
-.luxury-video-modal {
-    display: none; 
-    position: fixed;
-    z-index: 10000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    overflow: hidden;
-    background-color: #000;
-}
-
-.modal-fashion-bg {
-    position: absolute;
-    width: 100%; height: 100%;
-    background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
-    filter: blur(20px) brightness(0.3);
-    transform: scale(1.1);
-}
-
-.modal-container {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100dvh;
-    padding: 20px;
-    text-align: center;
-}
-
-.video-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-    border-radius: 30px;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: #000;
-}
-
-#boutique-video-player {
-    width: 100%;
-    display: block;
-    border-radius: 30px;
-}
-
-.video-info-overlay {
-    margin-top: 25px;
-    color: white;
-}
-
-.video-info-overlay h2 {
-    font-weight: 800;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    background: linear-gradient(to right, #fff, #ffd700);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.close-video-btn {
-    position: absolute;
-    top: 25px;
-    right: 25px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: white;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    font-size: 24px;
-    cursor: pointer;
-    backdrop-filter: blur(10px);
-    z-index: 10001;
-}
-
-.share-walk-btn {
-    margin-top: 20px;
-    padding: 15px 40px;
-    background: white;
-    color: black;
-    border: none;
-    border-radius: 50px;
-    font-weight: 700;
-    cursor: pointer;
-}
+.mic-icon { font-size: 1.8rem; cursor: pointer; padding: 5px; }
+.send-circle { background: var(--dark); border: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }

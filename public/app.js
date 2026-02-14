@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v3.5
- * FIXED: Forensic Identity Lock & Strategy 2 Walk-Cycle Connection
- * PRESERVED: Greetings, Mic, Search, and Cart Logic
+ * Kingsley Store AI - Core Logic v3.6
+ * UPDATED: Doppl-Style "Fast" Immersive Walk
+ * PRESERVED: Forensic Identity & Mic Logic
  */
 
 const clothesCatalog = [
@@ -24,7 +24,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
-// --- 1. BOOTSTRAP (PRESERVING ALL FIXES) ---
+// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         userPhoto = saved;
     }
     
-    // Greeting Rotation
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) {
@@ -45,11 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 2000);
 
-    // --- MIC FUNCTIONALITY (GEMINI STYLE) ---
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
-        
         recognition.continuous = false;
         recognition.interimResults = false;
         recognition.lang = 'en-US';
@@ -60,14 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 micBtn.style.color = "#e60023"; 
                 micBtn.classList.add('recording-pulse');
                 aiInput.placeholder = "Listening...";
-            } catch (e) {
-                recognition.stop();
-            }
+            } catch (e) { recognition.stop(); }
         });
 
         recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            aiInput.value = transcript;
+            aiInput.value = event.results[0][0].transcript;
             stopRecordingUI();
             executeSearch(); 
         };
@@ -104,17 +98,7 @@ window.saveProfileData = () => {
     }
 };
 
-window.clearProfileData = () => {
-    if (confirm("Remove profile photo?")) {
-        localStorage.removeItem('kingsley_profile_locked');
-        userPhoto = "";
-        const img = document.getElementById('owner-img');
-        if (img) img.src = "images/kingsley.jpg";
-        document.getElementById('save-btn').style.display = 'none';
-    }
-};
-
-// --- 3. SEARCH & SHOWROOM CHOICE ---
+// --- 3. SEARCH & SHOWROOM ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -135,46 +119,31 @@ window.executeSearch = () => {
     }
 };
 
-window.quickSearch = (query) => {
-    document.getElementById('ai-input').value = query;
-    executeSearch();
-};
-
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
     const resultArea = document.getElementById('ai-fitting-result');
-    const subtext = document.getElementById('modal-subtext');
-    const uploadBtn = document.getElementById('fit-action-btn');
-
     if (modal) modal.style.display = 'flex';
     
-    uploadBtn.style.display = 'none';
-    subtext.innerText = "Select how you want to see the " + selectedCloth.name;
+    document.getElementById('fit-action-btn').style.display = 'none';
+    document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
 
     resultArea.innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px;">
-            <button onclick="initiateUploadFlow('photo')" style="width:240px; background:var(--accent); color:white; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">
-                📸 See How You Look (Photo)
-            </button>
-            <button onclick="initiateUploadFlow('video')" style="width:240px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid var(--accent); cursor:pointer; font-weight:bold;">
-                🎥 See How You Look (Video)
-            </button>
+            <button onclick="initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 Photo Try-On</button>
+            <button onclick="initiateUploadFlow('video')" class="primary-btn">🎥 Video Walk</button>
         </div>
     `;
 };
 
 window.initiateUploadFlow = (mode) => {
     currentMode = mode;
-    const resultArea = document.getElementById('ai-fitting-result');
-    const uploadBtn = document.getElementById('fit-action-btn');
-    const subtext = document.getElementById('modal-subtext');
-
-    subtext.innerText = "Upload your photo for " + mode + " result";
-    resultArea.innerHTML = "";
-    uploadBtn.style.display = 'block';
-    uploadBtn.innerText = "Upload Photo";
-    uploadBtn.onclick = () => document.getElementById('user-fit-input').click();
+    document.getElementById('modal-subtext').innerText = "Upload photo for " + mode;
+    document.getElementById('ai-fitting-result').innerHTML = "";
+    const fitBtn = document.getElementById('fit-action-btn');
+    fitBtn.style.display = 'block';
+    fitBtn.innerText = "Upload Photo";
+    fitBtn.onclick = () => document.getElementById('user-fit-input').click();
 };
 
 window.handleUserFitUpload = (e) => {
@@ -183,63 +152,51 @@ window.handleUserFitUpload = (e) => {
     reader.onload = (event) => {
         userPhoto = event.target.result;
         const btn = document.getElementById('fit-action-btn');
-        if (btn) {
-            btn.innerText = "Rock your cloth";
-            btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
-        }
+        btn.innerText = "Rock your cloth";
+        btn.onclick = (currentMode === 'photo') ? startVertexModeling : startModeling;
     };
     reader.readAsDataURL(file);
 };
 
-// --- 4. ENGINES ---
+// --- 4. THE ENGINES ---
 
-// STRATEGY 1: Forensic Identity Photo
+// STRATEGY 1: PHOTO (Forensic)
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
-    const cartBtn = document.getElementById('add-to-cart-btn');
-    const motionBtn = document.getElementById('see-it-motion-btn');
-    
-    area.innerHTML = `
-        <div style="text-align:center; padding:20px;">
-            <p style="color:#555;">Applying your ${selectedCloth.name}...</p>
-            <p style="font-size:0.8rem; color:#888;">Locking forensic identity pixels...</p>
-        </div>
-    `;
+    area.innerHTML = `<div class="shimmer-overlay"><p>Applying Native Wear...</p></div>`;
     
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ 
-                userImage: userPhoto.split(',')[1]
-            })
+            body: JSON.stringify({ userImage: userPhoto.split(',')[1] })
         });
-        
         const data = await response.json();
-        
         if (data.result) {
             const finalImg = `data:image/png;base64,${data.result}`;
-            area.innerHTML = `<img src="${finalImg}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">`;
-            
+            area.innerHTML = `<img src="${finalImg}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
             document.getElementById('fit-action-btn').style.display = 'none';
-            if (cartBtn) cartBtn.style.display = 'block';
-            if (motionBtn) motionBtn.style.display = 'block'; // Reveal the Walk Button
-        } else {
-            throw new Error(data.error || "Try-On failed.");
+            document.getElementById('add-to-cart-btn').style.display = 'block';
+            document.getElementById('see-it-motion-btn').style.display = 'block';
         }
-    } catch (e) {
-        area.innerHTML = `<p style="color:red; font-weight:bold;">Error: ${e.message}</p>`;
-    }
+    } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
 }
 
-// STRATEGY 2: Outstanding Walk-Cycle (The Doppl Reveal)
+// STRATEGY 2: DOPPL IMMERSIVE WALK (The Fast One)
 window.generateWalkCycle = async () => {
-    const motionBtn = document.getElementById('see-it-motion-btn');
     const videoModal = document.getElementById('video-experience-modal');
     const videoPlayer = document.getElementById('boutique-video-player');
     const swappedImg = document.getElementById('final-swapped-img');
 
-    motionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sewing your walk...';
-    motionBtn.disabled = true;
+    // 1. INSTANT UI REVEAL (Strategy: Perception of Speed)
+    videoModal.style.display = 'block';
+    // Use a placeholder/shimmer in the modal while the video generates
+    document.querySelector('.video-wrapper').innerHTML = `
+        <div id="loader-placeholder" class="shimmer-overlay" style="height:100%; position:absolute; width:100%; z-index:100;">
+            <i class="fas fa-magic fa-spin fa-2x"></i>
+            <p style="margin-top:15px; font-weight:bold;">Sewing your Runway Walk...</p>
+        </div>
+        <video id="boutique-video-player" class="doppl-video" autoplay loop muted playsinline style="display:none;"></video>
+    `;
 
     try {
         const response = await fetch('/.netlify/functions/generate-video', {
@@ -249,55 +206,36 @@ window.generateWalkCycle = async () => {
                 clothName: selectedCloth.name
             })
         });
-
         const data = await response.json();
 
         if (data.videoUrl) {
-            videoPlayer.src = data.videoUrl;
-            videoModal.style.display = 'block'; // Open Full Screen
-            videoPlayer.play();
+            const player = document.getElementById('boutique-video-player');
+            const loader = document.getElementById('loader-placeholder');
             
-            motionBtn.innerHTML = 'See How I Look (Walk) 🎬';
-            motionBtn.disabled = false;
-        } else {
-            throw new Error("Video failed.");
+            player.src = data.videoUrl;
+            player.style.display = 'block';
+            player.onloadeddata = () => {
+                loader.style.display = 'none';
+                player.play();
+            };
         }
     } catch (e) {
         alert("Runway busy! Please try again.");
-        motionBtn.innerHTML = 'See How I Look (Walk) 🎬';
-        motionBtn.disabled = false;
+        videoModal.style.display = 'none';
     }
 };
 
-async function startModeling() {
-    const area = document.getElementById('ai-fitting-result');
-    const cartBtn = document.getElementById('add-to-cart-btn');
-    area.innerHTML = `<p style="color:#555; text-align:center;">Sewing video result...</p>`;
-    try {
-        const response = await fetch('/.netlify/functions/process-ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ face: userPhoto, cloth: selectedCloth.img })
-        });
-        const data = await response.json();
-        let check = setInterval(async () => {
-            const res = await fetch(`/.netlify/functions/check-ai?id=${data.predictionId}`).then(r => r.json());
-            if (res.status === "succeeded") {
-                clearInterval(check);
-                let url = Array.isArray(res.output) ? res.output[0] : res.output;
-                area.innerHTML = `<video autoplay loop muted playsinline style="width:100%; border-radius:15px; border: 4px solid var(--accent);"><source src="${url}" type="video/mp4"></video>`;
-                document.getElementById('fit-action-btn').style.display = 'none';
-                if (cartBtn) cartBtn.style.display = 'block';
-            }
-        }, 5000);
-    } catch (e) { area.innerHTML = `<p style="color:red;">Error: ${e.message}</p>`; }
-}
+window.closeVideoModal = () => {
+    const videoModal = document.getElementById('video-experience-modal');
+    const videoPlayer = document.getElementById('boutique-video-player');
+    if(videoPlayer) videoPlayer.pause();
+    videoModal.style.display = 'none';
+};
 
 window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = '';
     document.getElementById('add-to-cart-btn').style.display = 'none';
     document.getElementById('see-it-motion-btn').style.display = 'none';
-    document.getElementById('fit-action-btn').innerText = "Upload Photo";
     document.getElementById('fit-action-btn').style.display = 'block';
 };

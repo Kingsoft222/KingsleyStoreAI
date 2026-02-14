@@ -1,44 +1,83 @@
-const axios = require('axios');
-const { JWT } = require('google-auth-library');
+/**
+ * Kingsley Store AI - High Speed Video Generator
+ * Optimized for 5-10 second response times
+ */
+
+const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
-    if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
+    // Only allow POST requests
+    if (event.httpMethod !== "POST") {
+        return { statusCode: 405, body: "Method Not Allowed" };
+    }
 
     try {
         const { swappedImage, clothName } = JSON.parse(event.body);
 
-        // 1. Authenticate using the Service Account keys from Netlify Env
-        const client = new JWT({
-            email: process.env.GOOGLE_CLIENT_EMAIL,
-            key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-            scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        if (!swappedImage) {
+            return { statusCode: 400, body: JSON.stringify({ error: "Image data missing" }) };
+        }
+
+        // 1. THE PROMPT: Engineered for Native Wear & Immersive Boutique
+        const prompt = `A cinematic fashion runway walk of a person wearing high-end ${clothName} traditional African native wear. The person is walking towards the camera in a luxury boutique showroom with soft golden lighting. High resolution, 4k, professional fashion film, fluid movement.`;
+
+        // 2. THE AI CALL (Example using a high-speed endpoint)
+        // Note: Replace API_URL and KEY with your specific provider (Vertex AI, Replicate, etc.)
+        const response = await fetch('https://api.replicate.com/v1/predictions', {
+            method: 'POST',
+            headers: {
+                "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                version: "cf64f33b-8f0c-449e-b14a-8d1979b0629a", // Using a fast model like Luma or Kling
+                input: {
+                    prompt: prompt,
+                    image: `data:image/png;base64,${swappedImage}`,
+                    duration: 3, // Short duration = faster generation
+                    aspect_ratio: "9:16", // Full screen mobile look
+                    frames_per_second: 24
+                }
+            })
         });
 
-        const tokens = await client.authorize();
-        const ACCESS_TOKEN = tokens.access_token;
+        const prediction = await response.json();
 
-        // 2. Trigger Veo 3.1 for the "Doppl" Walk Cycle
-        const apiURL = `https://us-central1-aiplatform.googleapis.com/v1/projects/kingsleystoreai/locations/us-central1/publishers/google/models/veo-3.1-generate-001:predict`;
+        // 3. THE "FAST" POLLING LOGIC
+        // Instead of making the frontend wait, we poll here for up to 15 seconds
+        let videoUrl = null;
+        let attempts = 0;
+        
+        while (!videoUrl && attempts < 15) {
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 secs
+            const check = await fetch(prediction.urls.get, {
+                headers: { "Authorization": `Token ${process.env.REPLICATE_API_TOKEN}` }
+            });
+            const status = await check.json();
+            
+            if (status.status === "succeeded") {
+                videoUrl = status.output; // This is usually the hosted MP4 URL
+                break;
+            } else if (status.status === "failed") {
+                throw new Error("AI Generation Failed");
+            }
+            attempts++;
+        }
 
-        const response = await axios.post(apiURL, {
-            instances: [{
-                prompt: `A high-quality 4k video of the person in [1] walking toward the camera. The ${clothName} should drape and move naturally. Keep the face 100% identical to [1].`,
-                referenceImages: [{
-                    referenceId: 1,
-                    referenceType: "REFERENCE_TYPE_SUBJECT",
-                    image: { bytesBase64Encoded: swappedImage }
-                }]
-            }],
-            parameters: { durationSeconds: 6, aspectRatio: "9:16", fps: 30 }
-        }, {
-            headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
-        });
+        if (!videoUrl) {
+            return { statusCode: 202, body: JSON.stringify({ status: "processing", id: prediction.id }) };
+        }
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ videoUrl: response.data.predictions[0].videoUri })
+            body: JSON.stringify({ videoUrl: videoUrl })
         };
-    } catch (err) {
-        return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+
+    } catch (error) {
+        console.error("Video Gen Error:", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: error.message })
+        };
     }
 };
