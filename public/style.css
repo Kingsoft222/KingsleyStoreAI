@@ -1,6 +1,110 @@
-/* --- LUXURY VIDEO EXPERIENCE (DOPPL STYLE) --- */
+:root {
+    --accent: #e60023;
+    --dark: #1a1a1a;
+    --gray: #f2f2f2;
+    --gemini-blue: #1a73e8;
+}
 
-/* Full-screen immersive backdrop */
+body, html {
+    margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+    background: #fff; height: 100%; width: 100%; overflow-x: hidden;
+}
+
+/* Header & Profile */
+.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
+.store-profile { text-align: center; padding-top: 20px; }
+.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
+.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+.mini-remove-btn { position: absolute; right: -10px; top: 0; background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
+.greeting { font-size: 1.1rem; transition: opacity 0.1s; height: 1.5em; margin: 10px 0; }
+
+/* Grid Results */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 220px; }
+.result-card { background: var(--gray); border-radius: 12px; padding: 8px; text-align: center; }
+.result-card img { width: 100%; height: 140px; object-fit: contain; border-radius: 8px; background: white; }
+
+/* Modal & Overlay */
+.voice-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; }
+.voice-modal { background: white; padding: 25px; border-radius: 25px; text-align: center; width: 85%; }
+
+/* Body Type Buttons */
+.type-btn { background: #eee; border: 1px solid #ddd; padding: 8px 12px; border-radius: 10px; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+.type-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+.primary-btn { background: var(--dark); color: white; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; cursor: pointer; }
+
+/* Showroom Result */
+.showroom-video-box {
+    margin-top: 15px;
+    height: 480px;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    border: 4px solid #fff;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+}
+.modeling-video { width: 100%; height: 100%; object-fit: cover; }
+.user-identity-bubble { position: absolute; bottom: 20px; left: 20px; width: 65px; height: 65px; border-radius: 50%; border: 2px solid white; overflow: hidden; z-index: 10; background: #fff; }
+
+/* Bottom Controls & Gemini Search Bar */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
+.split-cards { display: flex; justify-content: space-between; width: 100%; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; }
+.spaced-card { width: 47% !important; border-radius: 15px !important; background: var(--dark); color: white; padding: 20px; }
+
+/* REFINED GEMINI SEARCH BAR */
+.search-bar {
+    background: var(--gray);
+    border-radius: 50px;
+    padding: 6px 6px 6px 20px;
+    display: flex;
+    align-items: center;
+    margin: 0 15px;
+    border: 1px solid #e0e0e0;
+}
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); }
+
+/* Icon Grouping */
+.input-icons { display: flex; align-items: center; gap: 8px; }
+
+.mic-icon {
+    font-size: 1.8rem;
+    cursor: pointer;
+    padding: 5px;
+    transition: transform 0.2s;
+}
+
+.send-circle {
+    background: var(--dark);
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.send-circle:active { background: var(--accent); }
+.bolder-svg { width: 24px; height: 24px; }
+
+/* Recording State */
+.recording-pulse {
+    animation: pulse-red 1.5s infinite;
+    filter: grayscale(0) contrast(2);
+}
+
+@keyframes pulse-red {
+    0% { transform: scale(1); filter: drop-shadow(0 0 0px red); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 10px red); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 0px red); }
+}
+
+/* --- ADDED: LUXURY VIDEO MODAL (STRATEGY 2) --- */
 .luxury-video-modal {
     display: none; 
     position: fixed;
@@ -11,16 +115,14 @@
     background-color: #000;
 }
 
-/* Outstanding Runway Background */
 .modal-fashion-bg {
     position: absolute;
     width: 100%; height: 100%;
     background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
     filter: blur(20px) brightness(0.3);
-    transform: scale(1.1); /* Prevents white edges from the blur filter */
+    transform: scale(1.1);
 }
 
-/* Center Container for the Walk Cycle */
 .modal-container {
     position: relative;
     display: flex;
@@ -32,15 +134,14 @@
     text-align: center;
 }
 
-/* High-end Video Wrapper */
 .video-wrapper {
     position: relative;
     width: 100%;
-    max-width: 420px; /* Optimized for mobile portrait view */
+    max-width: 400px;
     border-radius: 30px;
     overflow: hidden;
-    box-shadow: 0 35px 70px -15px rgba(0, 0, 0, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     background: #000;
 }
 
@@ -50,42 +151,43 @@
     border-radius: 30px;
 }
 
-/* Glassmorphism Close Button */
+.video-info-overlay {
+    margin-top: 25px;
+    color: white;
+}
+
+.video-info-overlay h2 {
+    font-weight: 800;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    background: linear-gradient(to right, #fff, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
 .close-video-btn {
     position: absolute;
-    top: 30px;
-    right: 30px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 25px;
+    right: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
     color: white;
-    width: 50px;
-    height: 50px;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    font-size: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 24px;
     cursor: pointer;
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(10px);
     z-index: 10001;
 }
 
-/* Premium Action Button */
 .share-walk-btn {
-    margin-top: 25px;
-    padding: 18px 45px;
-    background: #fff;
-    color: #000;
+    margin-top: 20px;
+    padding: 15px 40px;
+    background: white;
+    color: black;
     border: none;
     border-radius: 50px;
-    font-weight: 800;
-    font-size: 0.9rem;
-    letter-spacing: 1px;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-    transition: transform 0.2s ease;
-}
-
-.share-walk-btn:active {
-    transform: scale(0.92);
 }
