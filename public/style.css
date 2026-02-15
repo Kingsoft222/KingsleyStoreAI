@@ -1,19 +1,27 @@
 :root { --accent: #e60023; --dark: #1a1a1a; --gray: #f2f2f2; }
 body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #fff; overflow-x: hidden; }
 
-/* FIXED HEADER */
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; border-bottom: 1px solid #eee; }
+/* FIXED HEADER & ALIGNMENT */
+.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; background: #fff; border-bottom: 1px solid #eee; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 2.2rem; margin: 0; }
 
-/* PROFILE PIC */
+/* PROFILE IMAGE POSITION */
 .profile-pic { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--accent); margin: 20px auto; overflow: hidden; background: #eee; cursor: pointer; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 
-/* SEARCH BAR STABILITY */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 20px 0 35px; border-top: 1px solid #eee; z-index: 1000; }
-.search-bar { background: var(--gray); border-radius: 50px; display: flex; align-items: center; margin: 0 15px; padding: 8px 15px; border: 1px solid #ddd; }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; }
+/* SEARCH BAR & SEND ICON */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding: 15px 0 35px; border-top: 1px solid #eee; z-index: 1000; }
+.search-bar { 
+    background: var(--gray); 
+    border-radius: 50px; 
+    display: flex !important; /* Force visibility */
+    align-items: center; 
+    margin: 0 15px; 
+    padding: 8px 15px; 
+    border: 1px solid #ddd; 
+}
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; padding: 10px; }
+.search-bar .send-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; }
 
-/* GRID FIX */
+/* GRID RESULTS */
 .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; margin-bottom: 160px; }
-.result-card { background: var(--gray); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; }
