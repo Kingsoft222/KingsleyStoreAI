@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v5.4
- * FULL ALIGNMENT: HTML and JS synchronized.
- * PERFORMANCE: Gemini 3 Flash polling logic.
+ * Kingsley Store AI - Core Logic v5.5
+ * SPEED OPTIMIZED: 2s Polling.
+ * ALIGNMENT LOCKED: Dead center UI.
  */
 
 const clothesCatalog = [
@@ -21,7 +21,6 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
-// --- BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -56,11 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- UI HELPERS ---
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
 
-// --- LOGIC ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -79,7 +76,6 @@ window.executeSearch = () => {
                 <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
-        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
@@ -91,9 +87,9 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
     document.getElementById('fit-action-btn').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px;">
-            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 See How You Look (Photo)</button>
-            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333;">🎥 See How You Look (Video)</button>
+        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px; width:100%;">
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white;">📸 See How You Look (Photo)</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white; border:1px solid #e60023;">🎥 See How You Look (Video)</button>
         </div>
     `;
 };
@@ -113,6 +109,8 @@ window.handleUserFitUpload = (e) => {
         userPhoto = event.target.result;
         const btn = document.getElementById('fit-action-btn');
         btn.innerText = "Rock your cloth";
+        btn.style.background = "#e60023";
+        btn.style.color = "white";
         btn.onclick = (currentMode === 'photo') ? startVertexModeling : generateWalkCycle;
     };
     reader.readAsDataURL(e.target.files[0]);
@@ -128,8 +126,8 @@ async function startVertexModeling() {
         });
         const data = await response.json();
         if (data.result) {
-            area.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px;">`;
-            document.getElementById('see-it-motion-btn').style.display = 'block';
+            area.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; border: 4px solid #e60023;">`;
+            document.getElementById('fit-action-btn').style.display = 'none';
         }
     } catch (e) { area.innerHTML = `<p style="color:red;">Error. Please try again.</p>`; }
 }
@@ -138,14 +136,15 @@ window.generateWalkCycle = async () => {
     const videoModal = document.getElementById('video-experience-modal');
     const wrapper = document.getElementById('video-main-container');
     const bottomSection = document.getElementById('video-bottom-section');
-    
     videoModal.style.display = 'flex';
+    
     wrapper.innerHTML = `
-        <div id="loader-placeholder" style="background: black; padding: 40px; text-align: center; color: white;">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p style="font-weight: bold; margin-top: 10px;">Sewing Runway Walk...</p>
+        <div id="loader-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:white;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:15px;"></i>
+            <p style="font-weight: bold; margin:0;">Sewing Runway Walk...</p>
+            <p style="font-size: 0.75rem; opacity: 0.7; margin-top:5px;">Improved Experience via Gemini 3 Flash</p>
         </div>
-        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%;"></video>
+        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%; border-radius:30px;"></video>
     `;
 
     try {
@@ -169,14 +168,14 @@ window.generateWalkCycle = async () => {
                 
                 if (!document.getElementById('vto-add-to-cart')) {
                     bottomSection.insertAdjacentHTML('beforeend', `
-                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; margin-top:10px; width:100%;" onclick="addToCart()">Add to Cart 🛒</button>
+                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="addToCart()">Add to Cart 🛒</button>
                     `);
                 }
             }
-            if (attempts > 20) { 
+            if (attempts > 30) { 
                 clearInterval(checkInterval);
-                document.getElementById('loader-placeholder').innerHTML = "<p>Runway busy. Try again.</p>";
+                document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>";
             }
-        }, 5000);
+        }, 2000); // Poll every 2 seconds for a faster feel
     } catch (e) { console.error("Video Trigger Failed"); }
 };
