@@ -13,15 +13,15 @@ exports.handler = async (event) => {
         const { userImage, cloth } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         
-        // SWITCHING TO THE UNIVERSAL STABLE NAME: gemini-pro-vision
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${API_KEY}`;
+        // 2026 RESOLUTION: Use gemini-2.5-flash on the v1 STABLE endpoint
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
         const cleanImageData = userImage.replace(/^data:image\/\w+;base64,/, "");
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: `VIRTUAL TRY-ON: Take the person in this photo and make them wear this outfit: ${cloth}. Keep the face, background, and pose exactly the same. Return ONLY the base64 string of the result.` },
+                    { text: `VIRTUAL TRY-ON: Wear this ${cloth} on the person in the photo. Maintain face, background, and pose. Return ONLY the base64 string.` },
                     { inline_data: { mime_type: "image/jpeg", data: cleanImageData } }
                 ]
             }]
@@ -39,15 +39,15 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ result: finalBase64 })
             };
         } else {
-            throw new Error("AI returned empty result candidates.");
+            throw new Error("AI response was empty.");
         }
 
     } catch (error) {
-        console.error("Final Attempt Error:", error.response?.data || error.message);
+        console.error("2026 Mall Engine Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: error.response?.data?.error?.message || error.message }) 
+            body: JSON.stringify({ error: `Mall Engine Error: ${error.response?.data?.error?.message || error.message}` }) 
         };
     }
 };
