@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v7.7 (FINAL MASTER)
- * FEATURES: Real-time AddToCart, High-Speed Video Handshake.
- * FIXED: Infinite Spinner, X-Button, Kinetic Walk.
+ * Kingsley Store AI - Core Logic v7.8
+ * FIXED: Save/Action button visibility on upload.
+ * RESTORED: v6.0 Home UI & Logic.
  */
 
 const clothesCatalog = [
@@ -22,7 +22,7 @@ let selectedCloth = null;
 let currentMode = 'photo';
 let cartCount = 0;
 
-// --- 1. BOOTSTRAP & PROFILE (RESTORED) ---
+// --- 1. BOOTSTRAP & PROFILE ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// FIX: This now triggers button visibility
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -55,6 +56,13 @@ window.handleProfileUpload = (e) => {
         document.getElementById('owner-img').src = imgData;
         localStorage.setItem('kingsley_profile_locked', imgData);
         userPhoto = imgData;
+
+        // --- BUTTON REFLECTION FIX ---
+        const fitBtn = document.getElementById('fit-action-btn');
+        if (fitBtn) {
+            fitBtn.style.display = 'block';
+            fitBtn.innerText = "Save Profile Photo";
+        }
     };
     reader.readAsDataURL(e.target.files[0]);
 };
@@ -63,6 +71,8 @@ window.clearProfileData = () => {
     localStorage.removeItem('kingsley_profile_locked');
     document.getElementById('owner-img').src = "images/kingsley.jpg";
     userPhoto = "";
+    const fitBtn = document.getElementById('fit-action-btn');
+    if (fitBtn) fitBtn.style.display = 'none';
 };
 
 // --- 2. NAVIGATION & SEARCH ---
@@ -88,11 +98,6 @@ window.executeSearch = () => {
     }
 };
 
-window.quickSearch = (q) => { 
-    document.getElementById('ai-input').value = q; 
-    window.executeSearch(); 
-};
-
 // --- 3. SHOWROOM & ENGINES ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
@@ -102,17 +107,16 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('ai-fitting-result').innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px; align-items:center; width:100%;">
             <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white;">📸 See How You Look (Photo)</button>
-            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white; border:1px solid #e60023;">🎥 See How You Look (Video)</button>
         </div>
     `;
 };
 
 window.initiateUploadFlow = (mode) => {
     currentMode = mode;
-    document.getElementById('modal-subtext').innerText = "Upload photo for " + mode;
     document.getElementById('ai-fitting-result').innerHTML = "";
     const fitBtn = document.getElementById('fit-action-btn');
     fitBtn.style.display = 'block';
+    fitBtn.innerText = "Upload Photo";
     fitBtn.onclick = () => document.getElementById('user-fit-input').click();
 };
 
@@ -121,27 +125,21 @@ window.handleUserFitUpload = (e) => {
     reader.onload = (event) => {
         userPhoto = event.target.result;
         const btn = document.getElementById('fit-action-btn');
+        btn.style.display = 'block';
         btn.innerText = "Rock your cloth";
-        btn.style.background = "#e60023";
-        btn.style.color = "white";
-        btn.onclick = (currentMode === 'photo') ? window.startVertexModeling : window.generateWalkCycle;
+        btn.onclick = window.startVertexModeling;
     };
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- PHOTO MODE ENGINE (KINETIC WALK) ---
+// --- PHOTO MODE ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
-    const bottomSection = document.getElementById('video-bottom-section');
-
-    container.innerHTML = `
-        <div id="loader-placeholder" style="color:white; text-align:center;">
-            <i class="fas fa-spinner fa-spin fa-2x"></i>
-            <p style="margin-top:10px;">Sewing Your Fit...</p>
-        </div>`;
+    
+    container.innerHTML = `<div style="color:white; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Sewing Your Fit...</p></div>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
@@ -149,82 +147,17 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
         });
         const data = await response.json();
-        
         if (data.result) {
-            container.innerHTML = `<img id="final-render" src="data:image/png;base64,${data.result}" style="width:100%; border-radius:30px; display:block;">`;
-            const renderImg = document.getElementById('final-render');
-            // Trigger Kinetic Motion
-            renderImg.classList.add('doppl-walk-motion');
-            
-            bottomSection.innerHTML = `
-                <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
-            `;
+            container.innerHTML = `<img id="final-render" src="data:image/png;base64,${data.result}" class="doppl-walk-motion" style="width:100%; border-radius:30px;">`;
+            document.getElementById('video-bottom-section').innerHTML = `<button class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px;" onclick="window.addToCart()">Add to Cart 🛒</button>`;
         }
-    } catch (e) {
-        container.innerHTML = "<p style='color:white;'>Runway Busy. Try again.</p>";
-    }
-};
-
-window.generateWalkCycle = async () => {
-    const videoModal = document.getElementById('video-experience-modal');
-    const wrapper = document.getElementById('video-main-container');
-    const bottomSection = document.getElementById('video-bottom-section');
-    videoModal.style.display = 'flex';
-    
-    wrapper.innerHTML = `
-        <div id="loader-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:white;">
-            <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:15px;"></i>
-            <p style="font-weight: bold; margin:0;">Sewing Runway Walk...</p>
-        </div>
-        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%; border-radius:30px;"></video>
-    `;
-
-    try {
-        fetch('/.netlify/functions/generate-video-background', {
-            method: 'POST',
-            body: JSON.stringify({ swappedImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
-        });
-
-        let attempts = 0;
-        let checkInterval = setInterval(async () => {
-            attempts++;
-            const statusRes = await fetch(`/.netlify/functions/check-video-status?cloth=${selectedCloth.name}`);
-            const statusData = await statusRes.json();
-            
-            if (statusData.videoUrl) {
-                clearInterval(checkInterval);
-                document.getElementById('loader-placeholder').style.display = 'none';
-                const player = document.getElementById('boutique-video-player');
-                player.src = statusData.videoUrl;
-                player.style.display = 'block';
-                
-                bottomSection.innerHTML = `
-                    <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
-                `;
-            }
-            if (attempts > 30) { 
-                clearInterval(checkInterval);
-                document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>";
-            }
-        }, 2000);
-    } catch (e) { console.error("Video Trigger Failed"); }
-};
-
-// --- 4. UTILS & MODAL CLOSING ---
-window.addToCart = () => {
-    cartCount++;
-    const badge = document.getElementById('cart-count');
-    if (badge) {
-        badge.innerText = cartCount;
-        badge.style.transform = "scale(1.3)";
-        setTimeout(() => badge.style.transform = "scale(1)", 200);
-    }
-    const cartBtn = document.getElementById('vto-add-to-cart');
-    if (cartBtn) {
-        cartBtn.innerText = "Added to Cart! ✅";
-        cartBtn.style.background = "#333";
-    }
+    } catch (e) { container.innerHTML = "<p style='color:white;'>Error. Try again.</p>"; }
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
+
+window.addToCart = () => {
+    cartCount++;
+    document.getElementById('cart-count').innerText = cartCount;
+};
