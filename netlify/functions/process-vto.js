@@ -11,26 +11,31 @@ exports.handler = async (event) => {
 
     try {
         const { userImage, cloth } = JSON.parse(event.body);
-        const API_KEY = process.env.GEMINI_API_KEY;
         
-        // 2026 RESOLUTION: Use gemini-2.5-flash on the v1 STABLE endpoint
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+        // LOCKING TO US-CENTRAL1 SINCE IT WORKED THERE BEFORE
+        const API_KEY = process.env.GEMINI_API_KEY;
+        const PROJECT_ID = process.env.PROJECT_ID; 
+        const REGION = "us-central1"; 
 
-        const cleanImageData = userImage.replace(/^data:image\/\w+;base64,/, "");
+        // VERTEX PREDICT ENDPOINT
+        const url = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/gemini-1.5-flash:predict?key=${API_KEY}`;
 
         const payload = {
-            contents: [{
-                parts: [
-                    { text: `VIRTUAL TRY-ON: Wear this ${cloth} on the person in the photo. Maintain face, background, and pose. Return ONLY the base64 string.` },
-                    { inline_data: { mime_type: "image/jpeg", data: cleanImageData } }
-                ]
-            }]
+            instances: [
+                {
+                    content: `VIRTUAL TRY-ON: Wear this ${cloth} on the person in the photo. Keep face and pose identical. Return ONLY the base64 string.`,
+                    image: {
+                        bytesBase64Encoded: userImage.replace(/^data:image\/\w+;base64,/, "")
+                    }
+                }
+            ]
         };
 
-        const response = await axios.post(url, payload, { timeout: 30000 });
+        const response = await axios.post(url, payload);
         
-        if (response.data.candidates && response.data.candidates[0].content.parts[0].text) {
-            const aiText = response.data.candidates[0].content.parts[0].text;
+        if (response.data.predictions && response.data.predictions[0]) {
+            const aiText = response.data.predictions[0].content;
+            // Cleaning any possible text around the base64
             const finalBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
 
             return {
@@ -39,15 +44,15 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ result: finalBase64 })
             };
         } else {
-            throw new Error("AI response was empty.");
+            throw new Error("Vertex returned empty predictions.");
         }
 
     } catch (error) {
-        console.error("2026 Mall Engine Error:", error.response?.data || error.message);
+        console.error("Vertex Engine Failure:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Mall Engine Error: ${error.response?.data?.error?.message || error.message}` }) 
+            body: JSON.stringify({ error: `Vertex Engine Failure: ${error.message}` }) 
         };
     }
 };
