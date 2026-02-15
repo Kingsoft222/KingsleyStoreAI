@@ -9,10 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        /* FULL CENTER LOCK FOR MODALS */
+        /* FULL CENTER LOCK FOR ALL DEVICES */
         .luxury-video-modal { display: none; position: fixed; inset: 0; z-index: 100000; background: #000; overflow: hidden; }
         .modal-fashion-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80') center/cover; filter: blur(20px) brightness(0.3); transform: scale(1.1); }
-        .modal-container { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100dvh; padding: 20px; text-align: center; }
+        
+        /* Fixed: width 100% ensures laptop centering */
+        .modal-container { 
+            position: relative; display: flex; flex-direction: column; align-items: center; 
+            justify-content: center; height: 100dvh; width: 100%; padding: 20px; text-align: center; 
+        }
         
         .video-wrapper { 
             position: relative; width: 100%; max-width: 400px; border-radius: 30px; overflow: hidden; 
@@ -22,7 +27,6 @@
 
         #loader-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 40px; }
 
-        /* PREMIUM BUTTON STYLES */
         .primary-btn { 
             width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 700; 
             font-family: 'Inter', sans-serif; cursor: pointer; transition: 0.3s; margin-top: 10px;
@@ -68,7 +72,7 @@
         <button class="close-video-btn" onclick="window.closeVideoModal()">×</button>
         <div class="modal-container">
             <div class="video-wrapper" id="video-main-container"></div>
-            <div id="video-bottom-section" style="margin-top: 25px; display:flex; flex-direction:column; align-items:center;">
+            <div id="video-bottom-section" style="margin-top: 25px; display:flex; flex-direction:column; align-items:center; width: 100%;">
                 <h2 style="color:white; text-transform:uppercase; font-weight:800; letter-spacing:2px; margin-bottom:15px;">Kingsley Runway</h2>
                 <button class="share-walk-btn" onclick="window.shareMyWalk()">SHARE MY WALK</button>
             </div>
