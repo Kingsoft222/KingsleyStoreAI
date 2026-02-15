@@ -1,5 +1,5 @@
 /**
- * Kingsley Store AI - Core Logic v7.0 (FINAL)
+ * Kingsley Store AI - Core Logic v7.1 (FINAL)
  * RESTORED: v6.0 UI, Mic, Search, and Modal Buttons.
  * FIXED: Infinite Spinner & Kinetic Motion added.
  */
@@ -206,7 +206,7 @@ window.generateWalkCycle = async () => {
     } catch (e) { console.error("Video Trigger Failed"); }
 };
 
-// --- 4. UTILS & MODAL CLOSING ---
+// --- 4. UTILS ---
 window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
