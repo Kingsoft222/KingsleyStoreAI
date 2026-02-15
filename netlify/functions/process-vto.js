@@ -1,9 +1,3 @@
-/**
- * Kingsley Store AI - process-vto.js v3.0
- * ENGINE: Gemini 1.5 Flash (Optimized for Speed)
- * PURPOSE: Zero-Cost Modeling Swap
- */
-
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 exports.handler = async (event) => {
@@ -11,36 +5,26 @@ exports.handler = async (event) => {
 
     try {
         const { userImage, cloth } = JSON.parse(event.body);
-        
-        // Initialize Gemini
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const prompt = `Act as a forensic fashion editor. Replace the person's current outfit with a premium high-end Nigerian ${cloth} native outfit. The person's face, body shape, and pose must remain exactly the same. Output ONLY the base64 string of the new image.`;
-
-        const imagePart = {
-            inlineData: {
-                data: userImage,
-                mimeType: "image/jpeg"
-            }
-        };
-
-        const result = await model.generateContent([prompt, imagePart]);
-        const response = await result.response;
+        const result = await model.generateContent([
+            `Perform a high-end virtual try-on. Swap the current outfit with a premium Nigerian ${cloth} native outfit. Keep face and pose 100% identical. Output ONLY the raw base64 string.`,
+            { inlineData: { data: userImage, mimeType: "image/jpeg" } }
+        ]);
         
-        // Clean the response to ensure ONLY base64 is returned
-        const generatedData = response.text().replace(/^data:image\/\w+;base64,/, "").trim();
+        const response = await result.response;
+        const text = response.text();
+        const base64Data = text.replace(/^data:image\/\w+;base64,/, "").replace(/```/g, "").trim();
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ result: generatedData })
+            body: JSON.stringify({ result: base64Data })
         };
-
     } catch (error) {
-        console.error("Gemini Engine Error:", error.message);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "Runway Busy", details: error.message })
+            body: JSON.stringify({ error: "Processing failed" })
         };
     }
 };
