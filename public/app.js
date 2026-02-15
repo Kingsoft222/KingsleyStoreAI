@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - Core Logic v8.3
- * TRIGGER LOCK: Choice Modal only opens on "Rock your cloth" button tap.
+ * Kingsley Store AI - Core Logic v9.0
+ * UI RESTORATION: Large Mic, Centered Profile, Pill Buttons.
  */
 
 const clothesCatalog = [
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2000);
 
     if ('webkitSpeechRecognition' in window) {
-        const rec = new window.webkitSpeechRecognition();
+        const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
         micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
         rec.onresult = (e) => {
@@ -38,58 +38,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// STEP 1: SEARCH RESULTS
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
-    if (!input.trim()) return;
     const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input));
-    
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" style="background:#f2f2f2; border-radius:15px; padding:15px; text-align:center;">
-                <img src="images/${item.img}" style="width:100%; height:160px; object-fit:contain; border-radius:10px; background:white;">
-                <h4 style="margin:10px 0;">${item.name}</h4>
-                <p style="color:#e60023; font-weight:800; margin-bottom:10px;">${item.price}</p>
-                <button onclick="window.openChoiceModal(${item.id})" style="width:100%; background:#e60023; color:white; border:none; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer;">Rock your cloth</button>
+                <img src="images/${item.img}" style="width:100%; height:160px; object-fit:contain;">
+                <h4>${item.name}</h4><p style="color:#e60023; font-weight:800;">${item.price}</p>
+                <button onclick="window.openChoiceModal(${item.id})" style="width:100%; background:#e60023; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer; margin-top:10px;">Rock your cloth</button>
             </div>
         `).join('');
     }
 };
 
-// STEP 2: CHOICE MODAL (Triggers on "Rock your cloth")
 window.openChoiceModal = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('choice-buttons-area').style.display = 'flex';
-    document.getElementById('upload-action-area').style.display = 'none';
-};
-
-window.initiateUploadFlow = (mode) => {
-    document.getElementById('choice-buttons-area').style.display = 'none';
-    document.getElementById('upload-action-area').style.display = 'block';
-    const btn = document.getElementById('fit-action-btn');
-    btn.onclick = () => document.getElementById('user-fit-input').click();
 };
 
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
-        const btn = document.getElementById('fit-action-btn');
-        btn.innerText = "Model My Look";
-        btn.onclick = window.launchShowroom;
+        window.startModeling();
     };
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// STEP 3: SHOWROOM REVEAL
-window.launchShowroom = () => {
+window.startModeling = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('doppl-showroom').style.display = 'block';
     document.getElementById('doppl-loading').style.display = 'flex';
-    document.getElementById('doppl-final-render').style.display = 'none';
     window.runAISwap();
 };
 
@@ -114,13 +96,4 @@ window.runAISwap = async () => {
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.closeDoppl = () => { document.getElementById('doppl-showroom').style.display = 'none'; };
 window.addToCart = () => { cartCount++; document.getElementById('cart-count').innerText = cartCount; };
-
-window.handleProfileUpload = (e) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        document.getElementById('owner-img').src = event.target.result;
-        localStorage.setItem('kingsley_profile_locked', event.target.result);
-        userPhoto = event.target.result;
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
+window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };

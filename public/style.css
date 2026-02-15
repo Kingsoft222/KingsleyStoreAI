@@ -1,25 +1,75 @@
-:root { --accent: #e60023; --dark: #1a1a1a; --gray: #f2f2f2; }
-body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #fff; height: 100dvh; width: 100%; overflow-x: hidden; }
+:root {
+    --accent: #e60023;
+    --dark: #1a1a1a;
+    --gray: #f2f2f2;
+}
 
-/* CENTERING FOR LAPTOP & MOBILE */
-.home-container { max-width: 600px; margin: 0 auto; text-align: center; }
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; max-width: 600px; margin: 0 auto; }
+body, html {
+    margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+    background: #fff; height: 100%; width: 100%; overflow-x: hidden;
+}
 
-/* LARGE MIC RESTORED */
-.mic-icon { font-size: 3rem !important; cursor: pointer; color: var(--dark); margin: 0 10px; }
-.search-bar { background: var(--gray); border-radius: 50px; padding: 10px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid #ddd; }
+/* --- ABSOLUTE CENTERING FOR LAPTOP & MOBILE --- */
+.home-container { 
+    max-width: 500px; 
+    margin: 0 auto; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+    padding-bottom: 260px;
+}
 
-/* SHOWROOM PHYSICS - USER STANDS ON FLOOR */
+.store-profile { text-align: center; padding-top: 20px; width: 100%; }
+.profile-pic { 
+    width: 120px; height: 120px; border-radius: 50%; 
+    border: 3px solid var(--accent); margin: 0 auto; 
+    overflow: hidden; position: relative;
+}
+.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+.store-name { color: var(--accent); font-weight: 800; font-size: 2.2rem; margin: 10px 0; }
+
+/* --- PILL CATEGORY BUTTONS --- */
+.split-cards { 
+    display: flex; justify-content: center; gap: 10px; 
+    width: 100%; padding: 0 15px; margin-bottom: 20px; 
+}
+.spaced-card { 
+    flex: 1; background: var(--dark); color: white; 
+    padding: 20px; border-radius: 25px; /* Forced Pill Shape */
+    border: none; text-align: left; cursor: pointer;
+}
+.spaced-card strong { display: block; font-size: 1.1rem; }
+.spaced-card span { font-size: 0.8rem; opacity: 0.7; }
+
+/* --- LARGE MIC & SEARCH BAR --- */
+.bottom-controls { 
+    position: fixed; bottom: 0; width: 100%; 
+    background: #fff; padding-bottom: 30px; z-index: 100;
+}
+.search-bar { 
+    background: var(--gray); border-radius: 50px; 
+    padding: 10px 25px; display: flex; align-items: center; 
+    margin: 0 auto; width: 92%; max-width: 460px;
+    border: 1px solid #ddd;
+}
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 18px; }
+
+.mic-icon { 
+    font-size: 2.8rem !important; /* RESTORED LARGE MIC */
+    cursor: pointer; color: var(--dark); margin: 0 15px; 
+}
+
+.send-circle { 
+    background: var(--dark); border: none; 
+    width: 52px; height: 52px; border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* --- GROUNDED SHOWROOM --- */
 #doppl-showroom { display: none; position: fixed; inset: 0; z-index: 200000; background: #000; }
 .showroom-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1558997519-83ea9252edf8?q=80&w=1920&auto=format&fit=crop') center/cover; filter: brightness(0.6); }
 .showroom-container { position: relative; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-.reveal-frame { width: 100%; height: 85vh; display: flex; align-items: flex-end; justify-content: center; position: relative; }
-#doppl-final-render { width: auto; height: 100%; object-fit: contain; z-index: 2; filter: drop-shadow(0 15px 40px rgba(0,0,0,0.8)); }
-
-/* FLOATING RED PILL */
-.button-tray { position: absolute; bottom: 40px; width: 100%; display: flex; justify-content: center; padding: 0 20px; box-sizing: border-box; z-index: 200005; }
-.doppl-add-to-cart { width: 100%; max-width: 400px; background: var(--accent); color: white; border: none; padding: 22px; border-radius: 60px; font-weight: 800; font-size: 1.2rem; cursor: pointer; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-
-/* SEARCH GRID */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 240px; }
-.bottom-controls { position: fixed; bottom: 0; width: 100%; max-width: 600px; left: 50%; transform: translateX(-50%); background: #fff; padding-bottom: 25px; z-index: 100; }
+.reveal-frame { width: 100%; height: 85vh; display: flex; align-items: flex-end; justify-content: center; }
+#doppl-final-render { width: auto; height: 100%; object-fit: contain; filter: drop-shadow(0 15px 40px rgba(0,0,0,0.8)); }
+.button-tray { position: absolute; bottom: 40px; width: 100%; display: flex; justify-content: center; padding: 0 20px; }
+.doppl-add-to-cart { width: 100%; max-width: 400px; background: var(--accent); color: white; border: none; padding: 22px; border-radius: 60px; font-weight: 800; font-size: 1.2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
