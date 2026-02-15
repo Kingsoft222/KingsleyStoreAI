@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v5.8
- * TOTAL RECOVERY: Restored Profile Save/Clear.
- * FIXED: Search Results overlap fixed.
- * ENGINE: Gemini 3 Flash polling logic.
+ * Kingsley Store AI - Core Logic v5.9
+ * ALIGNMENT LOCKED: Mobile/Laptop Centering fixes.
+ * UI PRESERVED: Profile Save/Clear, Footer Cards, Pill Buttons.
+ * SPEED: 2s Polling active.
  */
 
 const clothesCatalog = [
@@ -22,7 +22,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
-// --- 1. BOOTSTRAP & PROFILE (RESTORED) ---
+// --- PROFILE & BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
 
-    // Mic logic preserved
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -50,7 +49,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.handleProfileUpload = (e) => {
-    const file = e.target.files[0];
     const reader = new FileReader();
     reader.onload = (event) => {
         const imgData = event.target.result;
@@ -58,7 +56,7 @@ window.handleProfileUpload = (e) => {
         localStorage.setItem('kingsley_profile_locked', imgData);
         userPhoto = imgData;
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(e.target.files[0]);
 };
 
 window.clearProfileData = () => {
@@ -67,7 +65,7 @@ window.clearProfileData = () => {
     userPhoto = "";
 };
 
-// --- 2. SEARCH & NAVIGATION ---
+// --- NAVIGATION & SEARCH ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -83,7 +81,7 @@ window.executeSearch = () => {
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
                 <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
-                <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
+                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
         results.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -95,7 +93,7 @@ window.quickSearch = (q) => {
     window.executeSearch(); 
 };
 
-// --- 3. SHOWROOM & ENGINES ---
+// --- SHOWROOM FLOW ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -185,9 +183,12 @@ window.generateWalkCycle = async () => {
                     `);
                 }
             }
-            if (attempts > 30) { clearInterval(checkInterval); document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>"; }
+            if (attempts > 30) { 
+                clearInterval(checkInterval);
+                document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>";
+            }
         }, 2000);
-    } catch (e) { console.error("Video Error"); }
+    } catch (e) { console.error("Video Trigger Failed"); }
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
