@@ -1,27 +1,19 @@
 /**
- * Kingsley Store AI - v12.6
- * FIXED: "See how you look" button connection.
- * FIXED: Still photo swap handshake.
+ * Kingsley Store Mall - v14.0 (STARTUP READY)
+ * FEATURES: Search, Voice-Mic, Instant Photo Swap.
  */
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Senator", tags: "senator red native", img: "senator_red.jpg", price: "₦25k" },
-    { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
+    { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" },
+    { id: 3, name: "White Agbada Classic", tags: "agbada white native", img: "agbada_white.jpg", price: "₦45k" }
 ];
 
 let userPhoto = "";
 let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Restore profile if exists
-    const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) { 
-        const ownerImg = document.getElementById('owner-img');
-        if(ownerImg) ownerImg.src = saved; 
-        userPhoto = saved; 
-    }
-
-    // Mic logic check
+    // 1. Voice Mic Setup
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -36,18 +28,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// SEARCH
+// 2. Search Mall Catalog
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!results) return;
 
-    const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input));
+    const matched = clothesCatalog.filter(i => 
+        i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input)
+    );
+
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}" style="width:100%; height:140px; object-fit:contain;">
+                <img src="images/${item.img}" style="width:100%; border-radius:8px;">
                 <h4>${item.name}</h4>
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
@@ -55,47 +50,38 @@ window.executeSearch = () => {
     }
 };
 
-// --- THE FIX: BUTTON HANDSHAKE ---
+// 3. Virtual Try-On Handshake
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-    const modal = document.getElementById('fitting-room-modal');
-    const resultArea = document.getElementById('ai-fitting-result');
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
+    `;
     
-    if (modal && resultArea) {
-        modal.style.display = 'flex';
-        // We inject the button and EXPLICITLY set the onclick right here
-        resultArea.innerHTML = `
-            <button id="vto-photo-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
-        `;
-        
-        document.getElementById('vto-photo-btn').onclick = () => {
-            document.getElementById('user-fit-input').click();
-        };
-    }
+    // Explicitly link the button to the hidden file input
+    document.getElementById('vto-action-btn').onclick = () => {
+        document.getElementById('user-fit-input').click();
+    };
 };
 
-// This handles the file once selected from the gallery
 window.handleUserFitUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
-        // Proceed directly to the swap
-        window.startVertexModeling();
+        window.startSwapProcess();
     };
     reader.readAsDataURL(file);
 };
 
-window.startVertexModeling = async () => {
-    // Hide the selection modal and show the result modal
+window.startSwapProcess = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
-    const videoModal = document.getElementById('video-experience-modal');
-    videoModal.style.display = 'flex';
-    
+    const modal = document.getElementById('video-experience-modal');
+    modal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
-    container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Swapping Outfit...</p></div>`;
+    
+    container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Wearing your ${selectedCloth.name}...</p></div>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
@@ -104,13 +90,11 @@ window.startVertexModeling = async () => {
         });
         const data = await response.json();
         if (data.result) {
-            // Displaying the still result immediately
             container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
-        } else {
-            container.innerHTML = `<p style="color:white;">AI Error. Please try a clearer photo.</p>`;
+            document.getElementById('video-bottom-section').innerHTML = `<button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px;">Add to Cart 🛒</button>`;
         }
-    } catch (e) { 
-        container.innerHTML = "<p style='color:white;'>Network Error. Try again.</p>"; 
+    } catch (e) {
+        container.innerHTML = "<p style='color:white;'>Mall server busy. Try again.</p>";
     }
 };
 
