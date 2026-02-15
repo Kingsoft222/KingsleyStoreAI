@@ -1,7 +1,6 @@
 /**
- * Kingsley Store AI - Core Logic v7.0
- * UPDATES: Vertex Paid Tier Integration, Full-Screen Modal Result, Sleek Mall Spinner.
- * UI: Professional "Add to Cart" UX.
+ * Kingsley Store AI - Core Logic v7.5
+ * FEATURES: Full-Length Runway Result, Vertex AI Paid Tier, AddToCart Sync.
  */
 
 const clothesCatalog = [
@@ -36,15 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
 
+    // Mic logic for Voice Search
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
-        micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
-        rec.onresult = (e) => {
-            document.getElementById('ai-input').value = e.results[0][0].transcript;
-            micBtn.style.color = "#5f6368";
-            window.executeSearch();
-        };
+        if (micBtn) {
+            micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
+            rec.onresult = (e) => {
+                document.getElementById('ai-input').value = e.results[0][0].transcript;
+                micBtn.style.color = "#5f6368";
+                window.executeSearch();
+            };
+        }
     }
 });
 
@@ -59,7 +61,13 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. SEARCH ENGINE ---
+window.clearProfileData = () => {
+    localStorage.removeItem('kingsley_profile_locked');
+    document.getElementById('owner-img').src = "images/kingsley.jpg";
+    userPhoto = "";
+};
+
+// --- 2. NAVIGATION & SEARCH ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -82,60 +90,12 @@ window.executeSearch = () => {
     }
 };
 
-// --- 3. PHOTO MODELING ENGINE (VERTEX AI PAID TIER) ---
-window.startVertexModeling = async () => {
-    // 1. UI Transition
-    document.getElementById('fitting-room-modal').style.display = 'none';
-    const videoModal = document.getElementById('video-experience-modal');
-    videoModal.style.display = 'flex';
-    const container = document.getElementById('video-main-container');
-    
-    // 2. Premium Mall Spinner
-    container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; color:white;">
-            <i class="fas fa-cut fa-spin fa-3x" style="color:gold; margin-bottom:20px;"></i>
-            <p style="font-weight:bold; letter-spacing:1px;">Tailoring your ${selectedCloth.name}...</p>
-            <p style="font-size:0.7rem; opacity:0.6;">Vertex AI Enterprise Active</p>
-        </div>
-    `;
-
-    try {
-        // Sanitize base64
-        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
-
-        const response = await fetch('/.netlify/functions/process-vto', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
-        });
-        
-        const data = await response.json();
-        
-        if (data.result) {
-            // 3. FULL SCREEN RESULT DISPLAY
-            container.innerHTML = `
-                <div style="width:100%; position:relative; text-align:center;">
-                    <img src="data:image/png;base64,${data.result}" 
-                         style="width:100%; max-height:70vh; object-fit:contain; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-                    
-                    <button id="vto-add-to-cart" class="primary-btn" 
-                            style="background:linear-gradient(45deg, #d4af37, #b8860b); color:white; margin-top:25px; width:90%; height:60px; border-radius:30px; font-weight:bold; font-size:1.1rem; border:none; cursor:pointer;" 
-                            onclick="window.addToCart()">
-                        ADD TO CART - ${selectedCloth.price} 🛒
-                    </button>
-                    
-                    <p onclick="location.reload()" style="color:#aaa; margin-top:15px; cursor:pointer; font-size:0.9rem;">Try another outfit</p>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `<div style="color:white; padding:20px;">🚨 ${data.error || 'Server connection timed out'}</div>`;
-        }
-    } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:20px;">Network Error: Please check your connection.</div>`;
-    }
+window.quickSearch = (q) => { 
+    document.getElementById('ai-input').value = q; 
+    window.executeSearch(); 
 };
 
-// --- 4. SHOWROOM & FLOW ---
+// --- 3. SHOWROOM FLOW ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -143,8 +103,8 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fit-action-btn').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px; align-items:center; width:100%;">
-            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white; width:100%;">📸 See How You Look (Photo)</button>
-            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white; border:1px solid #e60023; width:100%;">🎥 See How You Look (Video)</button>
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px; padding:15px;">📸 See How You Look (Photo)</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white; border:1px solid #e60023; width:100%; border-radius:50px; padding:15px;">🎥 See How You Look (Video)</button>
         </div>
     `;
 };
@@ -165,24 +125,84 @@ window.handleUserFitUpload = (e) => {
         const btn = document.getElementById('fit-action-btn');
         btn.innerText = "Rock your cloth";
         btn.style.background = "#e60023";
+        btn.style.color = "white";
         btn.onclick = (currentMode === 'photo') ? startVertexModeling : generateWalkCycle;
     };
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 5. CART & MODAL CONTROLS ---
+// --- 4. THE IMMERSIVE RUNWAY ENGINE (VERTEX AI) ---
+window.startVertexModeling = async () => {
+    document.getElementById('fitting-room-modal').style.display = 'none';
+    const videoModal = document.getElementById('video-experience-modal');
+    videoModal.style.display = 'flex';
+    const container = document.getElementById('video-main-container');
+    
+    // Modern Tailor Spinner
+    container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:80vh; color:white; text-align:center;">
+            <i class="fas fa-cut fa-spin fa-3x" style="color:#d4af37; margin-bottom:20px;"></i>
+            <p style="font-weight:bold; font-size:1.2rem;">Tailoring your ${selectedCloth.name}...</p>
+            <p style="font-size:0.8rem; opacity:0.6; margin-top:5px;">Gemini 2.0 Fashion Engine</p>
+        </div>
+    `;
+
+    try {
+        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
+
+        const response = await fetch('/.netlify/functions/process-vto', {
+            method: 'POST',
+            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
+        });
+        
+        const data = await response.json();
+        
+        if (data.result) {
+            // FULL LENGTH RUNWAY UI
+            container.innerHTML = `
+                <div class="runway-result-wrapper" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                    <img src="data:image/png;base64,${data.result}" 
+                         style="width:100%; max-width:500px; height:auto; object-fit:cover; display:block; border-radius:0 0 30px 30px;">
+                    
+                    <div class="action-bar" style="width:100%; padding:40px 0; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center;">
+                        <button id="vto-add-to-cart" class="primary-btn" 
+                                style="background:#e60023; color:white; width:85%; height:65px; border-radius:50px; font-weight:bold; font-size:1.2rem; border:none; cursor:pointer; box-shadow: 0 10px 25px rgba(230,0,35,0.4);" 
+                                onclick="window.addToCart()">
+                            ADD TO BAG! 🛒
+                        </button>
+                        <p onclick="location.reload()" style="color:#aaa; margin-top:20px; cursor:pointer; font-size:0.9rem; text-decoration:underline;">Try another design</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">
+                <p>🚨 AI Safety Alert: Please try a clearer photo or different pose.</p>
+                <button onclick="location.reload()" style="background:#333; color:white; border:none; padding:10px 20px; border-radius:10px; margin-top:20px;">Retry</button>
+            </div>`;
+        }
+    } catch (e) {
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Mall system timed out. Please refresh.</div>`;
+    }
+};
+
+// --- 5. VIDEO ENGINE (STUB) ---
+window.generateWalkCycle = () => {
+    alert("Video Runway Walk is coming soon to your Kingsley account!");
+};
+
+// --- 6. CART & UI ---
 window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
     if (badge) {
         badge.innerText = cartCount;
         badge.style.transform = "scale(1.5)";
-        setTimeout(() => badge.style.transform = "scale(1)", 300);
+        setTimeout(() => badge.style.transform = "scale(1)", 200);
     }
     
     const cartBtn = document.getElementById('vto-add-to-cart');
     if (cartBtn) {
-        cartBtn.innerHTML = "Added to Bag! ✅";
+        cartBtn.innerText = "Added to Bag! ✅";
         cartBtn.style.background = "#222";
     }
 };
