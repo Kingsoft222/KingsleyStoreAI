@@ -1,269 +1,206 @@
 /**
-
- * Kingsley Store AI - Core Logic v7.0
-
- * DOPPL CINEMATIC REVEAL: Full-screen luxury forensic swap.
-
- * NO MORE VIDEO LOOP: Focused on high-fidelity result unveil.
-
+ * Kingsley Store AI - Core Logic v6.0
+ * FEATURES: Real-time AddToCart, High-Speed Video Handshake.
+ * UI: Dead-Center Laptop/Mobile Sync.
  */
 
-
-
 const clothesCatalog = [
-
     { id: 1, name: "Premium Red Senator", tags: "senator red native", img: "senator_red.jpg", price: "₦25k" },
-
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
-
 ];
-
-
 
 const greetings = [
-
     "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-
     "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
-
     "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
-
     "Baddie, let's find your style!"
-
 ];
 
-
-
 let gIndex = 0;
-
 let userPhoto = "";
-
 let selectedCloth = null;
-
+let currentMode = 'photo';
 let cartCount = 0;
 
-
-
-// --- PROFILE & BOOTSTRAP ---
-
+// --- 1. BOOTSTRAP & PROFILE (RESTORED) ---
 document.addEventListener('DOMContentLoaded', () => {
-
     const saved = localStorage.getItem('kingsley_profile_locked');
-
-    if (saved) { document.getElementById('owner-img').src = saved; userPhoto = saved; }
-
-   
-
+    const ownerImg = document.getElementById('owner-img');
+    if (saved && ownerImg) {
+        ownerImg.src = saved;
+        userPhoto = saved;
+    }
+    
     setInterval(() => {
-
         const el = document.getElementById('dynamic-greeting');
-
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
-
     }, 2000);
 
-
-
+    // Mic logic preserved
     if ('webkitSpeechRecognition' in window) {
-
         const rec = new webkitSpeechRecognition();
-
         const micBtn = document.getElementById('mic-btn');
-
         micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
-
         rec.onresult = (e) => {
-
             document.getElementById('ai-input').value = e.results[0][0].transcript;
-
             micBtn.style.color = "#5f6368";
-
             window.executeSearch();
-
         };
-
     }
-
 });
 
-
-
 window.handleProfileUpload = (e) => {
-
     const reader = new FileReader();
-
     reader.onload = (event) => {
-
-        document.getElementById('owner-img').src = event.target.result;
-
-        localStorage.setItem('kingsley_profile_locked', event.target.result);
-
-        userPhoto = event.target.result;
-
+        const imgData = event.target.result;
+        document.getElementById('owner-img').src = imgData;
+        localStorage.setItem('kingsley_profile_locked', imgData);
+        userPhoto = imgData;
     };
-
     reader.readAsDataURL(e.target.files[0]);
-
 };
-
-
 
 window.clearProfileData = () => {
-
     localStorage.removeItem('kingsley_profile_locked');
-
     document.getElementById('owner-img').src = "images/kingsley.jpg";
-
     userPhoto = "";
-
 };
 
-
-
-// --- NAVIGATION & SEARCH ---
-
+// --- 2. NAVIGATION & SEARCH ---
 window.executeSearch = () => {
-
     const input = document.getElementById('ai-input').value.toLowerCase();
-
     const results = document.getElementById('ai-results');
-
     if (!input.trim()) return;
 
-
-
     const matched = clothesCatalog.filter(item =>
-
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-
     );
 
-
-
     if (matched.length > 0) {
-
         results.style.display = 'grid';
-
         results.innerHTML = matched.map(item => `
-
-            <div class="result-card" onclick="window.initiateDoppl(${item.id})">
-
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
                 <img src="images/${item.img}" alt="${item.name}">
-
                 <h4>${item.name}</h4>
-
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
-
             </div>
-
         `).join('');
-
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
 };
 
+window.quickSearch = (q) => { 
+    document.getElementById('ai-input').value = q; 
+    window.executeSearch(); 
+};
 
-
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-
-
-
-// --- THE DOPPL REVEAL LOGIC ---
-
-window.initiateDoppl = (id) => {
-
+// --- 3. SHOWROOM & VIDEO ENGINE (THE WOW FACTOR) ---
+window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-
-    if (!userPhoto) {
-
-        alert("Please upload your profile photo first!");
-
-        return;
-
-    }
-
-   
-
-    // Switch to Showroom
-
-    document.getElementById('doppl-showroom').style.display = 'block';
-
-    document.getElementById('doppl-loading').style.display = 'flex';
-
-    document.getElementById('doppl-final-render').style.display = 'none';
-
-   
-
-    window.processForensicSwap();
-
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
+    document.getElementById('fit-action-btn').style.display = 'none';
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; width:100%;">
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white;">📸 See How You Look (Photo)</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white; border:1px solid #e60023;">🎥 See How You Look (Video)</button>
+        </div>
+    `;
 };
 
+window.initiateUploadFlow = (mode) => {
+    currentMode = mode;
+    document.getElementById('modal-subtext').innerText = "Upload photo for " + mode;
+    document.getElementById('ai-fitting-result').innerHTML = "";
+    const fitBtn = document.getElementById('fit-action-btn');
+    fitBtn.style.display = 'block';
+    fitBtn.onclick = () => document.getElementById('user-fit-input').click();
+};
 
+window.handleUserFitUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        userPhoto = event.target.result;
+        const btn = document.getElementById('fit-action-btn');
+        btn.innerText = "Rock your cloth";
+        btn.style.background = "#e60023";
+        btn.style.color = "white";
+        btn.onclick = (currentMode === 'photo') ? startVertexModeling : generateWalkCycle;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
 
-window.processForensicSwap = async () => {
+window.generateWalkCycle = async () => {
+    const videoModal = document.getElementById('video-experience-modal');
+    const wrapper = document.getElementById('video-main-container');
+    const bottomSection = document.getElementById('video-bottom-section');
+    videoModal.style.display = 'flex';
+    
+    wrapper.innerHTML = `
+        <div id="loader-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:white;">
+            <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:15px;"></i>
+            <p style="font-weight: bold; margin:0;">Sewing Runway Walk...</p>
+            <p style="font-size: 0.7rem; opacity: 0.7; margin-top:5px;">Gemini 3 Flash Engine Active</p>
+        </div>
+        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%; border-radius:30px;"></video>
+    `;
 
     try {
-
-        const response = await fetch('/.netlify/functions/process-vto', {
-
+        // Step 1: Trigger background video generation
+        fetch('/.netlify/functions/generate-video-background', {
             method: 'POST',
-
-            body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
-
+            body: JSON.stringify({ swappedImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
 
-        const data = await response.json();
-
-       
-
-        if (data.result) {
-
-            const renderImg = document.getElementById('doppl-final-render');
-
-            renderImg.src = `data:image/png;base64,${data.result}`;
-
-            document.getElementById('doppl-loading').style.display = 'none';
-
-            renderImg.style.display = 'block';
-
-        }
-
-    } catch (e) {
-
-        document.getElementById('doppl-loading').innerHTML = "<p style='color:red;'>Handshake Failed. Retry.</p>";
-
-    }
-
+        // Step 2: High-Speed Handshake Watchdog
+        let attempts = 0;
+        let checkInterval = setInterval(async () => {
+            attempts++;
+            const statusRes = await fetch(`/.netlify/functions/check-video-status?cloth=${selectedCloth.name}`);
+            const statusData = await statusRes.json();
+            
+            if (statusData.videoUrl) {
+                clearInterval(checkInterval);
+                document.getElementById('loader-placeholder').style.display = 'none';
+                const player = document.getElementById('boutique-video-player');
+                player.src = statusData.videoUrl;
+                player.style.display = 'block';
+                
+                // RESTORED: Cart Button at Bottom of Video Result
+                if (!document.getElementById('vto-add-to-cart')) {
+                    bottomSection.insertAdjacentHTML('beforeend', `
+                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
+                    `);
+                }
+            }
+            if (attempts > 30) { 
+                clearInterval(checkInterval);
+                document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>";
+            }
+        }, 2000);
+    } catch (e) { console.error("Video Trigger Failed"); }
 };
 
-
-
-// --- CART LOGIC ---
-
+// --- 4. ADD TO CART LOGIC ---
 window.addToCart = () => {
-
     cartCount++;
-
-    document.getElementById('cart-count').innerText = cartCount;
-
-    const btn = document.getElementById('doppl-cart-btn');
-
-    btn.innerText = "ADDED TO CART ✅";
-
-    btn.style.background = "#333";
-
-    setTimeout(() => {
-
-        btn.innerText = "Add to cart";
-
-        btn.style.background = "#e60023";
-
-    }, 2000);
-
+    const badge = document.getElementById('cart-count');
+    if (badge) {
+        badge.innerText = cartCount;
+        badge.style.transform = "scale(1.3)";
+        setTimeout(() => badge.style.transform = "scale(1)", 200);
+    }
+    
+    const cartBtn = document.getElementById('vto-add-to-cart');
+    if (cartBtn) {
+        cartBtn.innerText = "Added to Cart! ✅";
+        cartBtn.style.background = "#333";
+        setTimeout(() => {
+            cartBtn.innerText = "Add to Cart 🛒";
+            cartBtn.style.background = "#28a745";
+        }, 2000);
+    }
 };
-
-
-
-window.closeDoppl = () => { document.getElementById('doppl-showroom').style.display = 'none'; };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
