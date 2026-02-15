@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v10.0
- * CLEANROOM EDITION: No extra buttons, No "Runway" text.
- * UI: Professional Spinner + Full-Height Image + Pinned Cart Button.
+ * Kingsley Store AI - Core Logic v12.0
+ * STRICT CLEANUP: Zero branding, zero extra buttons.
+ * UI: Pro Circle Spinner + Full-Height Image + Cart Button.
  */
 
 const clothesCatalog = [
@@ -10,8 +10,10 @@ const clothesCatalog = [
 ];
 
 const greetings = [
-    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
+    "Nne, what are you looking for today?", 
+    "My guy, what are you looking for today?",
+    "Classic Man, what are you looking for today?", 
+    "Chief, looking for premium native?",
     "Baddie, let's find your style!"
 ];
 
@@ -20,6 +22,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
+// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -44,6 +47,7 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+// --- 2. SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -66,12 +70,12 @@ window.executeSearch = () => {
     }
 };
 
+// --- 3. SHOWROOM & RESULT ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('modal-subtext').innerText = "Try on " + selectedCloth.name;
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px; padding:15px;">📸 Upload Your Photo</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px; padding:15px; border:none; cursor:pointer;">📸 Upload Photo</button>
     `;
 };
 
@@ -92,7 +96,7 @@ window.startVertexModeling = async () => {
     
     // RESTORED PROFESSIONAL CIRCLE SPINNER
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; background:#000;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="margin-bottom:20px; color:#e60023;"></i>
             <p>Processing...</p>
         </div>
@@ -109,7 +113,7 @@ window.startVertexModeling = async () => {
         const data = await response.json();
         
         if (data.result) {
-            // CLEAN LAYOUT: IMAGE TAKES ALL SPACE, BUTTON AT BOTTOM
+            // THE HOOD FIX: NO TEXT OVERLAYS. IMAGE + CART BUTTON ONLY.
             container.innerHTML = `
                 <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000;">
                     <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
@@ -117,18 +121,18 @@ window.startVertexModeling = async () => {
                     </div>
                     
                     <div style="padding:20px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center;">
-                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:55px; border-radius:50px; font-weight:bold;" onclick="window.addToCart()">
-                            Add to Cart - ${selectedCloth.price} 🛒
+                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; font-size:1.1rem; border:none; cursor:pointer;" onclick="window.addToCart()">
+                            ADD TO CART - ${selectedCloth.price} 🛒
                         </button>
-                        <p onclick="location.reload()" style="color:#888; margin-top:10px; cursor:pointer; font-size:0.8rem;">Try another</p>
+                        <p onclick="location.reload()" style="color:#888; margin-top:15px; cursor:pointer; font-size:0.8rem;">Try another</p>
                     </div>
                 </div>
             `;
         } else {
-            container.innerHTML = `<div style="color:white; padding:50px;">AI Error. Try another photo.</div>`;
+            container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">AI Error. Please try a different photo.</div>`;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:50px;">Network Timeout.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Connection failed.</div>`;
     }
 };
 
@@ -136,7 +140,7 @@ window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
     if (badge) badge.innerText = cartCount;
-    alert("Added to bag!");
+    alert("Added to cart!");
 };
 
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
