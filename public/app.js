@@ -1,7 +1,8 @@
 /**
- * Kingsley Store Mall - v14.5 (STILL PHOTO MASTER)
- * FEATURES: Search, Voice-Mic, Instant Photo Swap.
- * FIXED: Home Page UI Scattering, Handshake Logic.
+ * Kingsley Store Mall - v15.0 (ULTRA-STABLE)
+ * FIXED: Home Page UI Alignment.
+ * FIXED: Search & Mic Handshake.
+ * FEATURE: Instant Still Photo Swap.
  */
 
 const clothesCatalog = [
@@ -13,7 +14,15 @@ let userPhoto = "";
 let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Voice Mic Logic
+    // Restore profile if exists
+    const saved = localStorage.getItem('kingsley_profile_locked');
+    if (saved) { 
+        const ownerImg = document.getElementById('owner-img');
+        if(ownerImg) ownerImg.src = saved; 
+        userPhoto = saved; 
+    }
+
+    // MIC LOGIC - Surgical Bind
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -28,16 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 2. Fixed Search Logic
+// SEARCH LOGIC - Fixed Stability
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!results) return;
 
-    const matched = clothesCatalog.filter(i => 
-        i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input)
-    );
-
+    const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input));
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
@@ -50,17 +56,13 @@ window.executeSearch = () => {
     }
 };
 
-// 3. Virtual Try-On Handshake
+// VTO LOGIC - Direct Swap
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
     `;
-    
-    document.getElementById('vto-action-btn').onclick = () => {
-        document.getElementById('user-fit-input').click();
-    };
 };
 
 window.handleUserFitUpload = (e) => {
@@ -69,12 +71,12 @@ window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
-        window.startSwapProcess();
+        window.startVertexModeling();
     };
     reader.readAsDataURL(file);
 };
 
-window.startSwapProcess = async () => {
+window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const modal = document.getElementById('video-experience-modal');
     modal.style.display = 'flex';
@@ -89,12 +91,12 @@ window.startSwapProcess = async () => {
         });
         const data = await response.json();
         if (data.result) {
-            // Still Photo only - no animations
-            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; display:block;">`;
+            // Instant still photo display
+            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
             document.getElementById('video-bottom-section').innerHTML = `<button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px;">Add to Cart 🛒</button>`;
         }
     } catch (e) {
-        container.innerHTML = "<p style='color:white;'>Mall server busy. Try again.</p>";
+        container.innerHTML = "<p style='color:white;'>Error. Please try a clearer photo.</p>";
     }
 };
 
