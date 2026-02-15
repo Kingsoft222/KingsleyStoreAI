@@ -1,82 +1,197 @@
 :root {
+
     --accent: #e60023;
+
     --dark: #1a1a1a;
+
     --gray: #f2f2f2;
+
+    --gemini-blue: #1a73e8;
+
 }
+
+
 
 body, html {
+
     margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+
     background: #fff; height: 100%; width: 100%; overflow-x: hidden;
+
 }
 
-/* --- HEADER FIX: FORCED SPACE-BETWEEN --- */
-.app-header { 
-    display: flex; 
-    justify-content: space-between; /* FORCES CART TO THE RIGHT */
-    align-items: center; 
-    padding: 20px 25px; 
-    width: 100%; 
-    max-width: 1200px; 
-    margin: 0 auto;
-    box-sizing: border-box;
-}
-.menu-btn { font-size: 1.8rem; background: none; border: none; cursor: pointer; }
-.cart-icon { font-size: 1.8rem; position: relative; cursor: pointer; }
-.count { 
-    position: absolute; top: -5px; right: -10px; 
-    background: var(--accent); color: white; 
-    font-size: 12px; padding: 2px 6px; border-radius: 50%; 
-}
 
-/* --- STORE PROFILE: ABSOLUTE CENTERING --- */
-.home-container { 
-    max-width: 600px; 
-    margin: 0 auto; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center;
-    padding-bottom: 280px;
-}
 
-.store-profile { text-align: center; padding-top: 10px; width: 100%; }
-.profile-pic { 
-    width: 125px; height: 125px; border-radius: 50%; 
-    border: 4px solid var(--accent); margin: 0 auto; 
-    overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
+/* Header & Profile */
+
+.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
+
+.store-profile { text-align: center; padding-top: 20px; }
+
+.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
+
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
+
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.store-name { color: var(--accent); font-weight: 800; font-size: 2.4rem; margin: 15px 0; }
 
-/* --- LARGE MIC & SEARCH BAR --- */
-.bottom-controls { 
-    position: fixed; bottom: 0; width: 100%; 
-    background: #fff; padding-bottom: 35px; z-index: 100;
-}
-.search-bar { 
-    background: var(--gray); border-radius: 50px; 
-    padding: 10px 25px; display: flex; align-items: center; 
-    margin: 0 auto; width: 92%; max-width: 500px;
-    border: 1px solid #ddd;
-}
-.mic-icon { 
-    font-size: 3rem !important; /* LARGE MIC RESTORED */
-    cursor: pointer; color: var(--dark); margin: 0 15px; 
-}
-.send-circle { 
-    background: var(--dark); border: none; 
-    width: 55px; height: 55px; border-radius: 50%; 
-    display: flex; align-items: center; justify-content: center;
+.mini-remove-btn { position: absolute; right: -10px; top: 0; background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+
+.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
+
+.greeting { font-size: 1.1rem; transition: opacity 0.1s; height: 1.5em; margin: 10px 0; }
+
+
+
+/* Grid Results */
+
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 220px; }
+
+.result-card { background: var(--gray); border-radius: 12px; padding: 8px; text-align: center; }
+
+.result-card img { width: 100%; height: 140px; object-fit: contain; border-radius: 8px; background: white; }
+
+
+
+/* --- THE DOPPL "FAST" SHOWROOM STAGE --- */
+
+.doppl-stage {
+
+    margin: 15px auto;
+
+    width: 92%;
+
+    height: 520px; /* Taller, immersive fashion height */
+
+    border-radius: 24px;
+
+    position: relative;
+
+    overflow: hidden;
+
+    background: #000;
+
+    border: 1px solid rgba(0,0,0,0.1);
+
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+
 }
 
-/* --- PILL CATEGORY BUTTONS --- */
-.split-cards { display: flex; justify-content: center; gap: 15px; width: 100%; padding: 0 20px; margin-bottom: 25px; }
-.spaced-card { flex: 1; background: var(--dark); color: white; padding: 22px; border-radius: 25px; border: none; text-align: left; }
 
-/* --- GROUNDED SHOWROOM PHYSICS --- */
-#doppl-showroom { display: none; position: fixed; inset: 0; z-index: 200000; background: #000; }
-.showroom-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1558997519-83ea9252edf8?q=80&w=1920&auto=format&fit=crop') center/cover; filter: brightness(0.6); }
-.showroom-container { position: relative; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-.reveal-frame { width: 100%; height: 85vh; display: flex; align-items: flex-end; justify-content: center; position: relative; }
-#doppl-final-render { width: auto; height: 100%; object-fit: contain; filter: drop-shadow(0 20px 50px rgba(0,0,0,0.9)); }
-.button-tray { position: absolute; bottom: 45px; width: 100%; display: flex; justify-content: center; padding: 0 25px; }
-.doppl-add-to-cart { width: 100%; max-width: 420px; background: var(--accent); color: white; border: none; padding: 24px; border-radius: 60px; font-weight: 800; font-size: 1.3rem; box-shadow: 0 15px 45px rgba(230,0,35,0.4); }
+
+.doppl-video {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    transition: opacity 0.5s ease-in;
+
+}
+
+
+
+/* Skeleton Loader for "Fast" Perception */
+
+.shimmer-overlay {
+
+    position: absolute;
+
+    inset: 0;
+
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+
+    background-size: 200% 100%;
+
+    animation: loading-shimmer 1.5s infinite;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    color: white;
+
+    z-index: 5;
+
+}
+
+
+
+@keyframes loading-shimmer {
+
+    0% { background-position: 200% 0; }
+
+    100% { background-position: -200% 0; }
+
+}
+
+
+
+.user-identity-bubble {
+
+    position: absolute;
+
+    bottom: 20px;
+
+    left: 20px;
+
+    width: 65px;
+
+    height: 65px;
+
+    border-radius: 50%;
+
+    border: 2px solid white;
+
+    overflow: hidden;
+
+    z-index: 10;
+
+    background: #fff;
+
+}
+
+
+
+/* Bottom Controls & Gemini Search Bar */
+
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
+
+.split-cards { display: flex; justify-content: space-between; width: 100%; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; }
+
+.spaced-card { width: 47% !important; border-radius: 15px !important; background: var(--dark); color: white; padding: 20px; border: none; font-weight: bold; cursor: pointer;}
+
+
+
+.search-bar {
+
+    background: var(--gray);
+
+    border-radius: 50px;
+
+    padding: 6px 6px 6px 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    margin: 0 15px;
+
+    border: 1px solid #e0e0e0;
+
+}
+
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); }
+
+
+
+.input-icons { display: flex; align-items: center; gap: 8px; }
+
+.mic-icon { font-size: 1.8rem; cursor: pointer; padding: 5px; }
+
+.send-circle { background: var(--dark); border: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
