@@ -1,6 +1,8 @@
 /**
- * Kingsley Store AI - v12.0
- * GOAL: Instant Save Reflection + Still Photo Swap.
+ * Kingsley Store AI - v12.5 (MASTER REPAIR)
+ * 1. Fixed Mic/Search Handshake.
+ * 2. Instant Still-Photo Swap.
+ * 3. UI Stability.
  */
 
 const clothesCatalog = [
@@ -11,65 +13,85 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
-// --- 1. PROFILE PHOTO: INSTANT REFLECTION ---
-window.handleProfileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('kingsley_profile_locked');
+    if (saved) { 
+        const ownerImg = document.getElementById('owner-img');
+        if(ownerImg) ownerImg.src = saved; 
+        userPhoto = saved; 
+    }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const imgData = event.target.result;
-        document.getElementById('owner-img').src = imgData;
-        localStorage.setItem('kingsley_profile_locked', imgData);
-        userPhoto = imgData;
-
-        // Force button to show and turn green immediately
-        const saveBtn = document.getElementById('fit-action-btn');
-        if (saveBtn) {
-            saveBtn.style.display = 'block';
-            saveBtn.innerText = "Profile Saved ✅";
-            saveBtn.style.background = "#28a745";
-            saveBtn.style.color = "white";
-            setTimeout(() => { saveBtn.style.display = 'none'; }, 2000);
+    // MIC LOGIC - Surgical Fix
+    if ('webkitSpeechRecognition' in window) {
+        const rec = new webkitSpeechRecognition();
+        const micBtn = document.getElementById('mic-btn');
+        if (micBtn) {
+            micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
+            rec.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                document.getElementById('ai-input').value = transcript;
+                micBtn.style.color = "#5f6368";
+                window.executeSearch();
+            };
         }
-    };
-    reader.readAsDataURL(file);
+    }
+});
+
+// SEARCH LOGIC - Fixed Scattering
+window.executeSearch = () => {
+    const input = document.getElementById('ai-input').value.toLowerCase();
+    const results = document.getElementById('ai-results');
+    if (!results) return;
+
+    // Clear previous rubbish
+    results.innerHTML = "";
+    
+    if (!input.trim()) {
+        results.style.display = 'none';
+        return;
+    }
+
+    const matched = clothesCatalog.filter(i => 
+        i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input)
+    );
+
+    if (matched.length > 0) {
+        results.style.display = 'grid';
+        results.innerHTML = matched.map(item => `
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+                <img src="images/${item.img}" style="width:100%; height:120px; object-fit:contain; border-radius:8px;">
+                <h4 style="margin:8px 0 4px; font-size:0.9rem;">${item.name}</h4>
+                <p style="color:#e60023; font-weight:bold; margin:0;">${item.price}</p>
+            </div>
+        `).join('');
+    } else {
+        results.style.display = 'none';
+    }
 };
 
-// --- 2. VTO: STILL PHOTO SWAP ---
+// VTO LOGIC - Direct Swap
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="window.initiateUploadFlow()" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold;">📸 See How You Look (Photo)</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 Upload Photo to Swap</button>
     `;
 };
 
-window.initiateUploadFlow = () => {
-    const btn = document.getElementById('fit-action-btn');
-    btn.style.display = 'block';
-    btn.innerText = "Step 1: Upload Your Photo";
-    btn.onclick = () => document.getElementById('user-fit-input').click();
-};
-
 window.handleUserFitUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
-        const btn = document.getElementById('fit-action-btn');
-        btn.innerText = "Step 2: Swap Outfit Now";
-        btn.onclick = window.startVertexModeling;
+        window.startVertexModeling();
     };
-    reader.readAsDataURL(e.target.files[0]);
+    reader.readAsDataURL(file);
 };
 
 window.startVertexModeling = async () => {
-    document.getElementById('fitting-room-modal').style.display = 'none';
-    const videoModal = document.getElementById('video-experience-modal');
-    videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
-    
-    container.innerHTML = `<div style="color:white;text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Swapping Outfit...</p></div>`;
+    container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Swapping Outfit...</p></div>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
@@ -77,15 +99,10 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
         });
         const data = await response.json();
-        
         if (data.result) {
-            // STILL PHOTO ONLY - No Effects
-            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
-            document.getElementById('video-bottom-section').innerHTML = `<button onclick="location.reload()" class="primary-btn" style="background:#333; color:white; width:200px; margin-top:20px;">Done</button>`;
+            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; display:block; box-shadow:0 4px 15px rgba(0,0,0,0.3);">`;
         }
-    } catch (e) {
-        container.innerHTML = "<p style='color:white;'>Error. Check connection.</p>";
-    }
+    } catch (e) { container.innerHTML = "<p style='color:white;'>Error swapping cloth. Try again.</p>"; }
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
