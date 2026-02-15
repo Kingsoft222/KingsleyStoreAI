@@ -6,7 +6,6 @@
     <title>Kingsley Store | AI Virtual Try-On</title>
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <header class="app-header">
@@ -16,10 +15,8 @@
 
     <main class="home-container">
         <div class="store-profile">
-            <div class="profile-pic-container">
-                <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
-                </div>
+            <div class="profile-pic">
+                <img src="images/kingsley.jpg" id="owner-img" onclick="document.getElementById('profile-input').click()">
             </div>
             <input type="file" id="profile-input" hidden accept="image/*" onchange="window.handleProfileUpload(event)">
             <h1 class="store-name">Kingsley Store</h1>
@@ -29,41 +26,37 @@
     </main>
 
     <div id="fitting-room-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center;">
-        <div style="background:white; padding:30px; border-radius:30px; text-align:center; width:90%; max-width:400px; position:relative;">
-            <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:24px; font-weight:800;">×</span>
-            <h2 style="color:#e60023; font-weight:800; margin-bottom:5px;">AI Showroom</h2>
-            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Upload a picture to see how you look</p>
-            
-            <div id="choice-buttons-area" style="display:flex; flex-direction:column; gap:12px;">
-                <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white;">📸 See how you look (photo)</button>
-                <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333; color:white;">🎥 See how you look (video)</button>
-            </div>
-
-            <div id="upload-action-area" style="display:none;">
-                <input type="file" id="user-fit-input" hidden accept="image/*" onchange="window.handleUserFitUpload(event)">
-                <button id="fit-action-btn" class="primary-btn" style="background:#e60023; color:white;">Upload Photo</button>
-            </div>
+        <div style="background:white; padding:30px; border-radius:30px; text-align:center; width:90%; max-width:400px;">
+            <h2 style="color:#e60023; font-weight:800;">AI Showroom</h2>
+            <p>Upload a picture to see how you look</p>
+            <input type="file" id="user-fit-input" hidden accept="image/*" onchange="window.handleUserFitUpload(event)">
+            <button onclick="document.getElementById('user-fit-input').click()" style="width:100%; padding:15px; border-radius:10px; background:#e60023; color:white; border:none; font-weight:bold; cursor:pointer;">📸 See how you look (photo)</button>
+            <button onclick="window.closeFittingRoom()" style="background:none; border:none; margin-top:15px; cursor:pointer;">Close</button>
         </div>
     </div>
 
     <div id="doppl-showroom">
         <div class="showroom-bg"></div>
-        <span onclick="window.closeDoppl()" class="close-showroom">✕</span>
+        <span onclick="window.closeDoppl()" style="position:absolute; top:30px; left:30px; color:white; font-size:32px; z-index:200010; cursor:pointer;">✕</span>
         <div class="showroom-container">
             <div class="reveal-frame">
-                <div id="doppl-loading" class="doppl-loader">
-                    <i class="fas fa-circle-notch fa-spin fa-3x"></i>
-                    <p style="font-weight:800; margin-top:15px;">SEWING YOUR FIT...</p>
+                <div id="doppl-loading" style="display:none; flex-direction:column; align-items:center; color:white;">
+                    <i class="fas fa-circle-notch fa-spin fa-3x" style="margin-bottom:15px;"></i>
+                    <p style="font-weight:800;">SEWING YOUR FIT...</p>
                 </div>
                 <img id="doppl-final-render" style="display: none;">
             </div>
             <div class="button-tray">
-                <button class="doppl-add-to-cart" id="doppl-cart-btn" onclick="window.addToCart()">Add to cart</button>
+                <button class="doppl-add-to-cart" onclick="window.addToCart()">Add to cart</button>
             </div>
         </div>
     </div>
 
     <footer class="bottom-controls">
+        <div class="split-cards">
+            <button class="spaced-card" onclick="window.quickSearch('Dinner outfit')"><strong>Dinner outfit</strong></button>
+            <button class="spaced-card" onclick="window.quickSearch('Trousers')"><strong>Trousers</strong></button>
+        </div>
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
             <div class="input-icons">

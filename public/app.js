@@ -1,6 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v9.0
- * UI RESTORATION: Large Mic, Centered Profile, Pill Buttons.
+ * Kingsley Store AI - Core Logic v9.1
+ * UI FIX: Cart on right, large mic, centered laptop profile.
+ * SEQUENCE FIX: "Rock your cloth" triggers the Choice Modal.
  */
 
 const clothesCatalog = [
@@ -8,19 +9,12 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-const greetings = [
-    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
-    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
-    "Baddie, let's find your style!"
-];
-
-let gIndex = 0; let userPhoto = ""; let selectedCloth = null; let cartCount = 0;
+const greetings = ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Boss, let's find your style!"];
+let gIndex = 0; let userPhoto = ""; let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) { document.getElementById('owner-img').src = saved; userPhoto = saved; }
-    
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
@@ -95,5 +89,14 @@ window.runAISwap = async () => {
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.closeDoppl = () => { document.getElementById('doppl-showroom').style.display = 'none'; };
-window.addToCart = () => { cartCount++; document.getElementById('cart-count').innerText = cartCount; };
+window.addToCart = () => { alert("Added to cart!"); };
+window.handleProfileUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        document.getElementById('owner-img').src = event.target.result;
+        localStorage.setItem('kingsley_profile_locked', event.target.result);
+        userPhoto = event.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
