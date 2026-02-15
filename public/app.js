@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v9.0
- * FEATURES: Professional Spinner, Full-Screen Immersive Result.
- * CLEANUP: Removed all extra branding/buttons to reveal the full image.
+ * Kingsley Store AI - Core Logic v10.0
+ * CLEANROOM EDITION: No extra buttons, No "Runway" text.
+ * UI: Professional Spinner + Full-Height Image + Pinned Cart Button.
  */
 
 const clothesCatalog = [
@@ -11,7 +11,6 @@ const clothesCatalog = [
 
 const greetings = [
     "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
     "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
     "Baddie, let's find your style!"
 ];
@@ -21,7 +20,6 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
-// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -46,7 +44,6 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -69,11 +66,10 @@ window.executeSearch = () => {
     }
 };
 
-// --- 3. THE CLEAN HANDSHAKE ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('modal-subtext').innerText = "Virtual Try-On for " + selectedCloth.name;
+    document.getElementById('modal-subtext').innerText = "Try on " + selectedCloth.name;
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px; padding:15px;">📸 Upload Your Photo</button>
     `;
@@ -94,11 +90,11 @@ window.startVertexModeling = async () => {
     videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // RESTORED PROFESSIONAL SPINNER
+    // RESTORED PROFESSIONAL CIRCLE SPINNER
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white;">
-            <i class="fas fa-spinner fa-spin fa-3x" style="margin-bottom:20px; color:#e60023;"></i>
-            <p style="font-weight:600;">Processing your ${selectedCloth.name}...</p>
+            <i class="fas fa-circle-notch fa-spin fa-3x" style="margin-bottom:20px; color:#e60023;"></i>
+            <p>Processing...</p>
         </div>
     `;
 
@@ -113,26 +109,26 @@ window.startVertexModeling = async () => {
         const data = await response.json();
         
         if (data.result) {
-            // DIRECT RESULT: NO TEXT OVERLAY, NO BROKEN ICONS
+            // CLEAN LAYOUT: IMAGE TAKES ALL SPACE, BUTTON AT BOTTOM
             container.innerHTML = `
                 <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000;">
-                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000;">
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
                         <img src="data:image/png;base64,${data.result}" style="width:100%; height:100%; object-fit:contain;">
                     </div>
                     
-                    <div style="padding:20px 20px 40px 20px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; gap:10px;">
-                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; font-size:1.1rem; border:none;" onclick="window.addToCart()">
+                    <div style="padding:20px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center;">
+                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:55px; border-radius:50px; font-weight:bold;" onclick="window.addToCart()">
                             Add to Cart - ${selectedCloth.price} 🛒
                         </button>
-                        <p onclick="location.reload()" style="color:#888; cursor:pointer; font-size:0.9rem; margin-top:5px;">Try another outfit</p>
+                        <p onclick="location.reload()" style="color:#888; margin-top:10px; cursor:pointer; font-size:0.8rem;">Try another</p>
                     </div>
                 </div>
             `;
         } else {
-            container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">AI Refused. Try a different photo.</div>`;
+            container.innerHTML = `<div style="color:white; padding:50px;">AI Error. Try another photo.</div>`;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Connection Failed. Check Netlify logs.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px;">Network Timeout.</div>`;
     }
 };
 
@@ -140,7 +136,7 @@ window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
     if (badge) badge.innerText = cartCount;
-    alert(`${selectedCloth.name} added to bag!`);
+    alert("Added to bag!");
 };
 
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
