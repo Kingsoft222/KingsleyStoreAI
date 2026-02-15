@@ -1,8 +1,6 @@
 /**
- * Kingsley Store Mall - v15.0 (ULTRA-STABLE)
- * FIXED: Home Page UI Alignment.
- * FIXED: Search & Mic Handshake.
- * FEATURE: Instant Still Photo Swap.
+ * Kingsley Store Mall - v17.0 (FINAL REPAIR)
+ * FIXED: Home Page UI, Mic, and Instant Still-Photo Swap.
  */
 
 const clothesCatalog = [
@@ -14,15 +12,7 @@ let userPhoto = "";
 let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Restore profile if exists
-    const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) { 
-        const ownerImg = document.getElementById('owner-img');
-        if(ownerImg) ownerImg.src = saved; 
-        userPhoto = saved; 
-    }
-
-    // MIC LOGIC - Surgical Bind
+    // 1. Mic Logic
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -37,18 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// SEARCH LOGIC - Fixed Stability
+// 2. Search Logic
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!results) return;
 
-    const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input));
+    const matched = clothesCatalog.filter(i => 
+        i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input)
+    );
+
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}" style="width:100%; border-radius:8px;">
+                <img src="images/${item.img}" style="width:100%; border-radius:10px;">
                 <h4>${item.name}</h4>
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
@@ -56,33 +49,31 @@ window.executeSearch = () => {
     }
 };
 
-// VTO LOGIC - Direct Swap
+// 3. Virtual Try-On
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
+        <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
     `;
+    document.getElementById('vto-action-btn').onclick = () => document.getElementById('user-fit-input').click();
 };
 
 window.handleUserFitUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
-        window.startVertexModeling();
+        window.startMallSwap();
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(e.target.files[0]);
 };
 
-window.startVertexModeling = async () => {
+window.startMallSwap = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const modal = document.getElementById('video-experience-modal');
     modal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
-    
-    container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Wearing your ${selectedCloth.name}...</p></div>`;
+    container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Wearing your outfit...</p></div>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
@@ -91,12 +82,10 @@ window.startVertexModeling = async () => {
         });
         const data = await response.json();
         if (data.result) {
-            // Instant still photo display
             container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
-            document.getElementById('video-bottom-section').innerHTML = `<button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px;">Add to Cart 🛒</button>`;
         }
     } catch (e) {
-        container.innerHTML = "<p style='color:white;'>Error. Please try a clearer photo.</p>";
+        container.innerHTML = "<p style='color:white;'>Mall server busy. Try again.</p>";
     }
 };
 
