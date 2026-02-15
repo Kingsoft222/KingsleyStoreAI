@@ -1,7 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v7.0
- * DOPPL CINEMATIC REVEAL: Full-screen luxury forensic swap.
- * NO MORE VIDEO LOOP: Focused on high-fidelity result unveil.
+ * Kingsley Store AI - Core Logic v7.1
+ * DOPPL REVEAL: Full-screen grounded layout.
+ * FIX: User now "stands" on the floor.
+ * FIX: Floating red pill button logic.
  */
 
 const clothesCatalog = [
@@ -21,10 +22,14 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
-// --- PROFILE & BOOTSTRAP ---
+// --- 1. BOOTSTRAP & PROFILE ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) { document.getElementById('owner-img').src = saved; userPhoto = saved; }
+    const ownerImg = document.getElementById('owner-img');
+    if (saved && ownerImg) {
+        ownerImg.src = saved;
+        userPhoto = saved;
+    }
     
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
@@ -59,7 +64,7 @@ window.clearProfileData = () => {
     userPhoto = "";
 };
 
-// --- NAVIGATION & SEARCH ---
+// --- 2. SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -78,12 +83,13 @@ window.executeSearch = () => {
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 
-// --- THE DOPPL REVEAL LOGIC ---
+// --- 3. THE GROUNDED DOPPL REVEAL ---
 window.initiateDoppl = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     if (!userPhoto) {
@@ -91,10 +97,14 @@ window.initiateDoppl = (id) => {
         return;
     }
     
-    // Switch to Showroom
-    document.getElementById('doppl-showroom').style.display = 'block';
-    document.getElementById('doppl-loading').style.display = 'flex';
-    document.getElementById('doppl-final-render').style.display = 'none';
+    // OPEN SHOWROOM
+    const showroom = document.getElementById('doppl-showroom');
+    const loading = document.getElementById('doppl-loading');
+    const renderImg = document.getElementById('doppl-final-render');
+    
+    showroom.style.display = 'block';
+    loading.style.display = 'flex';
+    renderImg.style.display = 'none';
     
     window.processForensicSwap();
 };
@@ -103,26 +113,38 @@ window.processForensicSwap = async () => {
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
+            body: JSON.stringify({ 
+                userImage: userPhoto.split(',')[1], 
+                cloth: selectedCloth.name 
+            })
         });
         const data = await response.json();
         
         if (data.result) {
             const renderImg = document.getElementById('doppl-final-render');
             renderImg.src = `data:image/png;base64,${data.result}`;
-            document.getElementById('doppl-loading').style.display = 'none';
-            renderImg.style.display = 'block';
+            
+            // Grounding logic: Ensure the image is loaded before hiding loader
+            renderImg.onload = () => {
+                document.getElementById('doppl-loading').style.display = 'none';
+                renderImg.style.display = 'block';
+            };
         }
     } catch (e) {
-        document.getElementById('doppl-loading').innerHTML = "<p style='color:red;'>Handshake Failed. Retry.</p>";
+        document.getElementById('doppl-loading').innerHTML = `
+            <p style="color:white; font-weight:800;">Runway Busy</p>
+            <button onclick="window.processForensicSwap()" style="background:none; border:1px solid white; color:white; padding:8px; margin-top:10px; border-radius:5px;">Retry</button>
+        `;
     }
 };
 
-// --- CART LOGIC ---
+// --- 4. CART LOGIC ---
 window.addToCart = () => {
     cartCount++;
     document.getElementById('cart-count').innerText = cartCount;
     const btn = document.getElementById('doppl-cart-btn');
+    
+    // UI Feedback exactly like reference
     btn.innerText = "ADDED TO CART ✅";
     btn.style.background = "#333";
     setTimeout(() => {
