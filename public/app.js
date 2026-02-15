@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v10.0 (STILL PHOTO & INSTANT REFLECT)
- * 1. Immediate button reflection on file selection.
- * 2. Still photo swap (Vertex) without any motion effects.
+ * Kingsley Store AI - v11.0 (VERTEX STILL-PHOTO EDITION)
+ * 1. Immediate Save Button reflection on upload.
+ * 2. Vertex AI Still Photo Swap (No movement/animations).
  */
 
 const clothesCatalog = [
@@ -9,43 +9,20 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-const greetings = [
-    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
-    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
-    "Baddie, let's find your style!"
-];
-
+const greetings = ["Nne, what's your style?", "My guy, what's the vibe?", "Chief, looking for premium?", "Baddie, let's shop!"];
 let gIndex = 0;
 let userPhoto = "";
 let selectedCloth = null;
-let currentMode = 'photo';
 let cartCount = 0;
 
-// --- 1. BOOTSTRAP & PROFILE ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    const ownerImg = document.getElementById('owner-img');
-    if (saved && ownerImg) {
-        ownerImg.src = saved;
-        userPhoto = saved;
-    }
+    if (saved) { document.getElementById('owner-img').src = saved; userPhoto = saved; }
     
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
-
-    if ('webkitSpeechRecognition' in window) {
-        const rec = new webkitSpeechRecognition();
-        const micBtn = document.getElementById('mic-btn');
-        micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
-        rec.onresult = (e) => {
-            document.getElementById('ai-input').value = e.results[0][0].transcript;
-            micBtn.style.color = "#5f6368";
-            window.executeSearch();
-        };
-    }
 });
 
 // --- GOAL 1: INSTANT BUTTON REFLECTION ---
@@ -56,71 +33,51 @@ window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
         const imgData = event.target.result;
-        // Update profile image instantly
         document.getElementById('owner-img').src = imgData;
         localStorage.setItem('kingsley_profile_locked', imgData);
         userPhoto = imgData;
 
-        // Force Save Button Reflection instantly
-        const fitBtn = document.getElementById('fit-action-btn');
-        if (fitBtn) {
-            fitBtn.style.display = 'block';
-            fitBtn.innerText = "Profile Saved ✅";
-            fitBtn.style.background = "#28a745";
-            fitBtn.style.color = "white";
-            // Hide after success reflection
-            setTimeout(() => { fitBtn.style.display = 'none'; }, 2500);
+        // FORCE BUTTON REFLECTION IMMEDIATELY
+        const saveBtn = document.getElementById('fit-action-btn');
+        if (saveBtn) {
+            saveBtn.style.display = 'block';
+            saveBtn.innerText = "Profile Photo Uploaded ✅";
+            saveBtn.style.background = "#28a745";
+            saveBtn.style.color = "white";
+            // Hide after 3 seconds to keep UI clean
+            setTimeout(() => { saveBtn.style.display = 'none'; }, 3000);
         }
     };
     reader.readAsDataURL(file);
 };
 
-window.clearProfileData = () => {
-    localStorage.removeItem('kingsley_profile_locked');
-    document.getElementById('owner-img').src = "images/kingsley.jpg";
-    userPhoto = "";
-    document.getElementById('fit-action-btn').style.display = 'none';
-};
-
-// --- 2. NAVIGATION & SEARCH ---
+// --- GOAL 2: VERTEX STILL PHOTO SWAP ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
-    if (!input.trim()) return;
-
-    const matched = clothesCatalog.filter(item =>
-        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-    );
-
+    const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input));
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}" alt="${item.name}">
+                <img src="images/${item.img}">
                 <h4>${item.name}</h4>
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
-        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
-// --- 3. SHOWROOM & STILL PHOTO VTO ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
-    document.getElementById('fit-action-btn').style.display = 'none';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:12px; align-items:center; width:100%;">
-            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:#e60023; color:white;">📸 See How You Look (Photo)</button>
-        </div>
+        <button id="photo-vto-trigger" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:12px; border:none; font-weight:bold;">📸 See How You Look (Photo)</button>
     `;
+    document.getElementById('photo-vto-trigger').onclick = window.initiateUploadFlow;
 };
 
-window.initiateUploadFlow = (mode) => {
-    currentMode = mode;
-    document.getElementById('ai-fitting-result').innerHTML = "";
+window.initiateUploadFlow = () => {
     const fitBtn = document.getElementById('fit-action-btn');
     fitBtn.style.display = 'block';
     fitBtn.innerText = "Upload Modeling Photo";
@@ -138,14 +95,13 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- GOAL 2: STILL PHOTO SWAP (NO EFFECTS) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    container.innerHTML = `<div style="color:white;text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Processing Still Fit...</p></div>`;
+    container.innerHTML = `<div style="color:white;text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Sewing Your Still Fit...</p></div>`;
 
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
@@ -155,8 +111,8 @@ window.startVertexModeling = async () => {
         const data = await response.json();
         
         if (data.result) {
-            // Displaying ONLY the still image with NO animation classes
-            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:24px; display:block; border: 2px solid white;">`;
+            // DISPLAY STILL PHOTO (NO ANIMATION)
+            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:24px; display:block;">`;
             
             document.getElementById('video-bottom-section').innerHTML = `
                 <button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px; border-radius:12px; padding:15px; border:none;">Add to Cart 🛒</button>
