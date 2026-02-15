@@ -13,13 +13,13 @@ exports.handler = async (event) => {
         const { userImage, cloth } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         
-        // Use gemini-1.5-flash (Standard Paid Tier Model)
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // Use gemini-1.5-pro for better "Senator" suit detail
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: `VIRTUAL TRY-ON: Wear this ${cloth} on the person in the photo. Keep the face and pose identical. Return ONLY the base64 string.` },
+                    { text: `VIRTUAL TRY-ON: Take the person in the photo and dress them in a ${cloth}. Keep face, pose, and background identical. Return ONLY the base64 string.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage.replace(/^data:image\/\w+;base64,/, "") } }
                 ]
             }]
@@ -27,19 +27,20 @@ exports.handler = async (event) => {
 
         const response = await axios.post(url, payload);
         
-        if (response.data.candidates && response.data.candidates[0].content.parts[0].text) {
-            const aiText = response.data.candidates[0].content.parts[0].text;
-            const finalBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
+        const aiText = response.data.candidates[0].content.parts[0].text;
+        const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
 
-            return { statusCode: 200, headers, body: JSON.stringify({ result: finalBase64 }) };
-        } else {
-            throw new Error("AI linked but returned empty result.");
-        }
-    } catch (error) {
-        return { 
-            statusCode: error.response?.status || 500, 
+        return {
+            statusCode: 200,
             headers,
-            body: JSON.stringify({ error: error.response?.data?.error?.message || error.message }) 
+            body: JSON.stringify({ result: cleanBase64 })
+        };
+    } catch (error) {
+        console.error("Paid Tier Error:", error.response?.data || error.message);
+        return { 
+            statusCode: 500, 
+            headers,
+            body: JSON.stringify({ error: "Mall Engine Warming Up - Please try again in 1 minute." }) 
         };
     }
 };
