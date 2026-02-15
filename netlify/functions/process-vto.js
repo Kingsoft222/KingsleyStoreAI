@@ -13,55 +13,53 @@ exports.handler = async (event) => {
         const { userImage, cloth } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         
+        // Stable 2.0 Flash URL
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: `VIRTUAL TRY-ON TASK: High-quality fashion edit. Overlay the person in the provided image with a professional ${cloth}. Maintain the person's original face, skin tone, and background exactly. Output: raw base64 string only.` },
+                    { text: `TASK: Virtual try-on. Dress the person in the photo in a ${cloth}. Keep face and background identical. Return the image as a base64 string.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage.replace(/^data:image\/\w+;base64,/, "") } }
                 ]
             }],
-            // BYPASS FILTERS: This prevents the "empty candidate" error
-            safetySettings: [
-                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-            ],
             generationConfig: {
-                temperature: 0.4,
-                topP: 1,
-                topK: 32,
-                maxOutputTokens: 8192,
+                temperature: 1, // Higher temperature for creative image generation
+                maxOutputTokens: 8192
             }
         };
 
         const response = await axios.post(url, payload);
         
-        // If the AI still blocks it, response.data.candidates[0].finishReason will tell us why
-        const candidate = response.data.candidates[0];
+        // DEEP CHECK: Let's find where the data is hiding
+        const data = response.data;
         
-        if (candidate && candidate.content && candidate.content.parts) {
-            const aiText = candidate.content.parts[0].text;
-            const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
+        if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            
+            if (candidate.content && candidate.content.parts && candidate.content.parts[0].text) {
+                const aiText = candidate.content.parts[0].text;
+                const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
 
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({ result: cleanBase64 })
-            };
-        } else {
-            const reason = candidate ? candidate.finishReason : "Unknown Safety Block";
-            throw new Error(`AI Safety Block: ${reason}`);
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({ result: cleanBase64 })
+                };
+            } else if (candidate.finishReason === "SAFETY") {
+                throw new Error("Google blocked this image for safety. Try a clearer photo.");
+            }
         }
+        
+        console.log("Full Google Response:", JSON.stringify(data));
+        throw new Error("AI reached, but no image part was found in the response.");
 
     } catch (error) {
-        console.error("Filter Error:", error.response?.data || error.message);
+        console.error("Debug Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Mall Error: ${error.message}` }) 
+            body: JSON.stringify({ error: `Mall Engine Error: ${error.message}` }) 
         };
     }
 };
