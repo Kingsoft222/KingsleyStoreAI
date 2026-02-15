@@ -1,7 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v5.5
- * SPEED OPTIMIZED: 2s Polling.
- * ALIGNMENT LOCKED: Dead center UI.
+ * Kingsley Store AI - Core Logic v5.6
+ * RESTORED: All Footer Quick-Search logic.
+ * SPEED: 2s Polling active.
+ * ALIGNMENT: Dead center UI locked.
  */
 
 const clothesCatalog = [
@@ -21,6 +22,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
+// --- BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
@@ -55,9 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
-window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
-
+// --- SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -76,11 +76,16 @@ window.executeSearch = () => {
                 <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+window.quickSearch = (q) => { 
+    document.getElementById('ai-input').value = q; 
+    window.executeSearch(); 
+};
 
+// --- SHOWROOM SEQUENCE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -116,6 +121,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+// --- ENGINES ---
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
     area.innerHTML = `<p>Applying your ${selectedCloth.name}...</p>`;
@@ -176,6 +182,9 @@ window.generateWalkCycle = async () => {
                 clearInterval(checkInterval);
                 document.getElementById('loader-placeholder').innerHTML = "<p style='color:white;'>Runway busy. Try again.</p>";
             }
-        }, 2000); // Poll every 2 seconds for a faster feel
+        }, 2000);
     } catch (e) { console.error("Video Trigger Failed"); }
 };
+
+window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };

@@ -20,6 +20,8 @@
             background: #000; display: flex; align-items: center; justify-content: center; min-height: 300px;
         }
 
+        #loader-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 40px; }
+
         /* PREMIUM BUTTON STYLES */
         .primary-btn { 
             width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 700; 
@@ -48,7 +50,7 @@
             <h1 class="store-name">Kingsley Store</h1>
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
         </div>
-        <div id="ai-results" class="results-grid" style="display:none;"></div>
+        <div id="ai-results" class="results-grid" style="display:none; position: relative; z-index: 1000;"></div>
     </main>
 
     <div id="fitting-room-modal" class="voice-overlay">
@@ -65,16 +67,25 @@
         <div class="modal-fashion-bg"></div>
         <button class="close-video-btn" onclick="window.closeVideoModal()">×</button>
         <div class="modal-container">
-            <div class="video-wrapper" id="video-main-container">
-                </div>
+            <div class="video-wrapper" id="video-main-container"></div>
             <div id="video-bottom-section" style="margin-top: 25px; display:flex; flex-direction:column; align-items:center;">
                 <h2 style="color:white; text-transform:uppercase; font-weight:800; letter-spacing:2px; margin-bottom:15px;">Kingsley Runway</h2>
                 <button class="share-walk-btn" onclick="window.shareMyWalk()">SHARE MY WALK</button>
-                </div>
+            </div>
         </div>
     </div>
 
     <footer class="bottom-controls">
+        <div class="split-cards">
+            <div class="chip left-end spaced-card" onclick="window.quickSearch('Dinner outfit')">
+                <strong>Dinner outfit</strong>
+                <span>See exclusive female</span>
+            </div>
+            <div class="chip right-end spaced-card" onclick="window.quickSearch('Trousers')">
+                <strong>Trousers</strong>
+                <span>Shop stylish trousers</span>
+            </div>
+        </div>
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
             <div class="input-icons">
