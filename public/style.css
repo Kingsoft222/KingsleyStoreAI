@@ -1,43 +1,24 @@
-:root {
-    --accent: #e60023;
-    --dark: #1a1a1a;
-    --gray: #f2f2f2;
-    --gemini-blue: #1a73e8;
-}
+:root { --accent: #e60023; --dark: #1a1a1a; --gray: #f2f2f2; }
+body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: #fff; overflow-x: hidden; }
 
-body, html {
-    margin: 0; padding: 0; font-family: 'Inter', sans-serif;
-    background: #fff; height: 100%; width: 100%; overflow-x: hidden;
-}
-
-/* Header & Profile */
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
-.store-profile { text-align: center; padding-top: 20px; }
-.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
+/* Profile Pic UI */
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); margin: 0 auto; overflow: hidden; background: #eee; cursor: pointer; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
-.greeting { font-size: 1.1rem; transition: opacity 0.1s; height: 1.5em; margin: 10px 0; }
 
-/* Grid Results */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 220px; }
-.result-card { background: var(--gray); border-radius: 12px; padding: 8px; text-align: center; cursor: pointer; }
-.result-card img { width: 100%; height: 140px; object-fit: contain; border-radius: 8px; background: white; }
-
-/* Bottom Controls */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; }
-.search-bar { background: var(--gray); border-radius: 50px; padding: 6px 6px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid #e0e0e0; }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); }
-
-/* THE SAVE/ACTION BUTTON (Critical for Visibility) */
+/* Action Button - The one that "vanished" */
 #fit-action-btn { 
     display: none; 
-    margin: 10px auto; 
+    margin: 15px auto; 
     width: 90%; 
-    border-radius: 12px; 
+    border-radius: 10px; 
     padding: 15px; 
     border: none; 
     font-weight: bold; 
     cursor: pointer; 
     text-align: center;
 }
+
+/* Modal UI */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; }
+.result-card { background: var(--gray); border-radius: 12px; padding: 8px; text-align: center; cursor: pointer; }
+.result-card img { width: 100%; height: 140px; object-fit: contain; }
