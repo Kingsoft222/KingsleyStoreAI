@@ -8,24 +8,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <header class="app-header">
+    <header class="app-header" style="display:flex; justify-content:space-between; padding:15px 20px;">
         <button class="menu-btn" style="background:none; border:none; font-size:1.5rem;">☰</button>
         <div class="cart-icon">🛒<span class="count" id="cart-count">0</span></div>
     </header>
 
     <main class="home-container">
         <div class="store-profile">
-            <div class="profile-pic-container">
+            <div class="profile-pic-container" style="position:relative; width:110px; margin:0 auto;">
                 <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
                     <img src="images/kingsley.jpg" id="owner-img">
                 </div>
-                <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
+                <button class="mini-remove-btn" onclick="window.clearProfileData()" style="position:absolute; right:-10px; top:0; border-radius:50%; width:25px; height:25px;">-</button>
             </div>
             <input type="file" id="profile-input" hidden accept="image/*" onchange="window.handleProfileUpload(event)">
-            <h1 class="store-name">Kingsley Store</h1>
+            <h1 style="color:var(--accent); font-weight:800; font-size:2rem; margin:10px 0;">Kingsley Store</h1>
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
         </div>
-        <div id="ai-results" class="results-grid" style="display:none;"></div>
+        <div id="ai-results" class="results-grid"></div>
     </main>
 
     <div id="doppl-showroom">
@@ -47,16 +47,16 @@
     </div>
 
     <footer class="bottom-controls">
-        <div class="split-cards" style="display:flex; justify-content:space-between; padding:0 15px; margin-bottom:15px; gap:10px;">
+        <div class="split-cards">
             <button onclick="window.quickSearch('Dinner outfit')" style="width:50%; background:var(--dark); color:white; padding:18px; border-radius:15px; border:none; font-weight:bold;">Dinner outfit</button>
             <button onclick="window.quickSearch('Trousers')" style="width:50%; background:var(--dark); color:white; padding:18px; border-radius:15px; border:none; font-weight:bold;">Trousers</button>
         </div>
         <div class="search-bar">
-            <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
-            <div class="input-icons">
+            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." style="border:none; background:transparent; flex:1; outline:none; font-size:16px;">
+            <div class="input-icons" style="display:flex; align-items:center;">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 <button class="send-circle" onclick="window.executeSearch()">
-                    <svg viewBox="0 0 24 24" width="22"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
+                    <svg viewBox="0 0 24 24" width="24"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
                 </button>
             </div>
         </div>
