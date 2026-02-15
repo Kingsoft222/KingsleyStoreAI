@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v7.1
+ * Kingsley Store AI - Core Logic v7.2
  * DOPPL REVEAL: Full-screen grounded layout.
- * FIX: User now "stands" on the floor.
- * FIX: Floating red pill button logic.
+ * FIXED: User now "stands" on the floor.
+ * FIXED: Large Mic Size and Floating Pill logic.
  */
 
 const clothesCatalog = [
@@ -22,14 +22,9 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
-// --- 1. BOOTSTRAP & PROFILE ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    const ownerImg = document.getElementById('owner-img');
-    if (saved && ownerImg) {
-        ownerImg.src = saved;
-        userPhoto = saved;
-    }
+    if (saved) { document.getElementById('owner-img').src = saved; userPhoto = saved; }
     
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
@@ -42,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
         rec.onresult = (e) => {
             document.getElementById('ai-input').value = e.results[0][0].transcript;
-            micBtn.style.color = "#5f6368";
+            micBtn.style.color = "#1a1a1a";
             window.executeSearch();
         };
     }
@@ -64,48 +59,28 @@ window.clearProfileData = () => {
     userPhoto = "";
 };
 
-// --- 2. SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input.trim()) return;
-
-    const matched = clothesCatalog.filter(item =>
-        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-    );
-
+    const matched = clothesCatalog.filter(i => i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input));
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.initiateDoppl(${item.id})">
-                <img src="images/${item.img}" alt="${item.name}">
-                <h4>${item.name}</h4>
-                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+            <div class="result-card" onclick="window.initiateDoppl(${item.id})" style="background:#f2f2f2; border-radius:12px; padding:10px; text-align:center;">
+                <img src="images/${item.img}" style="width:100%; height:140px; object-fit:contain;">
+                <h4>${item.name}</h4><p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
-        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-
-// --- 3. THE GROUNDED DOPPL REVEAL ---
 window.initiateDoppl = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-    if (!userPhoto) {
-        alert("Please upload your profile photo first!");
-        return;
-    }
-    
-    // OPEN SHOWROOM
-    const showroom = document.getElementById('doppl-showroom');
-    const loading = document.getElementById('doppl-loading');
-    const renderImg = document.getElementById('doppl-final-render');
-    
-    showroom.style.display = 'block';
-    loading.style.display = 'flex';
-    renderImg.style.display = 'none';
-    
+    if (!userPhoto) { alert("Please upload your profile photo first!"); return; }
+    document.getElementById('doppl-showroom').style.display = 'block';
+    document.getElementById('doppl-loading').style.display = 'flex';
+    document.getElementById('doppl-final-render').style.display = 'none';
     window.processForensicSwap();
 };
 
@@ -113,45 +88,30 @@ window.processForensicSwap = async () => {
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ 
-                userImage: userPhoto.split(',')[1], 
-                cloth: selectedCloth.name 
-            })
+            body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
         });
         const data = await response.json();
-        
         if (data.result) {
             const renderImg = document.getElementById('doppl-final-render');
             renderImg.src = `data:image/png;base64,${data.result}`;
-            
-            // Grounding logic: Ensure the image is loaded before hiding loader
             renderImg.onload = () => {
                 document.getElementById('doppl-loading').style.display = 'none';
                 renderImg.style.display = 'block';
             };
         }
     } catch (e) {
-        document.getElementById('doppl-loading').innerHTML = `
-            <p style="color:white; font-weight:800;">Runway Busy</p>
-            <button onclick="window.processForensicSwap()" style="background:none; border:1px solid white; color:white; padding:8px; margin-top:10px; border-radius:5px;">Retry</button>
-        `;
+        document.getElementById('doppl-loading').innerHTML = `<p>Runway Busy. <button onclick="window.processForensicSwap()">Retry</button></p>`;
     }
 };
 
-// --- 4. CART LOGIC ---
 window.addToCart = () => {
     cartCount++;
     document.getElementById('cart-count').innerText = cartCount;
     const btn = document.getElementById('doppl-cart-btn');
-    
-    // UI Feedback exactly like reference
     btn.innerText = "ADDED TO CART ✅";
     btn.style.background = "#333";
-    setTimeout(() => {
-        btn.innerText = "Add to cart";
-        btn.style.background = "#e60023";
-    }, 2000);
+    setTimeout(() => { btn.innerText = "Add to cart"; btn.style.background = "#e60023"; }, 2000);
 };
 
 window.closeDoppl = () => { document.getElementById('doppl-showroom').style.display = 'none'; };
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };

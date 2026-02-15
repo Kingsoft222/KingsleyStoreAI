@@ -2,97 +2,56 @@
     --accent: #e60023;
     --dark: #1a1a1a;
     --gray: #f2f2f2;
-    --gemini-blue: #1a73e8;
 }
 
 body, html {
     margin: 0; padding: 0; font-family: 'Inter', sans-serif;
-    background: #fff; height: 100dvh; width: 100%; overflow-x: hidden;
+    background: #fff; height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* --- HEADER & PROFILE --- */
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
-.store-profile { text-align: center; padding-top: 10px; }
-.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
-.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.mini-remove-btn { position: absolute; right: -10px; top: 0; background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; z-index: 10; }
-.store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
-.greeting { font-size: 1.1rem; height: 1.5em; margin: 10px 0; }
-
-/* --- SEARCH RESULTS GRID --- */
-.results-grid { 
-    display: none; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 12px; 
-    padding: 15px; 
-    margin-bottom: 250px; /* Space for footer cards */
-    position: relative;
-    z-index: 5;
+/* --- LARGE MIC FIX --- */
+.mic-icon { 
+    font-size: 2.5rem !important; /* Large and bold as requested */
+    cursor: pointer; 
+    padding: 10px; 
+    color: var(--dark);
+    display: flex;
+    align-items: center;
 }
-.result-card { background: var(--gray); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: transform 0.2s; }
-.result-card:active { transform: scale(0.95); }
-.result-card img { width: 100%; height: 160px; object-fit: contain; border-radius: 8px; background: white; margin-bottom: 8px; }
-.result-card h4 { margin: 5px 0; font-size: 0.9rem; }
 
-/* --- THE DOPPL LUXURY SHOWROOM (FIXED & GROUNDED) --- */
+/* --- THE DOPPL GROUNDED STAGE --- */
 #doppl-showroom { 
-    display: none; 
-    position: fixed; 
-    inset: 0; 
-    z-index: 200000; 
-    background: #000; 
-    overflow: hidden; 
+    display: none; position: fixed; inset: 0; z-index: 200000; background: #000;
 }
 
 .showroom-bg { 
-    position: absolute; 
-    inset: 0; 
+    position: absolute; inset: 0; 
     background: url('https://images.unsplash.com/photo-1558997519-83ea9252edf8?q=80&w=1920&auto=format&fit=crop') center/cover; 
     filter: brightness(0.6); 
-    transform: scale(1.02);
 }
 
+/* Container forces everything to the bottom (Grounded) */
 .showroom-container { 
-    position: relative; 
-    height: 100dvh; 
-    width: 100%;
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    justify-content: flex-end; /* Pushes content to the floor */
+    position: relative; height: 100dvh; display: flex; flex-direction: column; 
+    align-items: center; justify-content: flex-end; 
 }
 
 .reveal-frame { 
-    width: 100%; 
-    max-width: 500px; 
-    height: 85vh; 
-    display: flex; 
-    align-items: flex-end; /* FORCES FEET TO TOUCH THE BOTTOM */
-    justify-content: center; 
-    position: absolute;
-    bottom: 0;
+    width: 100%; max-width: 500px; height: 85vh; 
+    display: flex; align-items: flex-end; /* Feet on the floor */
+    justify-content: center; position: relative;
 }
 
 #doppl-final-render { 
-    width: auto; 
-    height: 100%; 
-    max-height: 90vh; 
-    object-fit: contain; 
+    width: auto; height: 100%; object-fit: contain; 
     filter: drop-shadow(0 15px 40px rgba(0,0,0,0.8));
     z-index: 2;
-    animation: dopplPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes dopplPop {
-    from { opacity: 0; transform: translateY(50px) scale(0.9); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* --- FLOATING RED PILL BUTTON (DOPPL MATCH) --- */
+/* --- FLOATING PILL BUTTON --- */
 .button-tray {
     position: absolute;
-    bottom: 40px; /* Floating distance from floor */
+    bottom: 40px; /* Floating over the floor */
     width: 100%;
     display: flex;
     justify-content: center;
@@ -102,49 +61,14 @@ body, html {
 }
 
 .doppl-add-to-cart { 
-    width: 100%; 
-    max-width: 400px; 
-    background: var(--accent); 
-    color: white; 
-    border: none; 
-    padding: 22px; 
-    border-radius: 60px; 
-    font-weight: 800; 
-    font-size: 1.2rem; 
-    cursor: pointer;
-    box-shadow: 0 15px 45px rgba(230, 0, 35, 0.4);
-    letter-spacing: 0.5px;
-    transition: all 0.3s ease;
+    width: 100%; max-width: 400px; background: var(--accent); color: white; 
+    border: none; padding: 22px; border-radius: 60px; font-weight: 800; 
+    font-size: 1.2rem; cursor: pointer;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 }
 
-.doppl-add-to-cart:active { transform: scale(0.95); background: #333; }
-
-.close-showroom { 
-    position: absolute; 
-    top: 35px; 
-    left: 25px; 
-    color: white; 
-    font-size: 32px; 
-    cursor: pointer; 
-    z-index: 200010; 
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-}
-
-/* --- BOTTOM CONTROLS --- */
+/* --- UI FIXES --- */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 240px; }
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; border-top: 1px solid #eee; }
-.split-cards { display: flex; justify-content: space-between; width: 100%; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; }
-.spaced-card { width: 48%; border-radius: 18px; background: var(--dark); color: white; padding: 18px; border: none; font-weight: bold; cursor: pointer; text-align: left; }
-.spaced-card strong { display: block; font-size: 1rem; }
-.spaced-card span { font-size: 0.75rem; opacity: 0.7; }
-
-.search-bar {
-    background: var(--gray);
-    border-radius: 50px;
-    padding: 8px 8px 8px 22px;
-    display: flex;
-    align-items: center;
-    margin: 0 15px;
-    border: 1px solid #e0e0e0;
-}
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); font-family: inherit; }
-.send-circle { background: var(--dark); border: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.search-bar { background: var(--gray); border-radius: 50px; padding: 8px 15px; display: flex; align-items: center; margin: 0 15px; }
+.send-circle { background: var(--dark); border: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
