@@ -1,19 +1,19 @@
 /**
- * Kingsley Store Mall - v14.0 (STARTUP READY)
+ * Kingsley Store Mall - v14.5 (STILL PHOTO MASTER)
  * FEATURES: Search, Voice-Mic, Instant Photo Swap.
+ * FIXED: Home Page UI Scattering, Handshake Logic.
  */
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Senator", tags: "senator red native", img: "senator_red.jpg", price: "₦25k" },
-    { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" },
-    { id: 3, name: "White Agbada Classic", tags: "agbada white native", img: "agbada_white.jpg", price: "₦45k" }
+    { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
 let userPhoto = "";
 let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Voice Mic Setup
+    // 1. Voice Mic Logic
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 2. Search Mall Catalog
+// 2. Fixed Search Logic
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -58,7 +58,6 @@ window.promptShowroomChoice = (id) => {
         <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
     `;
     
-    // Explicitly link the button to the hidden file input
     document.getElementById('vto-action-btn').onclick = () => {
         document.getElementById('user-fit-input').click();
     };
@@ -90,7 +89,8 @@ window.startSwapProcess = async () => {
         });
         const data = await response.json();
         if (data.result) {
-            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
+            // Still Photo only - no animations
+            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; display:block;">`;
             document.getElementById('video-bottom-section').innerHTML = `<button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px;">Add to Cart 🛒</button>`;
         }
     } catch (e) {
