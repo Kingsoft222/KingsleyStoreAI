@@ -13,53 +13,53 @@ exports.handler = async (event) => {
         const { userImage, cloth } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         
-        // Stable 2.0 Flash URL
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: `TASK: Virtual try-on. Dress the person in the photo in a ${cloth}. Keep face and background identical. Return the image as a base64 string.` },
+                    // We change the prompt to be more descriptive to avoid "Recitation" blocks
+                    { text: `Modify this photo. The person should now be wearing a high-quality, custom-tailored ${cloth} outfit. Keep the original face, skin tone, and background exactly as they are. The new clothing should fit perfectly on their body. Output the result as an image.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage.replace(/^data:image\/\w+;base64,/, "") } }
                 ]
             }],
+            // Adding this configuration helps the model understand it MUST return content
             generationConfig: {
-                temperature: 1, // Higher temperature for creative image generation
+                temperature: 0.9,
+                topP: 0.95,
+                topK: 40,
                 maxOutputTokens: 8192
             }
         };
 
         const response = await axios.post(url, payload);
         
-        // DEEP CHECK: Let's find where the data is hiding
-        const data = response.data;
+        // Final logic to find the data even if Google hides it in different parts
+        const candidates = response.data.candidates;
         
-        if (data.candidates && data.candidates.length > 0) {
-            const candidate = data.candidates[0];
+        if (candidates && candidates[0] && candidates[0].content) {
+            const part = candidates[0].content.parts[0];
             
-            if (candidate.content && candidate.content.parts && candidate.content.parts[0].text) {
-                const aiText = candidate.content.parts[0].text;
-                const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
-
-                return {
-                    statusCode: 200,
-                    headers,
-                    body: JSON.stringify({ result: cleanBase64 })
-                };
-            } else if (candidate.finishReason === "SAFETY") {
-                throw new Error("Google blocked this image for safety. Try a clearer photo.");
+            // Check if the AI returned text (Base64) or an actual image blob
+            if (part.text) {
+                const cleanBase64 = part.text.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
+                return { statusCode: 200, headers, body: JSON.stringify({ result: cleanBase64 }) };
+            } 
+            
+            if (part.inline_data) {
+                return { statusCode: 200, headers, body: JSON.stringify({ result: part.inline_data.data }) };
             }
         }
-        
-        console.log("Full Google Response:", JSON.stringify(data));
-        throw new Error("AI reached, but no image part was found in the response.");
+
+        // If we reach here, Google is being extremely stubborn with the safety filter
+        throw new Error(`Google AI processed the image but refused to show the result (Finish Reason: ${candidates ? candidates[0].finishReason : 'Unknown'}). Try a different pose or photo.`);
 
     } catch (error) {
-        console.error("Debug Error:", error.response?.data || error.message);
+        console.error("Critical VTO Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Mall Engine Error: ${error.message}` }) 
+            body: JSON.stringify({ error: error.message }) 
         };
     }
 };
