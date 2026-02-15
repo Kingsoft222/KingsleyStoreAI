@@ -11,48 +11,42 @@ exports.handler = async (event) => {
 
     try {
         const { userImage, cloth } = JSON.parse(event.body);
-        
-        // LOCKING TO US-CENTRAL1 SINCE IT WORKED THERE BEFORE
         const API_KEY = process.env.GEMINI_API_KEY;
-        const PROJECT_ID = process.env.PROJECT_ID; 
-        const REGION = "us-central1"; 
-
-        // VERTEX PREDICT ENDPOINT
-        const url = `https://${REGION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${REGION}/publishers/google/models/gemini-1.5-flash:predict?key=${API_KEY}`;
+        
+        /**
+         * 2026 EXPRESS MODE URL
+         * This endpoint is the ONLY one that accepts an API Key for Vertex.
+         * Note: We DO NOT use Project ID or Location in this specific URL.
+         */
+        const url = `https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-1.5-flash:streamGenerateContent?key=${API_KEY}`;
 
         const payload = {
-            instances: [
-                {
-                    content: `VIRTUAL TRY-ON: Wear this ${cloth} on the person in the photo. Keep face and pose identical. Return ONLY the base64 string.`,
-                    image: {
-                        bytesBase64Encoded: userImage.replace(/^data:image\/\w+;base64,/, "")
-                    }
-                }
-            ]
+            contents: [{
+                parts: [
+                    { text: `VIRTUAL TRY-ON: Take the person in the photo and dress them in a ${cloth}. Keep face and background identical. Return ONLY the base64 string.` },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage.replace(/^data:image\/\w+;base64,/, "") } }
+                ]
+            }]
         };
 
         const response = await axios.post(url, payload);
         
-        if (response.data.predictions && response.data.predictions[0]) {
-            const aiText = response.data.predictions[0].content;
-            // Cleaning any possible text around the base64
-            const finalBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
+        // Express mode returns a stream; we take the first chunk's text
+        const aiText = response.data[0].candidates[0].content.parts[0].text;
+        const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
 
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({ result: finalBase64 })
-            };
-        } else {
-            throw new Error("Vertex returned empty predictions.");
-        }
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({ result: cleanBase64 })
+        };
 
     } catch (error) {
-        console.error("Vertex Engine Failure:", error.response?.data || error.message);
+        console.error("Express Mode Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Vertex Engine Failure: ${error.message}` }) 
+            body: JSON.stringify({ error: `AI Handshake Failed: ${error.message}` }) 
         };
     }
 };
