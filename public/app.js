@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v8.0
- * FEATURES: Professional Spinner, Clean Full-Screen UI, Direct AddToCart.
- * REMOVED: Extra branding and Share buttons for maximum image visibility.
+ * Kingsley Store AI - Core Logic v9.0
+ * FEATURES: Professional Spinner, Full-Screen Immersive Result.
+ * CLEANUP: Removed all extra branding/buttons to reveal the full image.
  */
 
 const clothesCatalog = [
@@ -72,12 +72,10 @@ window.executeSearch = () => {
 // --- 3. THE CLEAN HANDSHAKE ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-    const modal = document.getElementById('fitting-room-modal');
-    modal.style.display = 'flex';
+    document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('modal-subtext').innerText = "Virtual Try-On for " + selectedCloth.name;
-    
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px;">📸 Upload Your Photo</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; width:100%; border-radius:50px; padding:15px;">📸 Upload Your Photo</button>
     `;
 };
 
@@ -91,18 +89,16 @@ window.handleUserFitUpload = (e) => {
 };
 
 window.startVertexModeling = async () => {
-    // Hide previous modal, show experience modal
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'flex';
-    
     const container = document.getElementById('video-main-container');
     
     // RESTORED PROFESSIONAL SPINNER
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white;">
-            <i class="fas fa-spinner fa-spin fa-3x" style="margin-bottom:20px;"></i>
-            <p>Processing your ${selectedCloth.name}...</p>
+            <i class="fas fa-spinner fa-spin fa-3x" style="margin-bottom:20px; color:#e60023;"></i>
+            <p style="font-weight:600;">Processing your ${selectedCloth.name}...</p>
         </div>
     `;
 
@@ -117,35 +113,34 @@ window.startVertexModeling = async () => {
         const data = await response.json();
         
         if (data.result) {
-            // THE NEAT CLEAN JOB: NO BUTTONS BLOCKING THE FACE
+            // DIRECT RESULT: NO TEXT OVERLAY, NO BROKEN ICONS
             container.innerHTML = `
                 <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000;">
-                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#000;">
                         <img src="data:image/png;base64,${data.result}" style="width:100%; height:100%; object-fit:contain;">
                     </div>
                     
-                    <div style="padding:20px; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; align-items:center; gap:10px;">
-                        <button class="primary-btn" style="background:#e60023; color:white; width:90%; height:55px; border-radius:50px; font-weight:bold;" onclick="window.addToCart()">
-                            ADD TO CART - ${selectedCloth.price} 🛒
+                    <div style="padding:20px 20px 40px 20px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; gap:10px;">
+                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; font-size:1.1rem; border:none;" onclick="window.addToCart()">
+                            Add to Cart - ${selectedCloth.price} 🛒
                         </button>
-                        <p onclick="location.reload()" style="color:#666; cursor:pointer; font-size:0.8rem;">Try another design</p>
+                        <p onclick="location.reload()" style="color:#888; cursor:pointer; font-size:0.9rem; margin-top:5px;">Try another outfit</p>
                     </div>
                 </div>
             `;
         } else {
-            container.innerHTML = `<div style="color:white; padding:50px;">Error: AI refused content. Try a clearer photo.</div>`;
+            container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">AI Refused. Try a different photo.</div>`;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:50px;">Connection Error. Check Netlify logs.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Connection Failed. Check Netlify logs.</div>`;
     }
 };
 
-// --- 4. CART & MODAL ---
 window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
     if (badge) badge.innerText = cartCount;
-    alert(`${selectedCloth.name} added to your bag!`);
+    alert(`${selectedCloth.name} added to bag!`);
 };
 
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
