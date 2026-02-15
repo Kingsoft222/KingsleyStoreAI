@@ -6,11 +6,10 @@
     <title>Kingsley Store | AI Virtual Try-On</title>
     <link rel="stylesheet" href="./style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <header class="app-header">
-        <button class="menu-btn">☰</button>
+        <button class="menu-btn" style="background:none; border:none; font-size:1.5rem;">☰</button>
         <div class="cart-icon">🛒<span class="count" id="cart-count">0</span></div>
     </header>
 
@@ -18,7 +17,7 @@
         <div class="store-profile">
             <div class="profile-pic-container">
                 <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
+                    <img src="images/kingsley.jpg" id="owner-img">
                 </div>
                 <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
             </div>
@@ -26,22 +25,21 @@
             <h1 class="store-name">Kingsley Store</h1>
             <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
         </div>
-        <div id="ai-results" class="results-grid"></div>
+        <div id="ai-results" class="results-grid" style="display:none;"></div>
     </main>
 
     <div id="doppl-showroom">
         <div class="showroom-bg"></div>
-        <span class="close-showroom" onclick="window.closeDoppl()" style="position:absolute; top:30px; left:30px; color:white; font-size:32px; z-index:200010; cursor:pointer;">✕</span>
+        <span onclick="window.closeDoppl()" style="position:absolute; top:30px; left:30px; color:white; font-size:32px; z-index:200010; cursor:pointer;">✕</span>
         
         <div class="showroom-container">
             <div class="reveal-frame">
-                <div class="doppl-loader" id="doppl-loading" style="display:none; flex-direction:column; align-items:center; color:white;">
+                <div id="doppl-loading" style="display:none; flex-direction:column; align-items:center; color:white;">
                     <i class="fas fa-circle-notch fa-spin fa-3x" style="margin-bottom:15px;"></i>
                     <p style="font-weight:800;">SEWING YOUR FIT...</p>
                 </div>
                 <img id="doppl-final-render" style="display: none;">
             </div>
-
             <div class="button-tray">
                 <button class="doppl-add-to-cart" id="doppl-cart-btn" onclick="window.addToCart()">Add to cart</button>
             </div>
@@ -49,16 +47,16 @@
     </div>
 
     <footer class="bottom-controls">
-        <div class="split-cards" style="display:flex; justify-content:space-between; padding:0 15px; margin-bottom:15px;">
-            <button class="spaced-card" onclick="window.quickSearch('Dinner outfit')" style="width:48%; background:var(--dark); color:white; padding:15px; border-radius:15px; border:none;"><strong>Dinner outfit</strong></button>
-            <button class="spaced-card" onclick="window.quickSearch('Trousers')" style="width:48%; background:var(--dark); color:white; padding:15px; border-radius:15px; border:none;"><strong>Trousers</strong></button>
+        <div class="split-cards" style="display:flex; justify-content:space-between; padding:0 15px; margin-bottom:15px; gap:10px;">
+            <button onclick="window.quickSearch('Dinner outfit')" style="width:50%; background:var(--dark); color:white; padding:18px; border-radius:15px; border:none; font-weight:bold;">Dinner outfit</button>
+            <button onclick="window.quickSearch('Trousers')" style="width:50%; background:var(--dark); color:white; padding:18px; border-radius:15px; border:none; font-weight:bold;">Trousers</button>
         </div>
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
             <div class="input-icons">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 <button class="send-circle" onclick="window.executeSearch()">
-                    <svg viewBox="0 0 24 24" style="width:20px;"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
+                    <svg viewBox="0 0 24 24" width="22"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
                 </button>
             </div>
         </div>
