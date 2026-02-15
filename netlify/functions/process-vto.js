@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fetch = require("node-web-fetch"); // Or use native fetch if on Node 18+
 
 exports.handler = async (event) => {
     const headers = {
@@ -11,23 +11,34 @@ exports.handler = async (event) => {
 
     try {
         const { userImage, cloth } = JSON.parse(event.body);
-        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const API_KEY = process.env.GEMINI_API_KEY;
         
-        // Use the absolute base model name
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // We use the STABLE v1 endpoint, not v1beta
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        const prompt = `Virtual Try-On: Swap the person's outfit in this photo with a ${cloth}. Keep the person's head, hands, and background identical. Return ONLY the raw base64 string of the result image.`;
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: `VIRTUAL TRY-ON: Take the person in the photo and wear them this outfit: ${cloth}. Keep face, pose, and background identical. Return ONLY the base64 string of the result.` },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
+                ]
+            }]
+        };
 
-        const result = await model.generateContent([
-            prompt,
-            { inlineData: { data: userImage, mimeType: "image/jpeg" } }
-        ]);
-        
-        const response = await result.response;
-        const textResponse = response.text().trim();
-        
-        // Remove any markdown or text AI might have added
-        const cleanBase64 = textResponse.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "application/json" }
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+
+        const textResponse = data.candidates[0].content.parts[0].text.trim();
+        const cleanBase64 = textResponse.replace(/^data:image\/\w+;base64,/, "").replace(/```/g, "").replace("base64", "").trim();
 
         return {
             statusCode: 200,
@@ -35,12 +46,10 @@ exports.handler = async (event) => {
             body: JSON.stringify({ result: cleanBase64 })
         };
     } catch (error) {
-        console.error("SDK Error:", error.message);
-        // If it fails again, try the 'gemini-pro-vision' name as a fallback
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Model Error: ${error.message}. Please check if Gemini API is enabled in your Google Cloud Console.` }) 
+            body: JSON.stringify({ error: `Mall Engine Fix: ${error.message}` }) 
         };
     }
 };
