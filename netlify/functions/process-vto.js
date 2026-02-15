@@ -1,4 +1,5 @@
-const fetch = require("node-web-fetch"); // Or use native fetch if on Node 18+
+// No more requiring Google SDK - we talk to the API directly
+const axios = require('axios'); // Ensure axios is in your package.json, or use fetch
 
 exports.handler = async (event) => {
     const headers = {
@@ -13,32 +14,23 @@ exports.handler = async (event) => {
         const { userImage, cloth } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         
-        // We use the STABLE v1 endpoint, not v1beta
+        // We use the STABLE V1 endpoint (NOT v1beta)
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        const payload = {
+        const requestBody = {
             contents: [{
                 parts: [
-                    { text: `VIRTUAL TRY-ON: Take the person in the photo and wear them this outfit: ${cloth}. Keep face, pose, and background identical. Return ONLY the base64 string of the result.` },
+                    { text: `VIRTUAL TRY-ON: Take the person in the photo and dress them in a ${cloth}. Keep face, pose, and background identical. Return ONLY the base64 string of the result.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }]
         };
 
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "application/json" }
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            throw new Error(data.error.message);
-        }
-
-        const textResponse = data.candidates[0].content.parts[0].text.trim();
-        const cleanBase64 = textResponse.replace(/^data:image\/\w+;base64,/, "").replace(/```/g, "").replace("base64", "").trim();
+        const response = await axios.post(url, requestBody);
+        
+        // Google returns data in a deep object structure
+        const aiText = response.data.candidates[0].content.parts[0].text;
+        const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```/g, "").trim();
 
         return {
             statusCode: 200,
@@ -46,10 +38,11 @@ exports.handler = async (event) => {
             body: JSON.stringify({ result: cleanBase64 })
         };
     } catch (error) {
+        console.error("Direct API Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Mall Engine Fix: ${error.message}` }) 
+            body: JSON.stringify({ error: "Mall Engine Offline - Direct Link Failed" }) 
         };
     }
 };
