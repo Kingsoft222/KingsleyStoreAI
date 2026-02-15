@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v5.3
- * FULL AUTHORIZED VERSION: Mic, Greetings, Search, and Gemini Engine.
- * SEQUENCE LOCKED: Search Tap -> Choice -> Upload -> Result.
+ * Kingsley Store AI - Core Logic v5.4
+ * FULL ALIGNMENT: HTML and JS synchronized.
+ * PERFORMANCE: Gemini 3 Flash polling logic.
  */
 
 const clothesCatalog = [
@@ -10,12 +10,9 @@ const clothesCatalog = [
 ];
 
 const greetings = [
-    "Nne, what are you looking for today?", 
-    "My guy, what are you looking for today?",
-    "Classic Babe, what are you looking for today?", 
-    "Boss, what are you looking for today?",
-    "Classic Man, what are you looking for today?", 
-    "Chief, looking for premium native?",
+    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
+    "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
+    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
     "Baddie, let's find your style!"
 ];
 
@@ -24,55 +21,46 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
-// --- 1. BOOTSTRAP ---
+// --- BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     const ownerImg = document.getElementById('owner-img');
     const micBtn = document.getElementById('mic-btn');
     const aiInput = document.getElementById('ai-input');
 
-    if (saved && ownerImg) {
-        ownerImg.src = saved;
-        userPhoto = saved;
-    }
+    if (saved && ownerImg) { ownerImg.src = saved; userPhoto = saved; }
     
-    // Greeting Rotation
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el) {
-            el.innerText = greetings[gIndex % greetings.length];
-            gIndex++;
-        }
+        if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
 
-    // --- MIC FUNCTIONALITY (LOCKED) ---
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
 
-        micBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+        micBtn.onclick = () => {
             try {
                 recognition.start();
-                micBtn.style.color = "#e60023"; 
-                micBtn.classList.add('recording-pulse');
+                micBtn.style.color = "#e60023";
                 aiInput.placeholder = "Listening...";
-            } catch (err) {
-                recognition.stop();
-            }
-        });
+            } catch (err) { recognition.stop(); }
+        };
 
         recognition.onresult = (event) => {
             aiInput.value = event.results[0][0].transcript;
-            micBtn.style.color = "#5f6368"; 
-            micBtn.classList.remove('recording-pulse');
-            window.executeSearch(); 
+            micBtn.style.color = "#5f6368";
+            window.executeSearch();
         };
     }
 });
 
-// --- 2. SEARCH & SEQUENCE (LOCKED) ---
+// --- UI HELPERS ---
+window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
+
+// --- LOGIC ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -84,10 +72,9 @@ window.executeSearch = () => {
 
     if (matched.length > 0) {
         results.style.display = 'grid';
-        results.style.zIndex = '1000';
         results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="cursor:pointer; position:relative; z-index:1001;">
-                <img src="images/${item.img}" alt="${item.name}" style="pointer-events:none;">
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+                <img src="images/${item.img}" alt="${item.name}">
                 <h4>${item.name}</h4>
                 <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
             </div>
@@ -96,34 +83,27 @@ window.executeSearch = () => {
     }
 };
 
+window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
-    const modal = document.getElementById('fitting-room-modal');
-    const resultArea = document.getElementById('ai-fitting-result');
-    if (modal) { modal.style.display = 'flex'; modal.style.zIndex = '9999'; }
-    
-    document.getElementById('modal-subtext').innerText = "Select how you want to see the " + selectedCloth.name;
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('modal-subtext').innerText = "Select view for " + selectedCloth.name;
     document.getElementById('fit-action-btn').style.display = 'none';
-
-    resultArea.innerHTML = `
+    document.getElementById('ai-fitting-result').innerHTML = `
         <div style="display:flex; flex-direction:column; gap:12px; align-items:center; margin-top:10px;">
-            <button onclick="window.initiateUploadFlow('photo')" style="width:240px; background:var(--accent); color:white; padding:15px; border-radius:10px; border:none; cursor:pointer; font-weight:bold;">
-                📸 See How You Look (Photo)
-            </button>
-            <button onclick="window.initiateUploadFlow('video')" style="width:240px; background:#333; color:white; padding:15px; border-radius:10px; border:1px solid var(--accent); cursor:pointer; font-weight:bold;">
-                🎥 See How You Look (Video)
-            </button>
+            <button onclick="window.initiateUploadFlow('photo')" class="primary-btn" style="background:var(--accent);">📸 See How You Look (Photo)</button>
+            <button onclick="window.initiateUploadFlow('video')" class="primary-btn" style="background:#333;">🎥 See How You Look (Video)</button>
         </div>
     `;
 };
 
 window.initiateUploadFlow = (mode) => {
     currentMode = mode;
-    document.getElementById('modal-subtext').innerText = "Upload your photo for " + mode + " result";
+    document.getElementById('modal-subtext').innerText = "Upload photo for " + mode;
     document.getElementById('ai-fitting-result').innerHTML = "";
     const fitBtn = document.getElementById('fit-action-btn');
     fitBtn.style.display = 'block';
-    fitBtn.innerText = "Upload Photo";
     fitBtn.onclick = () => document.getElementById('user-fit-input').click();
 };
 
@@ -138,10 +118,9 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 3. ENGINES ---
 async function startVertexModeling() {
     const area = document.getElementById('ai-fitting-result');
-    area.innerHTML = `<p style="text-align:center;">Applying your ${selectedCloth.name}...</p>`;
+    area.innerHTML = `<p>Applying your ${selectedCloth.name}...</p>`;
     try {
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
@@ -149,36 +128,32 @@ async function startVertexModeling() {
         });
         const data = await response.json();
         if (data.result) {
-            area.innerHTML = `<img src="data:image/png;base64,${data.result}" id="final-swapped-img" style="width:100%; border-radius:15px; border: 4px solid var(--accent);">`;
-            document.getElementById('fit-action-btn').style.display = 'none';
+            area.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px;">`;
+            document.getElementById('see-it-motion-btn').style.display = 'block';
         }
-    } catch (e) { area.innerHTML = `<p style="color:red;">Timeout. Please try again.</p>`; }
+    } catch (e) { area.innerHTML = `<p style="color:red;">Error. Please try again.</p>`; }
 }
 
 window.generateWalkCycle = async () => {
     const videoModal = document.getElementById('video-experience-modal');
-    const wrapper = document.querySelector('.video-wrapper');
+    const wrapper = document.getElementById('video-main-container');
     const bottomSection = document.getElementById('video-bottom-section');
-    videoModal.style.display = 'block';
     
-    // PRESERVED UI FROM YOUR IMAGE
+    videoModal.style.display = 'flex';
     wrapper.innerHTML = `
-        <div id="loader-placeholder" style="background: black; padding: 40px; border-radius: 20px; text-align: center; color: white;">
-            <div class="spinner-box" style="margin-bottom: 10px;"><i class="fas fa-spinner fa-spin fa-2x"></i></div>
-            <p style="font-weight: bold; margin: 0;">Sewing Runway Walk...</p>
-            <p style="font-size: 0.8rem; margin: 0; opacity: 0.8;">Improved Experience via Gemini 3 Flash</p>
+        <div id="loader-placeholder" style="background: black; padding: 40px; text-align: center; color: white;">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p style="font-weight: bold; margin-top: 10px;">Sewing Runway Walk...</p>
         </div>
-        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%; border-radius:30px;"></video>
+        <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%;"></video>
     `;
 
     try {
-        const imgData = userPhoto.split(',')[1];
         await fetch('/.netlify/functions/generate-video-background', {
             method: 'POST',
-            body: JSON.stringify({ swappedImage: imgData, clothName: selectedCloth.name })
+            body: JSON.stringify({ swappedImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
 
-        // Polling handshake
         let attempts = 0;
         let checkInterval = setInterval(async () => {
             attempts++;
@@ -194,13 +169,14 @@ window.generateWalkCycle = async () => {
                 
                 if (!document.getElementById('vto-add-to-cart')) {
                     bottomSection.insertAdjacentHTML('beforeend', `
-                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; margin-top:20px; width:100%;" onclick="addToCart()">Add to Cart 🛒</button>
+                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; margin-top:10px; width:100%;" onclick="addToCart()">Add to Cart 🛒</button>
                     `);
                 }
             }
-            if (attempts > 15) { clearInterval(checkInterval); }
-        }, 4000);
-    } catch (e) { console.error("Video Failed"); }
+            if (attempts > 20) { 
+                clearInterval(checkInterval);
+                document.getElementById('loader-placeholder').innerHTML = "<p>Runway busy. Try again.</p>";
+            }
+        }, 5000);
+    } catch (e) { console.error("Video Trigger Failed"); }
 };
-
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
