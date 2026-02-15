@@ -1,7 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v5.7
- * ALIGNMENT: Laptop and Mobile Centering Fixed.
- * SPEED: 2s Polling.
+ * Kingsley Store AI - Core Logic v5.8
+ * TOTAL RECOVERY: Restored Profile Save/Clear.
+ * FIXED: Search Results overlap fixed.
+ * ENGINE: Gemini 3 Flash polling logic.
  */
 
 const clothesCatalog = [
@@ -21,31 +22,61 @@ let userPhoto = "";
 let selectedCloth = null;
 let currentMode = 'photo';
 
+// --- 1. BOOTSTRAP & PROFILE (RESTORED) ---
 document.addEventListener('DOMContentLoaded', () => {
-    const micBtn = document.getElementById('mic-btn');
-    const aiInput = document.getElementById('ai-input');
+    const saved = localStorage.getItem('kingsley_profile_locked');
+    const ownerImg = document.getElementById('owner-img');
+    if (saved && ownerImg) {
+        ownerImg.src = saved;
+        userPhoto = saved;
+    }
     
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
 
+    // Mic logic preserved
     if ('webkitSpeechRecognition' in window) {
-        const recognition = new webkitSpeechRecognition();
-        micBtn.onclick = () => { recognition.start(); micBtn.style.color = "red"; };
-        recognition.onresult = (event) => {
-            aiInput.value = event.results[0][0].transcript;
+        const rec = new webkitSpeechRecognition();
+        const micBtn = document.getElementById('mic-btn');
+        micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
+        rec.onresult = (e) => {
+            document.getElementById('ai-input').value = e.results[0][0].transcript;
             micBtn.style.color = "#5f6368";
             window.executeSearch();
         };
     }
 });
 
+window.handleProfileUpload = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const imgData = event.target.result;
+        document.getElementById('owner-img').src = imgData;
+        localStorage.setItem('kingsley_profile_locked', imgData);
+        userPhoto = imgData;
+    };
+    reader.readAsDataURL(file);
+};
+
+window.clearProfileData = () => {
+    localStorage.removeItem('kingsley_profile_locked');
+    document.getElementById('owner-img').src = "images/kingsley.jpg";
+    userPhoto = "";
+};
+
+// --- 2. SEARCH & NAVIGATION ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input.trim()) return;
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+
+    const matched = clothesCatalog.filter(item =>
+        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
+    );
+
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
@@ -55,11 +86,16 @@ window.executeSearch = () => {
                 <p style="color:var(--accent); font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+window.quickSearch = (q) => { 
+    document.getElementById('ai-input').value = q; 
+    window.executeSearch(); 
+};
 
+// --- 3. SHOWROOM & ENGINES ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
