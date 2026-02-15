@@ -11,41 +11,42 @@ exports.handler = async (event) => {
 
     try {
         const { userImage, cloth } = JSON.parse(event.body);
-        
-        // Vertex AI Endpoint Structure
-        const PROJECT_ID = process.env.PROJECT_ID || "your-project-id";
-        const LOCATION = process.env.LOCATION || "us-central1";
         const API_KEY = process.env.GEMINI_API_KEY;
-
-        const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/gemini-1.5-flash:streamGenerateContent?key=${API_KEY}`;
+        
+        // This is the STABLE Public API URL that accepts your API KEY
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const payload = {
             contents: [{
-                role: "user",
                 parts: [
-                    { text: `VIRTUAL TRY-ON: Wear this ${cloth} on the person. Keep background/face same. Return ONLY base64.` },
-                    { inlineData: { mimeType: "image/jpeg", data: userImage } }
+                    { text: `VIRTUAL TRY-ON: Take the person in the photo and make them wear this outfit: ${cloth}. Keep the person's face, pose, and background exactly the same. Return ONLY the base64 string of the final image result.` },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }]
         };
 
         const response = await axios.post(url, payload);
         
-        // Vertex returns an array of candidates because it's a stream
-        const aiText = response.data[0].candidates[0].content.parts[0].text;
-        const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```/g, "").trim();
+        // Handling the specific response structure of the Public API
+        if (response.data.candidates && response.data.candidates[0].content.parts[0].text) {
+            const aiText = response.data.candidates[0].content.parts[0].text;
+            const cleanBase64 = aiText.replace(/^data:image\/\w+;base64,/, "").replace(/```[a-z]*/g, "").replace(/```/g, "").trim();
 
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ result: cleanBase64 })
-        };
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({ result: cleanBase64 })
+            };
+        } else {
+            throw new Error("AI returned an empty response.");
+        }
+
     } catch (error) {
-        console.error("Vertex Error:", error.response?.data || error.message);
+        console.error("Mall Engine Error:", error.response?.data || error.message);
         return { 
             statusCode: 500, 
             headers,
-            body: JSON.stringify({ error: `Vertex Engine Error: ${error.message}` }) 
+            body: JSON.stringify({ error: `Mall Engine Error: ${error.message}` }) 
         };
     }
 };
