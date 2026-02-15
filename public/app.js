@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v6.0
+ * Kingsley Store AI - Core Logic v7.7 (FINAL MASTER)
  * FEATURES: Real-time AddToCart, High-Speed Video Handshake.
- * UI: Dead-Center Laptop/Mobile Sync.
+ * FIXED: Infinite Spinner, X-Button, Kinetic Walk.
  */
 
 const clothesCatalog = [
@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2000);
 
-    // Mic logic preserved
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
@@ -94,7 +93,7 @@ window.quickSearch = (q) => {
     window.executeSearch(); 
 };
 
-// --- 3. SHOWROOM & VIDEO ENGINE (THE WOW FACTOR) ---
+// --- 3. SHOWROOM & ENGINES ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -125,9 +124,45 @@ window.handleUserFitUpload = (e) => {
         btn.innerText = "Rock your cloth";
         btn.style.background = "#e60023";
         btn.style.color = "white";
-        btn.onclick = (currentMode === 'photo') ? startVertexModeling : generateWalkCycle;
+        btn.onclick = (currentMode === 'photo') ? window.startVertexModeling : window.generateWalkCycle;
     };
     reader.readAsDataURL(e.target.files[0]);
+};
+
+// --- PHOTO MODE ENGINE (KINETIC WALK) ---
+window.startVertexModeling = async () => {
+    document.getElementById('fitting-room-modal').style.display = 'none';
+    const videoModal = document.getElementById('video-experience-modal');
+    videoModal.style.display = 'flex';
+    const container = document.getElementById('video-main-container');
+    const bottomSection = document.getElementById('video-bottom-section');
+
+    container.innerHTML = `
+        <div id="loader-placeholder" style="color:white; text-align:center;">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p style="margin-top:10px;">Sewing Your Fit...</p>
+        </div>`;
+
+    try {
+        const response = await fetch('/.netlify/functions/process-vto', {
+            method: 'POST',
+            body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
+        });
+        const data = await response.json();
+        
+        if (data.result) {
+            container.innerHTML = `<img id="final-render" src="data:image/png;base64,${data.result}" style="width:100%; border-radius:30px; display:block;">`;
+            const renderImg = document.getElementById('final-render');
+            // Trigger Kinetic Motion
+            renderImg.classList.add('doppl-walk-motion');
+            
+            bottomSection.innerHTML = `
+                <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
+            `;
+        }
+    } catch (e) {
+        container.innerHTML = "<p style='color:white;'>Runway Busy. Try again.</p>";
+    }
 };
 
 window.generateWalkCycle = async () => {
@@ -140,19 +175,16 @@ window.generateWalkCycle = async () => {
         <div id="loader-placeholder" style="display:flex; flex-direction:column; align-items:center; justify-content:center; color:white;">
             <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom:15px;"></i>
             <p style="font-weight: bold; margin:0;">Sewing Runway Walk...</p>
-            <p style="font-size: 0.7rem; opacity: 0.7; margin-top:5px;">Gemini 3 Flash Engine Active</p>
         </div>
         <video id="boutique-video-player" autoplay loop muted playsinline style="display:none; width:100%; border-radius:30px;"></video>
     `;
 
     try {
-        // Step 1: Trigger background video generation
         fetch('/.netlify/functions/generate-video-background', {
             method: 'POST',
             body: JSON.stringify({ swappedImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
 
-        // Step 2: High-Speed Handshake Watchdog
         let attempts = 0;
         let checkInterval = setInterval(async () => {
             attempts++;
@@ -166,12 +198,9 @@ window.generateWalkCycle = async () => {
                 player.src = statusData.videoUrl;
                 player.style.display = 'block';
                 
-                // RESTORED: Cart Button at Bottom of Video Result
-                if (!document.getElementById('vto-add-to-cart')) {
-                    bottomSection.insertAdjacentHTML('beforeend', `
-                        <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
-                    `);
-                }
+                bottomSection.innerHTML = `
+                    <button id="vto-add-to-cart" class="primary-btn" style="background:#28a745; color:white; margin-top:20px; width:280px;" onclick="window.addToCart()">Add to Cart 🛒</button>
+                `;
             }
             if (attempts > 30) { 
                 clearInterval(checkInterval);
@@ -181,7 +210,7 @@ window.generateWalkCycle = async () => {
     } catch (e) { console.error("Video Trigger Failed"); }
 };
 
-// --- 4. ADD TO CART LOGIC ---
+// --- 4. UTILS & MODAL CLOSING ---
 window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
@@ -190,15 +219,10 @@ window.addToCart = () => {
         badge.style.transform = "scale(1.3)";
         setTimeout(() => badge.style.transform = "scale(1)", 200);
     }
-    
     const cartBtn = document.getElementById('vto-add-to-cart');
     if (cartBtn) {
         cartBtn.innerText = "Added to Cart! ✅";
         cartBtn.style.background = "#333";
-        setTimeout(() => {
-            cartBtn.innerText = "Add to Cart 🛒";
-            cartBtn.style.background = "#28a745";
-        }, 2000);
     }
 };
 
