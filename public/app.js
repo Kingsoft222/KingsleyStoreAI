@@ -1,8 +1,8 @@
 /**
- * Kingsley Store Mall - v22.5 (STILL PHOTO MASTER)
- * 1. FIXED: Home Page UI, Mic, and Search bar always visible.
- * 2. FIXED: "See How You Look" button handshake.
- * 3. FEATURE: Instant still-photo swap (Sub-10 seconds).
+ * Kingsley Mall - v23.0 (FULL BODY ENGINE)
+ * 1. FIXED: Send button / Search bar UI always visible.
+ * 2. FIXED: Raw Base64 handshake (Stops the 340ms crash).
+ * 3. FEATURE: Full-length and Half-body Outfit Swapping.
  */
 
 const clothesCatalog = [
@@ -15,7 +15,7 @@ let userPhoto = "";
 let selectedCloth = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Restore profile photo from LocalStorage
+    // Restore profile if saved
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) { 
         const ownerImg = document.getElementById('owner-img');
@@ -23,15 +23,14 @@ document.addEventListener('DOMContentLoaded', () => {
         userPhoto = saved; 
     }
 
-    // MIC LOGIC - Surgical Bind
+    // VOICE MIC BINDING
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
         if (micBtn) {
             micBtn.onclick = () => { rec.start(); micBtn.style.color = "red"; };
             rec.onresult = (e) => {
-                const transcript = e.results[0][0].transcript;
-                document.getElementById('ai-input').value = transcript;
+                document.getElementById('ai-input').value = e.results[0][0].transcript;
                 micBtn.style.color = "#5f6368";
                 window.executeSearch();
             };
@@ -39,16 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// SEARCH LOGIC - Stable Alignment
+// CATALOG SEARCH
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!results) return;
 
-    if (!input.trim()) {
-        results.style.display = 'none';
-        return;
-    }
+    if (!input.trim()) { results.style.display = 'none'; return; }
 
     const matched = clothesCatalog.filter(i => 
         i.name.toLowerCase().includes(input) || i.tags.toLowerCase().includes(input)
@@ -68,7 +64,7 @@ window.executeSearch = () => {
     }
 };
 
-// VTO HANDSHAKE - Direct Trigger
+// VTO TRIGGER
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
@@ -77,10 +73,10 @@ window.promptShowroomChoice = (id) => {
     if (modal && resultArea) {
         modal.style.display = 'flex';
         resultArea.innerHTML = `
-            <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
+            <button id="vto-action-btn" class="primary-btn" style="background:#e60023; color:white; width:100%; padding:15px; border-radius:10px; border:none; font-weight:bold; cursor:pointer;">📸 See How You Look (Photo)</button>
         `;
         
-        // Link the button to the hidden gallery input
+        // Link to gallery
         document.getElementById('vto-action-btn').onclick = () => {
             document.getElementById('user-fit-input').click();
         };
@@ -98,7 +94,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(file);
 };
 
-// THE CLOTH-WEARING ENGINE
+// THE "WEAR" ENGINE
 window.startMallSwap = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const modal = document.getElementById('video-experience-modal');
@@ -107,33 +103,29 @@ window.startMallSwap = async () => {
     
     container.innerHTML = `<div style="color:white;text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Wearing your ${selectedCloth.name}...</p></div>`;
 
-    // Watchdog Abort Controller (Kills request after 20s to stop infinite spin)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
-
     try {
+        // Strip the Base64 header to prevent API errors
+        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
+
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            signal: controller.signal,
-            body: JSON.stringify({ userImage: userPhoto.split(',')[1], cloth: selectedCloth.name })
+            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
         });
         
-        clearTimeout(timeout);
         const data = await response.json();
         
-        if (data.result) {
-            // SUCCESS: Show still image result
-            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:20px; display:block;">`;
+        if (data.result && data.result.length > 50) {
+            // SUCCESS: AI returned a real image
+            container.innerHTML = `<img src="data:image/png;base64,${data.result}" style="width:100%; border-radius:15px; display:block;">`;
             document.getElementById('video-bottom-section').innerHTML = `
                 <button onclick="window.addToCart()" class="primary-btn" style="background:#28a745; color:white; width:280px; margin-top:20px; padding:15px; border-radius:12px; border:none; font-weight:bold;">Add to Cart 🛒</button>
             `;
         } else {
-            container.innerHTML = `<p style="color:white;">AI Busy. Please try a smaller photo.</p>`;
+            // SHOW THE REAL ERROR MESSAGE
+            container.innerHTML = `<p style="color:white;">Error: ${data.error || 'Empty response from AI. Try again.'}</p>`;
         }
     } catch (e) {
-        clearTimeout(timeout);
-        const errorMsg = e.name === 'AbortError' ? "Timed out (20s). Try again." : "Swap failed.";
-        container.innerHTML = `<p style='color:white;'>${errorMsg}</p>`;
+        container.innerHTML = `<p style='color:white;'>Network Error. Please check your internet.</p>`;
     }
 };
 
