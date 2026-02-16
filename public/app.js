@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v38.0
- * NO-STALL EDITION: Auto-detects MIME type and forces display.
- * FIXED: Indefinite loading by adding a 5-second forced-show fallback.
+ * Kingsley Store AI - Core Logic v39.0
+ * THE BURNER EDITION: Includes 12s Countdown & Forced Injection.
+ * FIXED: Indefinite loading and broken icons by bypassing standard img.onload.
  */
 
 const clothesCatalog = [
@@ -11,8 +11,8 @@ const clothesCatalog = [
 
 let userPhoto = "";
 let selectedCloth = null;
-let cartCount = 0;
 
+// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved && document.getElementById('owner-img')) {
@@ -31,30 +31,30 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- THE ENGINE ---
+// --- 2. THE ENGINE (WITH COUNTDOWN) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // START SPINNER
+    // RENDER SPINNER + COUNTDOWN
     container.innerHTML = `
-        <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center; position:absolute; z-index:10;">
+        <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
             <h3 style="font-weight:800; font-family:'Inter', sans-serif;">SEWING YOUR LOOK</h3>
-            <p style="color:#666; font-size:0.85rem; margin-top:10px;">Tailoring takes ~12s. Almost done...</p>
-        </div>
-        <div id="result-display" style="visibility:hidden; width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
-            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img id="final-vto-image" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
-            </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:30px 20px 60px; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center;">
-                <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
-                    ADD TO CART - ${selectedCloth.price} 🛒
-                </button>
-            </div>
+            <div id="countdown-timer" style="font-size:2.5rem; font-weight:900; color:#e60023; margin:15px 0;">12</div>
+            <p style="color:#666; font-size:0.85rem;">Tailoring takes time. Stay with us...</p>
         </div>
     `;
+
+    // START COUNTDOWN LOGIC
+    let timeLeft = 12;
+    const timerInterval = setInterval(() => {
+        timeLeft--;
+        const timerEl = document.getElementById('countdown-timer');
+        if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
+        if (timeLeft <= 0) clearInterval(timerInterval);
+    }, 1000);
 
     try {
         const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
@@ -65,14 +65,13 @@ window.startVertexModeling = async () => {
         const data = await response.json();
 
         if (data.result && data.result.length > 500) {
-            let cleanData = data.result;
+            clearInterval(timerInterval); // Stop timer when data arrives
 
-            // 1. MIME DETECTIVE: Identify PNG, JPG, or WebP
+            let cleanData = data.result;
             let type = "image/png";
             if (cleanData.includes("/9j/")) type = "image/jpeg";
             else if (cleanData.includes("UklGR")) type = "image/webp";
 
-            // 2. SCRUB CONVERSATION: Find actual binary start
             const markers = ["iVBOR", "/9j/", "UklGR"];
             let start = -1;
             for (let m of markers) {
@@ -82,36 +81,24 @@ window.startVertexModeling = async () => {
             if (start !== -1) cleanData = cleanData.substring(start);
             cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
-            const imgEl = document.getElementById('final-vto-image');
-            const showResult = () => {
-                document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('result-display').style.visibility = 'visible';
-            };
-
-            // 3. FALLBACK PROTECTION: If onload fails, show anyway after 3s
-            imgEl.onload = showResult;
-            setTimeout(showResult, 3000); 
-
-            imgEl.src = `data:${type};base64,${cleanData}`;
+            // FORCED INJECTION: We build the entire result screen at once
+            container.innerHTML = `
+                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
+                    <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                        <img src="data:${type};base64,${cleanData}" 
+                             style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
+                    </div>
+                    <div style="position:absolute; bottom:0; width:100%; padding:30px 20px 60px; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center; z-index:100;">
+                        <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
+                            ADD TO CART - ${selectedCloth.price} 🛒
+                        </button>
+                    </div>
+                </div>
+            `;
         }
     } catch (e) {
+        clearInterval(timerInterval);
         container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Handshake Error. Please retry.</div>`;
-    }
-};
-
-window.executeSearch = () => {
-    const input = document.getElementById('ai-input').value.toLowerCase();
-    const results = document.getElementById('ai-results');
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
-    if (matched.length > 0 && results) {
-        results.style.display = 'grid';
-        results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}">
-                <h4>${item.name}</h4>
-                <p style="color:#e60023;">${item.price}</p>
-            </div>
-        `).join('');
     }
 };
 
@@ -130,6 +117,22 @@ window.handleUserFitUpload = (e) => {
         window.startVertexModeling();
     };
     reader.readAsDataURL(e.target.files[0]);
+};
+
+window.executeSearch = () => {
+    const input = document.getElementById('ai-input').value.toLowerCase();
+    const results = document.getElementById('ai-results');
+    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+    if (matched.length > 0 && results) {
+        results.style.display = 'grid';
+        results.innerHTML = matched.map(item => `
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+                <img src="images/${item.img}">
+                <h4>${item.name}</h4>
+                <p style="color:#e60023;">${item.price}</p>
+            </div>
+        `).join('');
+    }
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
