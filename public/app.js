@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v23.0
- * DETECTIVE EDITION: Logs everything to console.
- * FIXED: Manual Base64 rebuilding and error trapping.
+ * Kingsley Store AI - Core Logic v26.0
+ * PERMANENT FIX: Handshake & Error Transparency.
+ * GOAL: Stop the "Blank Screen" by catching the hidden API errors.
  */
 
 const clothesCatalog = [
@@ -16,8 +16,9 @@ let cartCount = 0;
 // --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved && document.getElementById('owner-img')) {
-        document.getElementById('owner-img').src = saved;
+    const ownerImg = document.getElementById('owner-img');
+    if (saved && ownerImg) {
+        ownerImg.src = saved;
         userPhoto = saved;
     }
 });
@@ -32,68 +33,70 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE ENGINE (THE DETECTIVE FIX) ---
+// --- 2. THE PERMANENT ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // PROFESSIONAL CIRCLE SPINNER
+    // THE PROFESSIONAL CIRCLE SPINNER
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
-            <p>Tailoring Result...</p>
+            <p style="font-family: 'Inter', sans-serif; font-weight:600;">Tailoring your ${selectedCloth.name}...</p>
         </div>
     `;
 
     try {
         const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
         
-        console.log("Sending request to process-vto...");
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
         });
         
         const data = await response.json();
-        console.log("AI Response Received:", data);
 
-        if (data.result && data.result.length > 100) {
-            // NUCLEAR CLEANUP
-            const rawData = data.result
-                .replace(/^data:image\/[a-z]+;base64,/, "")
-                .replace(/```[a-z]*/g, "")
+        // DEEP DIVE SANITIZATION
+        if (data.result && data.result.length > 500) {
+            // Aggressive cleaning of the Base64 string
+            const cleanData = data.result
+                .replace(/```[a-z0-9]*/gi, "")
                 .replace(/```/g, "")
-                .replace(/\s/g, "");
+                .replace(/^data:image\/[a-z]+;base64,/gi, "")
+                .replace(/[^A-Za-z0-9+/=]/g, "");
 
-            const finalSrc = "data:image/png;base64," + rawData;
+            const finalSrc = "data:image/png;base64," + cleanData;
 
             container.innerHTML = `
-                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; z-index:100000;">
-                    <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                        <img src="${finalSrc}" 
-                             style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
+                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; z-index:100000; overflow:hidden;">
+                    <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:140px;">
+                        <img src="${finalSrc}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
                     </div>
-                    
-                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:20px 20px 50px 20px; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center; box-sizing:border-box;">
-                        <button style="background:#e60023; color:white; width:100%; max-width:400px; height:65px; border-radius:50px; font-weight:bold; font-size:1.2rem; border:none; cursor:pointer;" onclick="window.addToCart()">
+                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:30px 20px 60px 20px; background:linear-gradient(transparent, #000 40%); display:flex; flex-direction:column; align-items:center; box-sizing:border-box;">
+                        <button style="background:#e60023; color:white; width:100%; max-width:420px; height:65px; border-radius:50px; font-weight:800; font-size:1.2rem; border:none; cursor:pointer;" onclick="window.addToCart()">
                             ADD TO CART - ${selectedCloth.price} 🛒
                         </button>
-                        <p onclick="location.reload()" style="color:#888; margin-top:15px; cursor:pointer; font-size:0.9rem; text-decoration: underline;">Try another design</p>
+                        <p onclick="location.reload()" style="color:#888; margin-top:20px; cursor:pointer; font-size:0.9rem; text-decoration:underline;">Try another design</p>
                     </div>
                 </div>
             `;
         } else {
-            console.error("Invalid AI Data:", data.result);
-            throw new Error("AI sent empty or short string.");
+            // If the string is short, it's an error message, not an image
+            console.error("AI Error Response:", data.result);
+            throw new Error(data.result || "AI returned empty result");
         }
     } catch (e) {
-        console.error("Modeling Error:", e);
         container.innerHTML = `
-            <div style="color:white; padding:50px; text-align:center;">
-                <p>⚠️ The AI is being stubborn. Please try a clearer photo.</p>
-                <button onclick="location.reload()" style="margin-top:20px; background:#333; color:white; border:none; padding:10px 20px; border-radius:10px;">Retry</button>
+            <div style="color:white; padding:40px; text-align:center; background:#000; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <p style="font-size:1.2rem; color:#e60023; font-weight:bold;">⚠️ HANDSHAKE FAILED</p>
+                <p style="color:#ccc; margin-top:10px; font-size:0.9rem;">The AI is returning an error instead of an image.</p>
+                <div style="background:#111; padding:15px; border-radius:10px; margin-top:20px; font-size:0.7rem; color:#888; font-family:monospace; max-width:80%;">
+                    Error: ${e.message.substring(0, 50)}...
+                </div>
+                <button onclick="location.reload()" style="margin-top:30px; background:white; color:black; border:none; padding:15px 40px; border-radius:50px; font-weight:bold; cursor:pointer;">Retry Now</button>
             </div>`;
     }
 };
@@ -102,10 +105,10 @@ window.addToCart = () => {
     cartCount++;
     const badge = document.getElementById('cart-count');
     if (badge) badge.innerText = cartCount;
-    alert("Added to bag! ✅");
+    alert("Success! Added to bag.");
 };
 
-// Search Logic
+// UI Navigation & Search
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -126,7 +129,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%;">📸 Select Photo</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800;">📸 SELECT YOUR PHOTO</button>
     `;
 };
 
