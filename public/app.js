@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - Core Logic v44.0
- * THE BLOB UNVEIL: Forced binary injection for high-res results.
- * PATTERN: Locked countdown inside the circular spinner.
- * FIX: Restored Send Icon and Search Chips.
+ * Kingsley Store AI - v47.0 "The Exact Match"
+ * METHOD: Dual-Image Reference (Catalog Product + User Photo).
+ * RENDERING: Blob URL (To fix the "Blank Image" bug).
+ * PATTERN: Permanent Countdown Spinner.
  */
 
 const clothesCatalog = [
@@ -39,6 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 3000);
 });
 
+// Helper: Convert Catalog Image to Base64
+async function getBase64FromUrl(url) {
+    const data = await fetch(url);
+    const blob = await data.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        reader.onloadend = () => {
+            const base64data = reader.result;
+            resolve(base64data.split(',')[1]);
+        };
+    });
+}
+
 // Profile Logic
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
@@ -50,7 +64,7 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. SEARCH & UI FLOW (RESTORED SEND ICON) ---
+// --- 2. SEARCH ENGINE (RESTORED SEND ICON) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -95,22 +109,22 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 3. THE ZERO-HOUR ENGINE (BLOB METHOD) ---
+// --- 3. THE ZERO-HOUR ENGINE (EXACT MATCH METHOD) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     aiResultPending = null; 
 
-    // YOUR FAVORITE PATTERN (SPINNER + COUNTDOWN)
+    // YOUR LOCKED PATTERN (SPINNER + COUNTDOWN)
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin fa-4x" style="color:#e60023; position:absolute;"></i>
                 <div id="countdown-timer" style="font-size:2rem; font-weight:900; color:white; z-index:10;">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px; font-family:'Inter', sans-serif;">Unveiling Look</h3>
-            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Tailoring your ${selectedCloth.name}...</p>
+            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px; font-family:'Inter', sans-serif;">Mapping Exact Design</h3>
+            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Transferring ${selectedCloth.name} details...</p>
         </div>
     `;
 
@@ -122,9 +136,7 @@ window.startVertexModeling = async () => {
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            // If data arrived during countdown, show it now.
             if (aiResultPending) window.injectWithBlob(aiResultPending);
-            // If data is slightly late, wait a few more seconds for the fetch to finish.
             else {
                  const checkAgain = setInterval(() => {
                     if (aiResultPending) {
@@ -132,23 +144,27 @@ window.startVertexModeling = async () => {
                         clearInterval(checkAgain);
                     }
                  }, 500);
-                 // Stop checking after 10 extra seconds to avoid infinite loop
-                 setTimeout(() => clearInterval(checkAgain), 10000);
+                 setTimeout(() => clearInterval(checkAgain), 15000);
             }
         }
     }, 1000);
 
     try {
-        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
+        const catalogBase64 = await getBase64FromUrl(`images/${selectedCloth.img}`);
+        const userBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
+
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
+            body: JSON.stringify({ 
+                userImage: userBase64, 
+                clothImage: catalogBase64,
+                clothName: selectedCloth.name 
+            })
         });
         const data = await response.json();
 
         if (data.result && data.result.length > 500) {
             aiResultPending = data.result;
-            // If the countdown already hit 0, inject immediately.
             if (timeLeft <= 0) window.injectWithBlob(aiResultPending);
         }
     } catch (e) {
@@ -160,7 +176,6 @@ window.startVertexModeling = async () => {
 window.injectWithBlob = (dataStr) => {
     const container = document.getElementById('video-main-container');
     
-    // BINARY SURGERY: Detect markers
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let startPos = -1;
     for (const m of markers) {
@@ -171,7 +186,6 @@ window.injectWithBlob = (dataStr) => {
     cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
     try {
-        // CONVERT TO BLOB: The only way to force display on some mobile browsers
         const byteCharacters = atob(cleanData);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -195,7 +209,7 @@ window.injectWithBlob = (dataStr) => {
             </div>
         `;
     } catch (err) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">AI Decode Error. Please Refresh.</div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">Decoding Error. AI pixels corrupted.</div>`;
     }
 };
 
