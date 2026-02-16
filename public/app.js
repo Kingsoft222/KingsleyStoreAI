@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - v47.0 "The Exact Match"
- * METHOD: Dual-Image Reference (Catalog Product + User Photo).
- * RENDERING: Blob URL (To fix the "Blank Image" bug).
- * PATTERN: Permanent Countdown Spinner.
+ * Kingsley Store AI - v49.0 "The Monday Unveiling"
+ * METHOD: Dual-Image Reference (Catalog + User).
+ * RENDERING: Zero-Stall Binary Surgery.
+ * PATTERN: Circular Countdown Spinner Locked.
  */
 
 const clothesCatalog = [
@@ -46,10 +46,7 @@ async function getBase64FromUrl(url) {
     return new Promise((resolve) => {
         const reader = new FileReader();
         reader.readAsDataURL(blob);
-        reader.onloadend = () => {
-            const base64data = reader.result;
-            resolve(base64data.split(',')[1]);
-        };
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
     });
 }
 
@@ -92,6 +89,7 @@ window.quickSearch = (q) => {
     window.executeSearch(); 
 };
 
+// --- 3. THE ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -109,7 +107,6 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 3. THE ZERO-HOUR ENGINE (EXACT MATCH METHOD) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
@@ -123,8 +120,8 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin fa-4x" style="color:#e60023; position:absolute;"></i>
                 <div id="countdown-timer" style="font-size:2rem; font-weight:900; color:white; z-index:10;">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px; font-family:'Inter', sans-serif;">Mapping Exact Design</h3>
-            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Transferring ${selectedCloth.name} details...</p>
+            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px;">Unveiling Look</h3>
+            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Tailoring your ${selectedCloth.name}...</p>
         </div>
     `;
 
@@ -136,16 +133,7 @@ window.startVertexModeling = async () => {
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            if (aiResultPending) window.injectWithBlob(aiResultPending);
-            else {
-                 const checkAgain = setInterval(() => {
-                    if (aiResultPending) {
-                        window.injectWithBlob(aiResultPending);
-                        clearInterval(checkAgain);
-                    }
-                 }, 500);
-                 setTimeout(() => clearInterval(checkAgain), 15000);
-            }
+            window.finalUnveil(); // Force unveil at 0
         }
     }, 1000);
 
@@ -162,61 +150,57 @@ window.startVertexModeling = async () => {
             })
         });
         const data = await response.json();
-
-        if (data.result && data.result.length > 500) {
-            aiResultPending = data.result;
-            if (timeLeft <= 0) window.injectWithBlob(aiResultPending);
-        }
+        if (data.result) aiResultPending = data.result;
     } catch (e) {
-        clearInterval(timerInterval);
-        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Handshake Error. Please Refresh.</div>`;
+        aiResultPending = "ERROR";
     }
 };
 
-window.injectWithBlob = (dataStr) => {
+window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
     
+    // Safety check for failed/short responses
+    if (!aiResultPending || aiResultPending === "ERROR" || aiResultPending.length < 500) {
+        container.innerHTML = `
+            <div style="color:white; padding:40px; text-align:center; display:flex; flex-direction:column; justify-content:center; height:100vh;">
+                <h3 style="color:#e60023; font-weight:900;">AI IS BUSY</h3>
+                <p style="margin-top:15px; color:#888;">The tailoring engine timed out. Abeg, try again with a clearer photo.</p>
+                <button onclick="location.reload()" style="margin-top:30px; background:white; color:black; border:none; padding:15px 30px; border-radius:50px; font-weight:bold;">RETRY NOW</button>
+            </div>`;
+        return;
+    }
+
+    // SURGEON SCAN: Find PNG/JPG start
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let startPos = -1;
     for (const m of markers) {
-        let found = dataStr.indexOf(m);
+        let found = aiResultPending.indexOf(m);
         if (found !== -1) { startPos = found; break; }
     }
-    let cleanData = (startPos !== -1) ? dataStr.substring(startPos) : dataStr;
+    let cleanData = (startPos !== -1) ? aiResultPending.substring(startPos) : aiResultPending;
     cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
-    try {
-        const byteCharacters = atob(cleanData);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {type: 'image/png'});
-        const blobUrl = URL.createObjectURL(blob);
-
-        container.innerHTML = `
-            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
-                </div>
-                <div style="position:absolute; bottom:0; width:100%; padding:30px 20px 60px; background:linear-gradient(transparent, #000 60%); display:flex; flex-direction:column; align-items:center; z-index:100000;">
-                    <button style="background:#e60023; color:white; width:100%; max-width:420px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="window.addToCart()">
-                        ADD TO CART - ${selectedCloth.price} 🛒
-                    </button>
-                    <p onclick="location.reload()" style="color:#777; margin-top:20px; cursor:pointer; font-size:0.9rem; text-decoration:underline;">Try another design</p>
-                </div>
+    container.innerHTML = `
+        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                <img src="data:image/png;base64,${cleanData}" 
+                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
+                     onerror="this.src='data:image/jpeg;base64,${cleanData}'">
             </div>
-        `;
-    } catch (err) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">Decoding Error. AI pixels corrupted.</div>`;
-    }
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 80%); display:flex; flex-direction:column; align-items:center;">
+                <button style="background:#e60023; color:white; width:100%; max-width:420px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
+                    ADD TO CART - ${selectedCloth.price} 🛒
+                </button>
+            </div>
+        </div>
+    `;
 };
 
 window.addToCart = () => {
     cartCount++;
-    document.getElementById('cart-count').innerText = cartCount;
-    alert("Added to bag! ✅");
+    const badge = document.getElementById('cart-count');
+    if (badge) badge.innerText = cartCount;
+    alert("Oshey! Added to bag. ✅");
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };

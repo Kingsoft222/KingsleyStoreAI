@@ -17,30 +17,25 @@ exports.handler = async (event) => {
         const payload = {
             contents: [{
                 parts: [
-                    { text: `TASK: Exact Clothing Transfer (Virtual Try-On).
-                             REFERENCE 1 (Product): The garment in this image is a ${clothName}.
-                             REFERENCE 2 (User): The person who will wear it.
-                             INSTRUCTION: Transfer the EXACT design, texture, and color of the garment from Reference 1 onto the person in Reference 2. 
-                             Maintain the person's face, pose, and background perfectly.
-                             OUTPUT: Return ONLY the raw base64 string of the final image. No text.` },
-                    { inline_data: { mime_type: "image/jpeg", data: clothImage } }, // The Catalog Item
-                    { inline_data: { mime_type: "image/jpeg", data: userImage } }   // The User
+                    { text: `VIRTUAL TRY-ON TASK: Put the clothes from the first image onto the person in the second image. Output ONLY the raw base64 data of the resulting image.` },
+                    { inline_data: { mime_type: "image/jpeg", data: clothImage } },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }],
-            generationConfig: {
-                temperature: 0.2, // Lower temperature = more exact, less "creative"
-                maxOutputTokens: 2048
-            }
+            safetySettings: [
+                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+            ],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
         };
 
         const response = await axios.post(url, payload);
         const resultText = response.data.candidates[0].content.parts[0].text;
-        
-        // Clean any possible AI chatter
         const cleanBase64 = resultText.replace(/[^A-Za-z0-9+/=]/g, "");
 
         return { statusCode: 200, headers, body: JSON.stringify({ result: cleanBase64 }) };
-
     } catch (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }
