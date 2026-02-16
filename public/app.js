@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v40.0
- * ZERO-HOUR EDITION: Forced image injection at T-minus 0.
- * FIXED: Indefinite loading by sync-locking the timer and the AI result.
+ * Kingsley Store AI - Core Logic v41.0
+ * FULL POWER RESTORED: Fixed the Send Icon/Button.
+ * FEATURES: 12s Zero-Hour Sync + Forced Image Injection.
  */
 
 const clothesCatalog = [
@@ -12,6 +12,7 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 let aiResultPending = null;
+let cartCount = 0;
 
 // --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Profile Logic
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -32,14 +34,58 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE ZERO-HOUR ENGINE ---
+// --- 2. THE SEARCH ENGINE (RESTORED SEND ICON) ---
+window.executeSearch = () => {
+    const input = document.getElementById('ai-input').value.toLowerCase();
+    const results = document.getElementById('ai-results');
+    if (!input.trim() || !results) return;
+
+    const matched = clothesCatalog.filter(item => 
+        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
+    );
+
+    if (matched.length > 0) {
+        results.style.display = 'grid';
+        results.innerHTML = matched.map(item => `
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+                <img src="images/${item.img}" alt="${item.name}">
+                <h4>${item.name}</h4>
+                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+            </div>
+        `).join('');
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
+window.quickSearch = (q) => { 
+    document.getElementById('ai-input').value = q; 
+    window.executeSearch(); 
+};
+
+// --- 3. THE ZERO-HOUR VTO ENGINE ---
+window.promptShowroomChoice = (id) => {
+    selectedCloth = clothesCatalog.find(c => c.id === id);
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800; cursor:pointer;">📸 UPLOAD PHOTO</button>
+    `;
+};
+
+window.handleUserFitUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        userPhoto = event.target.result;
+        window.startVertexModeling();
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
-    aiResultPending = null; // Reset for new run
+    aiResultPending = null; 
 
-    // RENDER SPINNER + PROGRESSIVE COUNTDOWN
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
             <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
@@ -51,7 +97,6 @@ window.startVertexModeling = async () => {
         </div>
     `;
 
-    // START THE CLOCK
     let timeLeft = 12;
     const timerInterval = setInterval(() => {
         timeLeft--;
@@ -60,12 +105,8 @@ window.startVertexModeling = async () => {
         
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            // ZERO HOUR REACHED: If data is here, show it. If not, wait 2 more seconds then show whatever we have.
-            if (aiResultPending) {
-                window.injectFinalResult(aiResultPending);
-            } else {
-                setTimeout(() => { if (aiResultPending) window.injectFinalResult(aiResultPending); }, 2000);
-            }
+            if (aiResultPending) window.injectFinalResult(aiResultPending);
+            else setTimeout(() => { if (aiResultPending) window.injectFinalResult(aiResultPending); }, 2000);
         }
     }, 1000);
 
@@ -78,26 +119,18 @@ window.startVertexModeling = async () => {
         const data = await response.json();
 
         if (data.result && data.result.length > 500) {
-            aiResultPending = data.result; // Store data, let the timer decide when to unveil
-            
-            // If the timer is already at zero, inject immediately
-            if (timeLeft <= 0) {
-                window.injectFinalResult(aiResultPending);
-            }
+            aiResultPending = data.result;
+            if (timeLeft <= 0) window.injectFinalResult(aiResultPending);
         }
     } catch (e) {
         clearInterval(timerInterval);
-        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Handshake Error. Please retry.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Handshake Error.</div>`;
     }
 };
 
 window.injectFinalResult = (dataStr) => {
     const container = document.getElementById('video-main-container');
-    
-    // DATA SCRUBBING
-    let type = "image/png";
-    if (dataStr.includes("/9j/")) type = "image/jpeg";
-    else if (dataStr.includes("UklGR")) type = "image/webp";
+    let type = dataStr.includes("/9j/") ? "image/jpeg" : (dataStr.includes("UklGR") ? "image/webp" : "image/png");
 
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let start = -1;
@@ -123,21 +156,10 @@ window.injectFinalResult = (dataStr) => {
     `;
 };
 
-// ... Remaining Search & Modal Close logic remains the same ...
-window.promptShowroomChoice = (id) => {
-    selectedCloth = clothesCatalog.find(c => c.id === id);
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800;">📸 UPLOAD PHOTO</button>
-    `;
+window.addToCart = () => {
+    cartCount++;
+    document.getElementById('cart-count').innerText = cartCount;
+    alert("Added to bag!");
 };
 
-window.handleUserFitUpload = (e) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        userPhoto = event.target.result;
-        window.startVertexModeling();
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
