@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v20.0
- * THE FINAL FIX: Aggressive Data Scrubbing for Base64.
- * UI: Full-Screen Mobile/Laptop Sync (No Overlays).
+ * Kingsley Store AI - Core Logic v21.0
+ * FINAL VISIBILITY FIX: Forced dimensions and absolute cleanup.
+ * GOAL: No more blank screens.
  */
 
 const clothesCatalog = [
@@ -17,7 +17,8 @@ let cartCount = 0;
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
-        document.getElementById('owner-img').src = saved;
+        const ownerImg = document.getElementById('owner-img');
+        if (ownerImg) ownerImg.src = saved;
         userPhoto = saved;
     }
 });
@@ -32,16 +33,16 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE AGGRESSIVE ENGINE ---
+// --- 2. THE ENGINE (FORCED VISIBILITY) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
     videoModal.style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // THE PROFESSIONAL CIRCLE SPINNER
+    // PROFESSIONAL CIRCLE SPINNER
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; background:#000;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
             <p>Tailoring Result...</p>
         </div>
@@ -49,7 +50,6 @@ window.startVertexModeling = async () => {
 
     try {
         const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
-
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
@@ -58,23 +58,24 @@ window.startVertexModeling = async () => {
         const data = await response.json();
         
         if (data.result) {
-            // THE HOOD FIX: Clean EVERY piece of junk from the string
+            // AGGRESSIVE DATA CLEANUP
             const cleanImage = data.result
-                .replace(/```[a-z]*/g, "") // Remove starting backticks
-                .replace(/```/g, "")       // Remove ending backticks
-                .replace(/data:image\/[a-z]+;base64,/g, "") // Remove existing headers
-                .replace(/\s/g, "");       // Remove all spaces/newlines
+                .replace(/```[a-z]*/g, "")
+                .replace(/```/g, "")
+                .replace(/data:image\/[a-z]+;base64,/g, "")
+                .replace(/\s/g, "");
 
+            // FORCED INLINE CSS TO ENSURE VISIBILITY
             container.innerHTML = `
-                <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000; position:relative;">
-                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; z-index:100000;">
+                    
+                    <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:100px;">
                         <img src="data:image/png;base64,${cleanImage}" 
-                             style="width:100%; height:100%; object-fit:contain; display:block;"
-                             onerror="this.src='[https://via.placeholder.com/500x800?text=AI+Format+Error](https://via.placeholder.com/500x800?text=AI+Format+Error)'">
+                             style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block; visibility:visible !important;">
                     </div>
                     
-                    <div style="padding:20px 20px 40px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; z-index:100;">
-                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; border:none; cursor:pointer;" onclick="window.addToCart()">
+                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:20px 20px 50px 20px; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center; box-sizing:border-box;">
+                        <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:bold; font-size:1.1rem; border:none; cursor:pointer;" onclick="window.addToCart()">
                             ADD TO CART - ${selectedCloth.price} 🛒
                         </button>
                         <p onclick="location.reload()" style="color:#888; margin-top:15px; cursor:pointer; font-size:0.9rem;">Try another design</p>
@@ -83,15 +84,23 @@ window.startVertexModeling = async () => {
             `;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:50px;">Connection Error.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Network Error.</div>`;
     }
 };
 
+window.addToCart = () => {
+    cartCount++;
+    const badge = document.getElementById('cart-count');
+    if (badge) badge.innerText = cartCount;
+    alert("Added to bag! ✅");
+};
+
+// Navigation/Search logic
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
-    if (matched.length > 0) {
+    if (matched.length > 0 && results) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
@@ -118,12 +127,6 @@ window.handleUserFitUpload = (e) => {
         window.startVertexModeling();
     };
     reader.readAsDataURL(e.target.files[0]);
-};
-
-window.addToCart = () => {
-    cartCount++;
-    document.getElementById('cart-count').innerText = cartCount;
-    alert("Added to bag!");
 };
 
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
