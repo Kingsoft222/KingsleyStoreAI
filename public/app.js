@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v51.0 "The Grace Period"
- * FIX: Prevents "AI Busy" when data arrives exactly at 12s.
- * PATTERN: Countdown Spinner Locked.
+ * Kingsley Store AI - v52.0 "The No-Shake Unveil"
+ * FIX: Broken image shaking by using Auto-MIME Blobs.
+ * PATTERN: Locked Countdown Spinner.
  */
 
 const clothesCatalog = [
@@ -13,7 +13,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let aiResultPending = null;
 
-// --- IMAGE COMPRESSOR ---
+// --- 1. IMAGE HELPERS ---
 async function compressImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -26,7 +26,7 @@ async function compressImage(base64Str) {
             canvas.height = img.height * scaleSize;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
     });
 }
@@ -41,12 +41,7 @@ async function getBase64FromUrl(url) {
     });
 }
 
-// --- BOOTSTRAP ---
-document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) userPhoto = saved;
-});
-
+// --- 2. THE ENGINE ---
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -56,7 +51,6 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- THE ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
@@ -69,8 +63,8 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin fa-4x" style="color:#e60023; position:absolute;"></i>
                 <div id="countdown-timer" style="font-size:2rem; font-weight:900; color:white; z-index:10;">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px;">Finishing Touches</h3>
-            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Tailoring ${selectedCloth.name}...</p>
+            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px;">Final Touches</h3>
+            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Unveiling your ${selectedCloth.name}...</p>
         </div>
     `;
 
@@ -80,7 +74,7 @@ window.startVertexModeling = async () => {
         const timerEl = document.getElementById('countdown-timer');
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
         
-        if (timeLeft <= -5) { // GRACE PERIOD: Wait up to 5 seconds extra if data is coming
+        if (timeLeft <= -5) { 
             clearInterval(timerInterval);
             window.finalUnveil();
         }
@@ -88,17 +82,18 @@ window.startVertexModeling = async () => {
 
     try {
         const catalogBase64 = await getBase64FromUrl(`images/${selectedCloth.img}`);
-        const userBase64 = userPhoto.split(',')[1];
-
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ userImage: userBase64, clothImage: catalogBase64, clothName: selectedCloth.name })
+            body: JSON.stringify({ 
+                userImage: userPhoto.split(',')[1], 
+                clothImage: catalogBase64, 
+                clothName: selectedCloth.name 
+            })
         });
         const data = await response.json();
         
         if (data.result) {
             aiResultPending = data.result;
-            // If timer is already low or finished, unveil now
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 window.finalUnveil();
@@ -113,50 +108,34 @@ window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
     
     if (!aiResultPending || aiResultPending === "ERROR" || aiResultPending.length < 500) {
-        container.innerHTML = `
-            <div style="color:white; padding:40px; text-align:center;">
-                <h3 style="color:#e60023;">TAILOR IS BUSY</h3>
-                <p>AI didn't finish on time. Try a smaller photo or check connection.</p>
-                <button onclick="location.reload()" style="margin-top:20px; background:white; color:black; border:none; padding:12px 25px; border-radius:50px; font-weight:bold;">RETRY</button>
-            </div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">
+            <h3 style="color:#e60023;">TAILOR IS BUSY</h3>
+            <button onclick="location.reload()" style="margin-top:20px; background:white; color:black; border:none; padding:12px 25px; border-radius:50px; font-weight:bold;">RETRY</button>
+        </div>`;
         return;
     }
 
+    // --- THE "NO-SHAKE" FIX: AUTO-TYPE BLOB ---
     const cleanData = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
+    const byteCharacters = atob(cleanData);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    
+    // We leave the type generic so the browser's internal engine detects it
+    const blob = new Blob([byteArray]); 
+    const blobUrl = URL.createObjectURL(blob);
+
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${cleanData}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;" onerror="this.src='data:image/jpeg;base64,${cleanData}'">
+                <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
                 <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
             </div>
         </div>
-    `;
-};
-
-// (Include your existing search logic here)
-window.executeSearch = () => {
-    const input = document.getElementById('ai-input').value.toLowerCase();
-    const results = document.getElementById('ai-results');
-    if (!input.trim() || !results) return;
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
-    if (matched.length > 0) {
-        results.style.display = 'grid';
-        results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}">
-                <h4>${item.name}</h4>
-                <p style="color:#e60023;">${item.price}</p>
-            </div>
-        `).join('');
-    }
-};
-
-window.promptShowroomChoice = (id) => {
-    selectedCloth = clothesCatalog.find(c => c.id === id);
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800;">📸 UPLOAD PHOTO</button>
     `;
 };
