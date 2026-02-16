@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v35.0
- * THE UNVEILING: Universal Multimodal Decoder.
- * FIXED: The "Broken Icon" by auto-detecting JPEG/PNG/WebP formats.
+ * Kingsley Store AI - Core Logic v36.0
+ * THE DEEP DIVE: Multimodal Surgeon Edition.
+ * FIXED: The 11s "Broken Icon" by scanning for binary image signatures.
  */
 
 const clothesCatalog = [
@@ -11,7 +11,6 @@ const clothesCatalog = [
 
 let userPhoto = "";
 let selectedCloth = null;
-let cartCount = 0;
 
 // --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -32,7 +31,7 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE ENGINE (UNIVERSAL DECODER) ---
+// --- 2. THE SURGEON ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
@@ -40,10 +39,10 @@ window.startVertexModeling = async () => {
     const container = document.getElementById('video-main-container');
     
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center; padding:20px;">
-            <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
-            <h3 style="font-weight:800; font-family:'Inter', sans-serif;">UNVEILING YOUR LOOK</h3>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Decoding AI Pixels (~11s)...</p>
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
+            <div class="pro-spinner"></div>
+            <h3 style="margin-top:20px; font-weight:800;">UNVEILING YOUR Senator...</h3>
+            <p style="color:#666; font-size:0.8rem;">Processing AI Pixels...</p>
         </div>
     `;
 
@@ -55,54 +54,54 @@ window.startVertexModeling = async () => {
         });
         const data = await response.json();
 
-        if (data.result && data.result.length > 1000) {
+        if (data.result) {
             let cleanData = data.result;
 
-            // 1. AUTO-DETECT IMAGE TYPE
-            let mimeType = "image/png"; // Default
-            if (cleanData.includes("/9j/")) mimeType = "image/jpeg";
-            else if (cleanData.includes("UklGR")) mimeType = "image/webp";
+            // SURGEON LOGIC: Scan for image signatures (PNG, JPG, WebP)
+            const signatures = [
+                { sig: "iVBORw0KGgo", mime: "image/png" },
+                { sig: "/9j/4", mime: "image/jpeg" },
+                { sig: "UklGR", mime: "image/webp" }
+            ];
 
-            // 2. FIND ACTUAL START (Cut conversational junk)
-            const markers = ["iVBORw0KGgo", "/9j/", "UklGR"];
-            let start = -1;
-            for (let m of markers) {
-                let found = cleanData.indexOf(m);
-                if (found !== -1) { start = found; break; }
+            let detectedMime = "image/png";
+            let startPos = -1;
+
+            for (const item of signatures) {
+                const pos = cleanData.indexOf(item.sig);
+                if (pos !== -1) {
+                    startPos = pos;
+                    detectedMime = item.mime;
+                    break;
+                }
             }
-            
-            if (start !== -1) cleanData = cleanData.substring(start);
 
-            // 3. SCRUB ALL NON-BASE64 CHARACTERS
+            if (startPos !== -1) {
+                cleanData = cleanData.substring(startPos);
+            }
+
+            // Remove any trailing markdown backticks or non-base64 noise
             cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
             container.innerHTML = `
-                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; z-index:100000; overflow:hidden;">
-                    <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                        <img src="data:${mimeType};base64,${cleanData}" 
+                <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                        <img src="data:${detectedMime};base64,${cleanData}" 
                              style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
                     </div>
-                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 40%); display:flex; flex-direction:column; align-items:center; box-sizing:border-box; z-index:101;">
-                        <button style="background:#e60023; color:white; width:100%; max-width:400px; height:65px; border-radius:50px; font-weight:800; font-size:1.2rem; border:none; cursor:pointer;" onclick="window.addToCart()">
+                    <div style="position:absolute; bottom:0; width:100%; padding:30px 20px 60px; background:linear-gradient(transparent, #000); display:flex; flex-direction:column; align-items:center;">
+                        <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
                             ADD TO CART - ${selectedCloth.price} 🛒
                         </button>
-                        <p onclick="location.reload()" style="color:#777; margin-top:15px; cursor:pointer; font-size:0.9rem; text-decoration:underline;">Try another</p>
                     </div>
                 </div>
             `;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">AI Decode Error. Please Refresh.</div>`;
+        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">AI Handshake Error.</div>`;
     }
 };
 
-window.addToCart = () => {
-    cartCount++;
-    document.getElementById('cart-count').innerText = cartCount;
-    alert("Oshey! Added to bag. ✅");
-};
-
-// UI Logic
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -113,7 +112,7 @@ window.executeSearch = () => {
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
                 <img src="images/${item.img}">
                 <h4>${item.name}</h4>
-                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+                <p style="color:#e60023;">${item.price}</p>
             </div>
         `).join('');
     }
@@ -123,7 +122,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800;">📸 SELECT PHOTO</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%;">📸 UPLOAD PHOTO</button>
     `;
 };
 
@@ -136,5 +135,4 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
