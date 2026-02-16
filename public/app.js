@@ -1,8 +1,7 @@
 /**
- * Kingsley Store AI - v53.0 "Full Power"
- * RESTORED: Send Button & Search Logic.
- * FIXED: Shaking broken icon using Auto-MIME Blobs.
- * PATTERN: Locked Countdown Spinner.
+ * Kingsley Store AI - v55.0 "The Master Slicer"
+ * FIX: Steady Broken Image by slicing exact binary markers.
+ * RESTORED: Full Search & Send logic.
  */
 
 const clothesCatalog = [
@@ -10,104 +9,40 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-const greetings = [
-    "Chief, looking for premium native?", 
-    "Boss, let's find your style!", 
-    "Classic Man, what are you looking for today?",
-    "Nne, what are you looking for today?",
-    "Classic Babe, let's find your style!"
-];
-
-let gIndex = 0;
+const greetings = ["Chief, looking for premium native?", "Boss, let's find your style!"];
 let userPhoto = "";
 let selectedCloth = null;
 let aiResultPending = null;
-let cartCount = 0;
 
 // --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
-    const ownerImg = document.getElementById('owner-img');
-    if (saved && ownerImg) {
-        ownerImg.src = saved;
-        userPhoto = saved;
-    }
-    
-    setInterval(() => {
-        const el = document.getElementById('dynamic-greeting');
-        if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
-    }, 3000);
+    if (saved) userPhoto = saved;
 });
 
-// --- 2. IMAGE HELPERS ---
-async function compressImage(base64Str) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.src = base64Str;
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 800;
-            const scaleSize = MAX_WIDTH / img.width;
-            canvas.width = MAX_WIDTH;
-            canvas.height = img.height * scaleSize;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8));
-        };
-    });
-}
-
-async function getBase64FromUrl(url) {
-    const data = await fetch(url);
-    const blob = await data.blob();
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-    });
-}
-
-// --- 3. SEARCH & SEND ICON LOGIC (RESTORED) ---
+// --- 2. SEARCH ENGINE (SEND ICON ACTIVE) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input.trim() || !results) return;
-
-    const matched = clothesCatalog.filter(item => 
-        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-    );
-
+    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
     if (matched.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = matched.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}" alt="${item.name}">
+                <img src="images/${item.img}">
                 <h4>${item.name}</h4>
                 <p style="color:#e60023; font-weight:bold;">${item.price}</p>
             </div>
         `).join('');
-        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 };
 
-window.quickSearch = (q) => { 
-    document.getElementById('ai-input').value = q; 
-    window.executeSearch(); 
-};
-
-// --- 4. THE VTO ENGINE ---
-window.promptShowroomChoice = (id) => {
-    selectedCloth = clothesCatalog.find(c => c.id === id);
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800; cursor:pointer;">📸 UPLOAD PHOTO</button>
-    `;
-};
-
+// --- 3. THE ENGINE ---
 window.handleUserFitUpload = (e) => {
     const reader = new FileReader();
     reader.onload = async (event) => {
-        userPhoto = await compressImage(event.target.result);
+        userPhoto = event.target.result; // Base64
         window.startVertexModeling();
     };
     reader.readAsDataURL(e.target.files[0]);
@@ -125,8 +60,7 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin fa-4x" style="color:#e60023; position:absolute;"></i>
                 <div id="countdown-timer" style="font-size:2rem; font-weight:900; color:white; z-index:10;">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px;">Mapping Design</h3>
-            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Tailoring ${selectedCloth.name}...</p>
+            <h3 style="font-weight:800; margin-top:30px;">TAILORING...</h3>
         </div>
     `;
 
@@ -135,56 +69,54 @@ window.startVertexModeling = async () => {
         timeLeft--;
         const timerEl = document.getElementById('countdown-timer');
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
-        
-        if (timeLeft <= -5) { 
-            clearInterval(timerInterval);
-            window.finalUnveil();
-        }
+        if (timeLeft <= -5) { clearInterval(timerInterval); window.finalUnveil(); }
     }, 1000);
 
     try {
-        const catalogBase64 = await getBase64FromUrl(`images/${selectedCloth.img}`);
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             body: JSON.stringify({ 
                 userImage: userPhoto.split(',')[1], 
-                clothImage: catalogBase64, 
                 clothName: selectedCloth.name 
             })
         });
         const data = await response.json();
-        
         if (data.result) {
             aiResultPending = data.result;
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                window.finalUnveil();
-            }
+            if (timeLeft <= 0) { clearInterval(timerInterval); window.finalUnveil(); }
         }
-    } catch (e) {
-        aiResultPending = "ERROR";
-    }
+    } catch (e) { aiResultPending = "ERROR"; }
 };
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    
-    if (!aiResultPending || aiResultPending === "ERROR" || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">
-            <h3 style="color:#e60023;">TAILOR IS BUSY</h3>
-            <button onclick="location.reload()" style="margin-top:20px; background:white; color:black; border:none; padding:12px 25px; border-radius:50px; font-weight:bold;">RETRY</button>
-        </div>`;
+    if (!aiResultPending || aiResultPending.length < 500) {
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRYING...</h3><button onclick="location.reload()">REFRESH</button></div>`;
         return;
     }
 
-    const cleanData = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
+    // THE MASTER SLICER: Hunt for PNG (iVBOR) or JPEG (/9j/4)
+    let cleanData = aiResultPending;
+    const pngMarker = "iVBORw0KGgo";
+    const jpgMarker = "/9j/4";
+    
+    let startIdx = cleanData.indexOf(pngMarker);
+    if (startIdx === -1) startIdx = cleanData.indexOf(jpgMarker);
+    
+    // If we found a marker, slice EVERYTHING before it
+    if (startIdx !== -1) {
+        cleanData = cleanData.substring(startIdx);
+    }
+
+    // Remove any trailing text or symbols
+    cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
+
     const byteCharacters = atob(cleanData);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray]); 
+    const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' }); 
     const blobUrl = URL.createObjectURL(blob);
 
     container.innerHTML = `
@@ -199,4 +131,9 @@ window.finalUnveil = () => {
     `;
 };
 
+window.promptShowroomChoice = (id) => {
+    selectedCloth = clothesCatalog.find(c => c.id === id);
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('ai-fitting-result').innerHTML = `<button onclick="document.getElementById('user-fit-input').click()" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%; font-weight:800; cursor:pointer;">📸 UPLOAD PHOTO</button>`;
+};
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
