@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v34.0
- * THE FINAL VICTORY: Binary Marker Force.
- * FIXED: The 11-second broken icon by forcing correct image headers.
+ * Kingsley Store AI - Core Logic v35.0
+ * THE UNVEILING: Universal Multimodal Decoder.
+ * FIXED: The "Broken Icon" by auto-detecting JPEG/PNG/WebP formats.
  */
 
 const clothesCatalog = [
@@ -9,7 +9,6 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-const greetings = ["Chief, looking for premium native?", "Boss, let's find your style!", "Nne, let's find your style!"];
 let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
@@ -21,10 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('owner-img').src = saved;
         userPhoto = saved;
     }
-    setInterval(() => {
-        const el = document.getElementById('dynamic-greeting');
-        if (el) el.innerText = greetings[Math.floor(Math.random() * greetings.length)];
-    }, 3000);
 });
 
 window.handleProfileUpload = (e) => {
@@ -37,7 +32,7 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE ENGINE ---
+// --- 2. THE ENGINE (UNIVERSAL DECODER) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     const videoModal = document.getElementById('video-experience-modal');
@@ -47,8 +42,8 @@ window.startVertexModeling = async () => {
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center; padding:20px;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
-            <h3 style="font-weight:800;">TAILORING YOUR LOOK</h3>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Generating pixels (~12s)...</p>
+            <h3 style="font-weight:800; font-family:'Inter', sans-serif;">UNVEILING YOUR LOOK</h3>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Decoding AI Pixels (~11s)...</p>
         </div>
     `;
 
@@ -63,26 +58,31 @@ window.startVertexModeling = async () => {
         if (data.result && data.result.length > 1000) {
             let cleanData = data.result;
 
-            // FORCE FIND BINARY START
-            const pngH = "iVBORw0KGgo";
-            const jpgH = "/9j/4";
-            let start = cleanData.indexOf(pngH);
-            if (start === -1) start = cleanData.indexOf(jpgH);
-            
-            if (start !== -1) {
-                cleanData = cleanData.substring(start);
-            }
+            // 1. AUTO-DETECT IMAGE TYPE
+            let mimeType = "image/png"; // Default
+            if (cleanData.includes("/9j/")) mimeType = "image/jpeg";
+            else if (cleanData.includes("UklGR")) mimeType = "image/webp";
 
-            // SCRUB ALL NON-BASE64 JUNK
+            // 2. FIND ACTUAL START (Cut conversational junk)
+            const markers = ["iVBORw0KGgo", "/9j/", "UklGR"];
+            let start = -1;
+            for (let m of markers) {
+                let found = cleanData.indexOf(m);
+                if (found !== -1) { start = found; break; }
+            }
+            
+            if (start !== -1) cleanData = cleanData.substring(start);
+
+            // 3. SCRUB ALL NON-BASE64 CHARACTERS
             cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
             container.innerHTML = `
                 <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; z-index:100000; overflow:hidden;">
                     <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                        <img src="data:image/png;base64,${cleanData}" 
+                        <img src="data:${mimeType};base64,${cleanData}" 
                              style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
                     </div>
-                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 40%); display:flex; flex-direction:column; align-items:center; box-sizing:border-box;">
+                    <div style="position:absolute; bottom:0; left:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 40%); display:flex; flex-direction:column; align-items:center; box-sizing:border-box; z-index:101;">
                         <button style="background:#e60023; color:white; width:100%; max-width:400px; height:65px; border-radius:50px; font-weight:800; font-size:1.2rem; border:none; cursor:pointer;" onclick="window.addToCart()">
                             ADD TO CART - ${selectedCloth.price} 🛒
                         </button>
@@ -92,7 +92,7 @@ window.startVertexModeling = async () => {
             `;
         }
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">Error rendering image.</div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">AI Decode Error. Please Refresh.</div>`;
     }
 };
 
@@ -102,7 +102,7 @@ window.addToCart = () => {
     alert("Oshey! Added to bag. ✅");
 };
 
-// UI & SEARCH
+// UI Logic
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
