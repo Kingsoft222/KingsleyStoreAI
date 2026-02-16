@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v37.0
- * PERMANENT SPINNER: The spinner stays until the image is fully loaded.
- * FIXED: The "Broken Icon" by waiting for the data handshake to settle.
+ * Kingsley Store AI - Core Logic v38.0
+ * NO-STALL EDITION: Auto-detects MIME type and forces display.
+ * FIXED: Indefinite loading by adding a 5-second forced-show fallback.
  */
 
 const clothesCatalog = [
@@ -13,7 +13,6 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
-// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved && document.getElementById('owner-img')) {
@@ -32,21 +31,20 @@ window.handleProfileUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 2. THE ENGINE (PERMANENT SPINNER EDITION) ---
+// --- THE ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
-    const videoModal = document.getElementById('video-experience-modal');
-    videoModal.style.display = 'flex';
+    document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // SPINNING PERMANENTLY UNTIL LOADED
+    // START SPINNER
     container.innerHTML = `
-        <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
+        <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center; position:absolute; z-index:10;">
             <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
             <h3 style="font-weight:800; font-family:'Inter', sans-serif;">SEWING YOUR LOOK</h3>
-            <p style="color:#666; font-size:0.85rem; margin-top:10px;">Tailoring takes ~12s. Abeg, wait small...</p>
+            <p style="color:#666; font-size:0.85rem; margin-top:10px;">Tailoring takes ~12s. Almost done...</p>
         </div>
-        <div id="result-display" style="display:none; width:100%; height:100dvh; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
+        <div id="result-display" style="visibility:hidden; width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
                 <img id="final-vto-image" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
             </div>
@@ -69,8 +67,13 @@ window.startVertexModeling = async () => {
         if (data.result && data.result.length > 500) {
             let cleanData = data.result;
 
-            // Detect binary signature to prevent broken icons
-            const markers = ["iVBORw0KGgo", "/9j/4", "UklGR"];
+            // 1. MIME DETECTIVE: Identify PNG, JPG, or WebP
+            let type = "image/png";
+            if (cleanData.includes("/9j/")) type = "image/jpeg";
+            else if (cleanData.includes("UklGR")) type = "image/webp";
+
+            // 2. SCRUB CONVERSATION: Find actual binary start
+            const markers = ["iVBOR", "/9j/", "UklGR"];
             let start = -1;
             for (let m of markers) {
                 let found = cleanData.indexOf(m);
@@ -80,14 +83,16 @@ window.startVertexModeling = async () => {
             cleanData = cleanData.replace(/[^A-Za-z0-9+/=]/g, "");
 
             const imgEl = document.getElementById('final-vto-image');
-            
-            // Only hide spinner when image actually loads
-            imgEl.onload = () => {
+            const showResult = () => {
                 document.getElementById('loading-state').style.display = 'none';
-                document.getElementById('result-display').style.display = 'flex';
+                document.getElementById('result-display').style.visibility = 'visible';
             };
 
-            imgEl.src = `data:image/png;base64,${cleanData}`;
+            // 3. FALLBACK PROTECTION: If onload fails, show anyway after 3s
+            imgEl.onload = showResult;
+            setTimeout(showResult, 3000); 
+
+            imgEl.src = `data:${type};base64,${cleanData}`;
         }
     } catch (e) {
         container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Handshake Error. Please retry.</div>`;
