@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - Core Logic v19.0
- * MOBILE FIX: Forced Base64 Sanitation.
- * UI: Full-Screen Display with Pinned Footer.
+ * Kingsley Store AI - Core Logic v20.0
+ * THE FINAL FIX: Aggressive Data Scrubbing for Base64.
+ * UI: Full-Screen Mobile/Laptop Sync (No Overlays).
  */
 
 const clothesCatalog = [
@@ -13,6 +13,7 @@ let userPhoto = "";
 let selectedCloth = null;
 let cartCount = 0;
 
+// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
@@ -29,6 +30,61 @@ window.handleProfileUpload = (e) => {
         localStorage.setItem('kingsley_profile_locked', userPhoto);
     };
     reader.readAsDataURL(e.target.files[0]);
+};
+
+// --- 2. THE AGGRESSIVE ENGINE ---
+window.startVertexModeling = async () => {
+    document.getElementById('fitting-room-modal').style.display = 'none';
+    const videoModal = document.getElementById('video-experience-modal');
+    videoModal.style.display = 'flex';
+    const container = document.getElementById('video-main-container');
+    
+    // THE PROFESSIONAL CIRCLE SPINNER
+    container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; background:#000;">
+            <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
+            <p>Tailoring Result...</p>
+        </div>
+    `;
+
+    try {
+        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
+
+        const response = await fetch('/.netlify/functions/process-vto', {
+            method: 'POST',
+            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
+        });
+        
+        const data = await response.json();
+        
+        if (data.result) {
+            // THE HOOD FIX: Clean EVERY piece of junk from the string
+            const cleanImage = data.result
+                .replace(/```[a-z]*/g, "") // Remove starting backticks
+                .replace(/```/g, "")       // Remove ending backticks
+                .replace(/data:image\/[a-z]+;base64,/g, "") // Remove existing headers
+                .replace(/\s/g, "");       // Remove all spaces/newlines
+
+            container.innerHTML = `
+                <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000; position:relative;">
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                        <img src="data:image/png;base64,${cleanImage}" 
+                             style="width:100%; height:100%; object-fit:contain; display:block;"
+                             onerror="this.src='[https://via.placeholder.com/500x800?text=AI+Format+Error](https://via.placeholder.com/500x800?text=AI+Format+Error)'">
+                    </div>
+                    
+                    <div style="padding:20px 20px 40px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; z-index:100;">
+                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; border:none; cursor:pointer;" onclick="window.addToCart()">
+                            ADD TO CART - ${selectedCloth.price} 🛒
+                        </button>
+                        <p onclick="location.reload()" style="color:#888; margin-top:15px; cursor:pointer; font-size:0.9rem;">Try another design</p>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (e) {
+        container.innerHTML = `<div style="color:white; padding:50px;">Connection Error.</div>`;
+    }
 };
 
 window.executeSearch = () => {
@@ -51,7 +107,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%;">📸 Select Your Photo</button>
+        <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn" style="background:#e60023; color:white; border-radius:50px; padding:15px; border:none; width:100%;">📸 Select Photo</button>
     `;
 };
 
@@ -64,55 +120,6 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- THE HOOD REPAIR ---
-window.startVertexModeling = async () => {
-    document.getElementById('fitting-room-modal').style.display = 'none';
-    const videoModal = document.getElementById('video-experience-modal');
-    videoModal.style.display = 'flex';
-    const container = document.getElementById('video-main-container');
-    
-    container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; background:#000;">
-            <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023; margin-bottom:20px;"></i>
-            <p>Tailoring Result...</p>
-        </div>
-    `;
-
-    try {
-        const rawBase64 = userPhoto.includes(',') ? userPhoto.split(',')[1] : userPhoto;
-        const response = await fetch('/.netlify/functions/process-vto', {
-            method: 'POST',
-            body: JSON.stringify({ userImage: rawBase64, cloth: selectedCloth.name })
-        });
-        const data = await response.json();
-        
-        if (data.result) {
-            // AGGRESSIVE CLEANUP: Remove backticks, "base64" labels, and whitespace
-            const cleanImage = data.result
-                .replace(/```[a-z]*/g, "")
-                .replace(/```/g, "")
-                .replace(/data:image\/[a-z]+;base64,/g, "")
-                .replace(/\s/g, "");
-
-            container.innerHTML = `
-                <div style="width:100%; height:100vh; display:flex; flex-direction:column; background:#000;">
-                    <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-                        <img src="data:image/png;base64,${cleanImage}" style="width:100%; height:100%; object-fit:contain;">
-                    </div>
-                    <div style="padding:20px 20px 40px; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center;">
-                        <button class="primary-btn" style="background:#e60023; color:white; width:100%; height:60px; border-radius:50px; font-weight:bold; border:none;" onclick="window.addToCart()">
-                            ADD TO CART - ${selectedCloth.price} 🛒
-                        </button>
-                        <p onclick="location.reload()" style="color:#888; margin-top:15px; cursor:pointer; font-size:0.9rem;">Try another design</p>
-                    </div>
-                </div>
-            `;
-        }
-    } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:50px; text-align:center;">Network Error.</div>`;
-    }
-};
-
 window.addToCart = () => {
     cartCount++;
     document.getElementById('cart-count').innerText = cartCount;
@@ -120,4 +127,3 @@ window.addToCart = () => {
 };
 
 window.closeVideoModal = () => { document.getElementById('video-experience-modal').style.display = 'none'; };
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
