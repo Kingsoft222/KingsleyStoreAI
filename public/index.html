@@ -9,12 +9,37 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     
     <style>
-        /* ABSOLUTE CENTER LOCK */
-        .luxury-video-modal { display: none; position: fixed; inset: 0; z-index: 100000; background: #000; overflow: hidden; }
-        .modal-fashion-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1920&q=80') center/cover; filter: blur(20px) brightness(0.3); transform: scale(1.1); }
-        .modal-container { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100dvh; width: 100%; padding: 20px; text-align: center; }
+        /* FULL SCREEN RESULT LOCK */
+        .luxury-video-modal { 
+            display: none; 
+            position: fixed; 
+            inset: 0; 
+            z-index: 100000; 
+            background: #000; 
+            overflow: hidden; 
+        }
+
+        .modal-container { 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100dvh; 
+            width: 100%; 
+            background: #000;
+        }
         
-        /* SEARCH FIX: Ensure results scroll and don't block footer */
+        /* The container where the image and professional spinner live */
+        #video-main-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* SEARCH FIX */
         #ai-results { 
             display: none; 
             margin-top: 20px; 
@@ -23,23 +48,41 @@
             z-index: 5; 
         }
 
-        .video-wrapper { 
-            position: relative; width: 100%; max-width: 400px; border-radius: 30px; 
-            overflow: hidden; background: #000; display: flex; align-items: center; 
-            justify-content: center; min-height: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        .primary-btn { 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 50px; 
+            border: none; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-family: 'Inter', sans-serif; 
+            transition: 0.3s;
         }
-
-        /* RESTORED PREMIUM BUTTON UI */
-        .primary-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; margin-top: 10px; font-family: 'Inter', sans-serif; }
         
-        .share-walk-btn { 
-            margin-top: 20px; padding: 14px 45px; background: white; color: black; 
-            border: none; border-radius: 50px; font-weight: 800; cursor: pointer; 
-            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
+        .close-video-btn { 
+            position: absolute; 
+            top: 25px; 
+            right: 25px; 
+            background: rgba(255,255,255,0.2); 
+            border: none; 
+            color: white; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            font-size: 24px; 
+            cursor: pointer; 
+            z-index: 100001; 
         }
 
-        .voice-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; align-items: center; justify-content: center; }
-        .close-video-btn { position: absolute; top: 25px; right: 25px; background: rgba(255,255,255,0.1); border: none; color: white; width: 45px; height: 45px; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 100001; }
+        .voice-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.85); 
+            z-index: 99999; 
+            display: none; 
+            align-items: center; 
+            justify-content: center; 
+        }
     </style>
 </head>
 <body>
@@ -66,23 +109,17 @@
     <div id="fitting-room-modal" class="voice-overlay">
         <div class="voice-modal" style="background: white; padding: 30px; border-radius: 30px; text-align: center; width: 90%; max-width: 400px; position: relative; display: flex; flex-direction: column; align-items: center;">
             <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:24px; font-weight: 800;">×</span>
-            <h2 id="modal-subtext" style="color:#e60023; margin-bottom:20px; font-weight:800;">AI Showroom</h2>
+            <h2 id="modal-subtext" style="color:#e60023; margin-bottom:20px; font-weight:800;">Virtual Try-On</h2>
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="window.handleUserFitUpload(event)">
             <div id="ai-fitting-result" style="width: 100%;"></div>
-            <button id="fit-action-btn" class="primary-btn" style="background:#f0f0f0; color:#333;">Upload Photo</button>
+            <button id="fit-action-btn" class="primary-btn" style="background:#f0f0f0; color:#333; display:none;">Upload Photo</button>
         </div>
     </div>
 
     <div id="video-experience-modal" class="luxury-video-modal">
-        <div class="modal-fashion-bg"></div>
         <button class="close-video-btn" onclick="window.closeVideoModal()">×</button>
-        <div class="modal-container">
-            <div class="video-wrapper" id="video-main-container"></div>
-            <div id="video-bottom-section" style="margin-top: 25px; display:flex; flex-direction:column; align-items:center; width: 100%;">
-                <h2 style="color:white; text-transform:uppercase; font-weight:800; letter-spacing:2px; margin-bottom:15px;">Kingsley Runway</h2>
-                <button class="share-walk-btn" onclick="window.shareMyWalk()">SHARE MY WALK</button>
+        <div class="modal-container" id="video-main-container">
             </div>
-        </div>
     </div>
 
     <footer class="bottom-controls">
