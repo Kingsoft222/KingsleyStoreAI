@@ -29,7 +29,8 @@ exports.handler = async (event) => {
         const payload = {
             contents: [{
                 parts: [
-                    { text: `VTO TASK: Swap the person's outfit with ${clothName}. Return ONLY raw base64.` },
+                    // ULTRA-SHORT PROMPT FOR SPEED
+                    { text: `FAST VTO: Put ${clothName} on person. Return ONLY base64.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }],
@@ -40,12 +41,15 @@ exports.handler = async (event) => {
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
             ],
             generationConfig: { 
-                temperature: 0.1, 
-                maxOutputTokens: 2048 // REDUCED: This makes it 3x faster to beat the 30s limit
+                temperature: 0.0, // 0.0 is the fastest setting
+                maxOutputTokens: 1500, // Lowered even more for speed
+                topP: 1,
+                topK: 1
             }
         };
 
-        const response = await axios.post(url, payload, { timeout: 25000 }); // Internal timeout
+        // If the AI takes more than 25s, we kill it and return an error before Netlify does
+        const response = await axios.post(url, payload, { timeout: 26000 }); 
         
         const rawText = response.data.candidates[0].content.parts[0].text;
         const cleanBase64 = extractBase64(rawText);
@@ -58,10 +62,11 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
+        console.error("Turbo Error:", error.message);
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Tailor took too long. Please try again." }) 
+            body: JSON.stringify({ error: "Tailor is over-capacity. Please try with a smaller photo." }) 
         };
     }
 };
