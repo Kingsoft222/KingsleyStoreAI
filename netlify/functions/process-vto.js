@@ -1,5 +1,29 @@
 const axios = require('axios');
 
+/**
+ * SURGICAL EXTRACTION
+ * Cleans the AI response to find the actual image data.
+ */
+function extractBase64(text) {
+    // 1. Try to extract from markdown blocks first
+    const codeBlockMatch = text.match(/```(?:base64)?\s*([\s\S]*?)```/i);
+    if (codeBlockMatch) return codeBlockMatch[1].replace(/\s/g, '');
+
+    // 2. Fallback: hunt for the common image headers
+    const markers = ["iVBOR", "/9j/", "UklGR"];
+    let cleaned = text;
+    for (let m of markers) {
+        let pos = text.indexOf(m);
+        if (pos !== -1) {
+            cleaned = text.substring(pos);
+            break;
+        }
+    }
+
+    // 3. Remove any remaining non-base64 noise
+    return cleaned.replace(/[^A-Za-z0-9+/=]/g, "");
+}
+
 exports.handler = async (event) => {
     const headers = {
         "Access-Control-Allow-Origin": "*",
@@ -17,30 +41,53 @@ exports.handler = async (event) => {
         const payload = {
             contents: [{
                 parts: [
-                    { text: `E-COMMERCE TASK: Take the person in the provided photo and replace their current outfit with a ${clothName}. 
-                             Keep the face and background identical. This is for a retail product catalog. 
-                             Output ONLY the raw base64 data of the resulting image. Do not include any text or markdown.` },
+                    { text: `FASHION DESIGN TASK: You are a professional tailor. 
+                             Replace the clothing on the person in the photo with a ${clothName}.
+                             Maintain the person's face, skin tone, and background exactly.
+                             OUTPUT ONLY THE BASE64 STRING. NO MARKDOWN. NO TEXT.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }],
-            // FORCE BYPASS
             safetySettings: [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
                 { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
             ],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+            generationConfig: { 
+                temperature: 0.2, 
+                maxOutputTokens: 8192 // Increased for high-res native wear details
+            }
         };
 
         const response = await axios.post(url, payload);
-        const resultText = response.data.candidates[0].content.parts[0].text;
         
-        // Clean result immediately
-        const cleanResult = resultText.replace(/[^A-Za-z0-9+/=]/g, "");
+        // Ensure candidates exist
+        if (!response.data.candidates || !response.data.candidates[0].content.parts[0].text) {
+            throw new Error("AI failed to generate a response.");
+        }
 
-        return { statusCode: 200, headers, body: JSON.stringify({ result: cleanResult }) };
+        const rawText = response.data.candidates[0].content.parts[0].text;
+        const cleanBase64 = extractBase64(rawText);
+
+        // --- THE PRODUCTION HANDSHAKE ---
+        // Returning as a binary-encoded response stops the "shaking broken image"
+        return {
+            statusCode: 200,
+            headers: { 
+                ...headers, 
+                "Content-Type": "image/png" // Netlify will serve this as a real file
+            },
+            body: cleanBase64,
+            isBase64Encoded: true 
+        };
+
     } catch (error) {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
+        console.error("VTO Error:", error.message);
+        return { 
+            statusCode: 500, 
+            headers, 
+            body: JSON.stringify({ error: error.message }) 
+        };
     }
 };
