@@ -1,7 +1,8 @@
 /**
- * Kingsley Store AI - v72.0 "High-Stability"
- * FIX: Blank screen by parsing JSON and using High-Stability Blobs.
- * UI: "Add to Cart" button perfectly centered.
+ * Kingsley Store AI - v73.0 "Person-First"
+ * FIX: Broken image by strictly forcing human + clothes output.
+ * FIX: Shaking by using a fail-safe Base64 cleaner.
+ * UI: "Add to Cart" button centered.
  */
 
 const clothesCatalog = [
@@ -43,7 +44,7 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR PHOTO
+            📸 SELECT YOUR STANDING PHOTO
         </button>`;
 };
 
@@ -64,11 +65,11 @@ window.startVertexModeling = async () => {
 
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
-            <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
+            <div style="relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 5rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px;">STITCHING ANKARA...</h3>
+            <h3 style="font-weight:800; margin-top:30px;">DRESSING YOU...</h3>
         </div>`;
 
     let timeLeft = 12;
@@ -76,12 +77,7 @@ window.startVertexModeling = async () => {
         timeLeft--;
         const timerEl = document.getElementById('countdown-timer');
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
-        
-        if (timeLeft <= 0 && aiResultPending) {
-            clearInterval(timerInterval);
-            window.finalUnveil();
-        }
-        if (timeLeft <= -15) { 
+        if (timeLeft <= -10 && !aiResultPending) { 
             clearInterval(timerInterval);
             window.finalUnveil();
         }
@@ -93,55 +89,46 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
         const data = await response.json();
-        // Force extract the string even if nested
-        aiResultPending = data.result || (data.body ? JSON.parse(data.body).result : null) || data;
+        aiResultPending = data.result;
+        window.finalUnveil(); // Unveil immediately on data arrival
+        clearInterval(timerInterval);
     } catch (e) { 
         aiResultPending = "ERROR"; 
+        window.finalUnveil();
     }
 };
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    if (!aiResultPending || aiResultPending === "ERROR") {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRYING...</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:12px 25px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
+    if (!aiResultPending || aiResultPending.length < 500) {
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY NEEDED</h3><button onclick="location.reload()" style="background:#e60023; color:white; border-radius:50px; border:none; padding:15px 30px; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
-    // THE HIGH-STABILITY SLICER
-    let clean = (typeof aiResultPending === 'string') ? aiResultPending : JSON.stringify(aiResultPending);
-    const markers = ["iVBORw0", "/9j/4"]; // PNG and JPEG headers
-    let start = -1;
+    // THE FAIL-SAFE CLEANER
+    let clean = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
+    
+    // Find the actual start of the image data
+    const markers = ["iVBOR", "/9j/", "UklGR"];
     for (let m of markers) {
         let pos = clean.indexOf(m);
-        if (pos !== -1) { start = pos; break; }
-    }
-    
-    if (start !== -1) clean = clean.substring(start);
-    clean = clean.replace(/[^A-Za-z0-9+/=]/g, "");
-
-    // THE BLOB ENGINE (Fixed Blank Screen)
-    try {
-        const binaryString = atob(clean);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        if (pos !== -1) {
+            clean = clean.substring(pos);
+            break;
         }
-        const blob = new Blob([bytes], { type: 'image/png' });
-        const blobUrl = URL.createObjectURL(blob);
-
-        container.innerHTML = `
-            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
-                </div>
-                <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
-                    <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
-                        ADD TO CART 🛒
-                    </button>
-                </div>
-            </div>`;
-    } catch (e) {
-        // Fallback for older browsers
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>DISPLAY ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
     }
+
+    container.innerHTML = `
+        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                <img src="data:image/png;base64,${clean}" 
+                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
+                     onerror="this.src='data:image/jpeg;base64,${clean}'">
+            </div>
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
+                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">
+                    ADD TO CART 🛒
+                </button>
+            </div>
+        </div>`;
 };
