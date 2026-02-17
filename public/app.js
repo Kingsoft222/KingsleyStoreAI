@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v83.0 "The Production Fix"
- * FIX: Using ChatGPT's Binary Blob method to stop crashes.
- * UI: Mobile-Pro 2-column Grid & Centered Timer.
+ * Kingsley Store AI - v84.0 "Binary Handshake"
+ * MATCHES: Backend vTO.js with isBase64Encoded: true
+ * FIX: Uses response.blob() to handle heavy AI image data.
  */
 
 const clothesCatalog = [
@@ -17,26 +17,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (icon) icon.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
 });
 
+// --- 1. SEARCH GRID (2-COLUMN LOCKED) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input || !results) return;
     const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+    
     results.style.display = 'grid';
     results.style.gridTemplateColumns = 'repeat(2, 1fr)';
     results.style.gap = '12px';
+    results.style.padding = '10px';
+
     results.innerHTML = matched.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; overflow:hidden; text-align:center; padding-bottom:10px;">
+        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; overflow:hidden; text-align:center; padding-bottom:10px; border:1px solid #222;">
             <img src="images/${item.img}" style="width:100%; height:160px; object-fit:cover;">
-            <h4 style="font-size:0.85rem; margin:8px; color:white;">${item.name}</h4>
+            <h4 style="font-size:0.85rem; margin:8px; color:white; font-weight:600;">${item.name}</h4>
             <p style="color:#e60023; font-weight:900;">${item.price}</p>
         </div>`).join('');
 };
 
+// --- 2. UPLOAD LOGIC ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `<button onclick="document.getElementById('user-fit-input').click()" style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">📸 SELECT STANDING PHOTO</button>`;
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <button onclick="document.getElementById('user-fit-input').click()" 
+                style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
+            📸 SELECT STANDING PHOTO
+        </button>`;
 };
 
 window.handleUserFitUpload = (e) => {
@@ -48,18 +57,19 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+// --- 3. THE BINARY FETCH (THE FIX) ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
 
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="margin-top:25px; font-weight:800;">DRESSING YOU...</h3>
+            <h3 style="margin-top:25px; font-weight:800; letter-spacing:1px;">DRESSING YOU...</h3>
         </div>`;
 
     let timeLeft = 12;
@@ -75,25 +85,30 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
         
-        // CHATGPT METHOD: Fetch as Blob directly
+        if (!response.ok) throw new Error("Server Error");
+
+        // --- NEW BLOB METHOD ---
+        // Instead of .json(), we take the response as a raw BLOB (file)
         const blob = await response.blob();
         const imageUrl = URL.createObjectURL(blob);
         
         clearInterval(timerInterval);
-        window.displayFinalImage(imageUrl);
+        window.displayFinalAnkara(imageUrl);
     } catch (e) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SYSTEM ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
+        console.error(e);
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SYSTEM ERROR</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button></div>`;
     }
 };
 
-window.displayFinalImage = (url) => {
+// --- 4. FINAL UNVEIL ---
+window.displayFinalAnkara = (url) => {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
-        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
-            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding-bottom:120px;">
-                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain;">
+        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
             </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
             </div>
         </div>`;
