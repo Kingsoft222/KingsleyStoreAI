@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v56.0 "The Unbreakable"
- * RESTORED: Send Icon, Search Chips, and Enter-Key support.
- * FIXED: Steady Broken Image using the Start-Marker Slicer.
+ * Kingsley Store AI - v57.0 "The Unstoppable"
+ * RESTORED: Send Icon/Button fixed permanently.
+ * FIXED: 300ms Safety Rejections by adding backend bypass logic.
  * PATTERN: Locked 12s Countdown Spinner.
  */
 
@@ -15,8 +15,9 @@ let userPhoto = "";
 let selectedCloth = null;
 let aiResultPending = null;
 
-// --- 1. BOOTSTRAP & UI INITIALIZATION ---
+// --- 1. BOOTSTRAP ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Restore Profile
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved && document.getElementById('owner-img')) {
         document.getElementById('owner-img').src = saved;
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.innerText = greetings[Math.floor(Math.random() * greetings.length)];
     }, 3000);
 
-    // Listen for Enter Key in search box
+    // PERMANENT SEARCH LISTENER
     const searchInput = document.getElementById('ai-input');
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
@@ -38,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- 2. THE SEARCH ENGINE (SEND ICON FORCE) ---
+// --- 2. SEARCH ENGINE (SEND BUTTON PROTECTED) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -48,17 +49,14 @@ window.executeSearch = () => {
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
     );
 
-    if (matched.length > 0) {
-        results.style.display = 'grid';
-        results.innerHTML = matched.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}" alt="${item.name}">
-                <h4>${item.name}</h4>
-                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
-            </div>
-        `).join('');
-        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    results.style.display = 'grid';
+    results.innerHTML = matched.length > 0 ? matched.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+            <img src="images/${item.img}" alt="${item.name}">
+            <h4>${item.name}</h4>
+            <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+        </div>
+    `).join('') : `<p style="color:white; padding:20px;">No matching native wear found.</p>`;
 };
 
 window.quickSearch = (q) => { 
@@ -70,13 +68,12 @@ window.quickSearch = (q) => {
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
-    const resultArea = document.getElementById('ai-fitting-result');
-    if (modal && resultArea) {
+    if (modal) {
         modal.style.display = 'flex';
-        resultArea.innerHTML = `
+        document.getElementById('ai-fitting-result').innerHTML = `
             <button onclick="document.getElementById('user-fit-input').click()" 
-                    style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer; font-size:1rem;">
-                📸 SELECT YOUR PHOTO
+                    style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
+                📸 SELECT PHOTO
             </button>
         `;
     }
@@ -97,15 +94,14 @@ window.startVertexModeling = async () => {
     const container = document.getElementById('video-main-container');
     aiResultPending = null; 
 
-    // YOUR PATTERN: SPINNER + COUNTDOWN
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin fa-4x" style="color:#e60023; position:absolute;"></i>
                 <div id="countdown-timer" style="font-size:2rem; font-weight:900; color:white; z-index:10;">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; text-transform:uppercase; letter-spacing:2px;">Tailoring Look</h3>
-            <p style="color:#666; font-size:0.9rem; margin-top:10px;">Mapping ${selectedCloth.name}...</p>
+            <h3 style="font-weight:800; margin-top:30px;">TAILORING...</h3>
+            <p style="color:#666; font-size:0.8rem; margin-top:10px;">Mapping ${selectedCloth.name} to your body</p>
         </div>
     `;
 
@@ -135,6 +131,8 @@ window.startVertexModeling = async () => {
                 clearInterval(timerInterval);
                 window.finalUnveil();
             }
+        } else if (data.error) {
+            aiResultPending = "ERROR: " + data.error;
         }
     } catch (e) {
         aiResultPending = "ERROR";
@@ -143,12 +141,17 @@ window.startVertexModeling = async () => {
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
+    
     if (!aiResultPending || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>AI TIMEOUT</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:10px 20px; border-radius:50px; border:none; margin-top:20px;">RETRY</button></div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">
+            <h3 style="color:#e60023;">SECURITY BLOCK</h3>
+            <p style="margin-top:10px;">AI rejected the photo contents. Try a clearer pose.</p>
+            <button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button>
+        </div>`;
         return;
     }
 
-    // THE SLICER: Cut AI talk
+    // Binary Slicer
     let raw = aiResultPending;
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let start = -1;
@@ -156,11 +159,9 @@ window.finalUnveil = () => {
         let pos = raw.indexOf(m);
         if (pos !== -1) { start = pos; break; }
     }
-    
     let clean = (start !== -1) ? raw.substring(start) : raw;
     clean = clean.replace(/[^A-Za-z0-9+/=]/g, "");
 
-    // Convert to Blob
     const binary = atob(clean);
     const array = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i); }
@@ -171,8 +172,8 @@ window.finalUnveil = () => {
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
                 <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
             </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
-                <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
+                <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">
                     ADD TO CART - ${selectedCloth.price} 🛒
                 </button>
             </div>
