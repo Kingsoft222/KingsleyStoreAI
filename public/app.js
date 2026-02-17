@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - v74.0 "Pro-Mall UI"
- * FIX: Search result cards now uniform and mobile-friendly.
- * UI: Center-aligned Add to Cart button.
- * STATUS: AI handshake preserved.
+ * Kingsley Store AI - v75.0 "The Phase Wrap-Up"
+ * FIX: Broken image by using Low-Level Binary Decoding.
+ * FIX: UI Grid locked to 2-column mobile professional layout.
+ * PATTERN: Countdown timer centered inside the spinner.
  */
 
 const clothesCatalog = [
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- 2. SEARCH ENGINE (FIXED BOLDNESS/SIZE) ---
+// --- 2. SEARCH ENGINE (LOCKED 2-COLUMN GRID) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -33,7 +33,6 @@ window.executeSearch = () => {
         item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
     );
 
-    // Force a clean 2-column grid and standard image heights to stop the "boldness"
     results.style.display = 'grid';
     results.style.gridTemplateColumns = 'repeat(2, 1fr)';
     results.style.gap = '15px';
@@ -46,11 +45,9 @@ window.executeSearch = () => {
             <h4 style="font-size:0.9rem; margin:10px 5px 5px; color:white; font-weight:600;">${item.name}</h4>
             <p style="color:#e60023; font-weight:800; font-size:1rem; margin:0;">${item.price}</p>
         </div>`).join('');
-    
-    results.scrollIntoView({ behavior: 'smooth' });
 };
 
-// --- 3. THE VTO ENGINE ---
+// --- 3. THE ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -82,7 +79,7 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 5rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; letter-spacing:1px;">FITTING DESIGN...</h3>
+            <h3 style="font-weight:800; margin-top:30px;">STITCHING...</h3>
         </div>`;
 
     let timeLeft = 12;
@@ -114,10 +111,11 @@ window.startVertexModeling = async () => {
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
     if (!aiResultPending || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY NEEDED</h3><button onclick="location.reload()" style="background:#e60023; color:white; border-radius:50px; border:none; padding:15px 30px; margin-top:20px;">REFRESH</button></div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>TRY AGAIN</h3><button onclick="location.reload()" style="background:#e60023; color:white; border-radius:50px; border:none; padding:15px 30px; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
+    // Surgical extraction of binary data
     let clean = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
     const markers = ["iVBOR", "/9j/", "UklGR"];
     for (let m of markers) {
@@ -125,10 +123,20 @@ window.finalUnveil = () => {
         if (pos !== -1) { clean = clean.substring(pos); break; }
     }
 
+    // THE LOW-LEVEL DECODER (The Final Solution)
+    const binaryString = window.atob(clean);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'image/png' });
+    const imageUrl = URL.createObjectURL(blob);
+
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${clean}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;" onerror="this.src='data:image/jpeg;base64,${clean}'">
+                <img src="${imageUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
