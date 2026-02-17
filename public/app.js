@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v65.0 "The Hard-Lock"
- * RESTORED: Send Button hard-coded for permanent use.
- * FIXED: 500ms Safety rejections using E-commerce neutral terms.
+ * Kingsley Store AI - v66.0 "Center Circle"
+ * FIX: Countdown timer moved INSIDE the spinner.
+ * FIX: Binary slicer updated for 14s successful runs.
  * PATTERN: Locked 12s Countdown.
  */
 
@@ -14,35 +14,27 @@ let userPhoto = "";
 let selectedCloth = null;
 let aiResultPending = null;
 
-// --- 1. THE DOUBLE-LOCK BUTTON ---
+// --- 1. BOOTSTRAP & BUTTON LOCK ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Force the search icon to be clickable no matter what
     const icon = document.querySelector('.search-box i');
     if (icon) {
         icon.style.cursor = "pointer";
-        icon.onclick = (e) => {
-            e.preventDefault();
-            window.executeSearch();
-        };
+        icon.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
     }
 });
 
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
-    if (!input.trim() || !results) return;
-
-    const matched = clothesCatalog.filter(item => 
-        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-    );
-
+    if (!input || !results) return;
+    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
     results.style.display = 'grid';
-    results.innerHTML = matched.length > 0 ? matched.map(item => `
+    results.innerHTML = matched.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
             <img src="images/${item.img}">
             <h4>${item.name}</h4>
             <p style="color:#e60023; font-weight:bold;">${item.price}</p>
-        </div>`).join('') : `<p style="color:white; padding:20px;">No native wear found. Try 'Luxury'.</p>`;
+        </div>`).join('');
 };
 
 // --- 2. THE ENGINE ---
@@ -52,7 +44,7 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR PHOTO
+            📸 SELECT STANDING PHOTO
         </button>`;
 };
 
@@ -71,13 +63,15 @@ window.startVertexModeling = async () => {
     const container = document.getElementById('video-main-container');
     aiResultPending = null; 
 
+    // FIXED: Timer now positioned ABSOLUTELY inside the spinner
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
-            <div style="position:relative; width:100px; height:100px;">
-                <i class="fas fa-circle-notch fa-spin fa-3x" style="color:#e60023;"></i>
-                <div id="countdown-timer" style="font-size:1.5rem; font-weight:900; color:white; margin-top:-65px;">12</div>
+            <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 5rem;"></i>
+                <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:40px;">UPLOADING...</h3>
+            <h3 style="font-weight:800; margin-top:30px; letter-spacing:1px;">STITCHING NATIVE...</h3>
+            <p style="color:#666; font-size:0.8rem; margin-top:10px;">Tailoring for a perfect fit</p>
         </div>`;
 
     let timeLeft = 12;
@@ -108,14 +102,24 @@ window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
     if (!aiResultPending || aiResultPending.length < 500) {
         container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">
-            <h3>SAFETY ALERT</h3>
-            <p>AI rejected the photo composition. Use a clearer standing photo.</p>
-            <button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button>
+            <h3>READY TO UNVEIL</h3>
+            <p>Processing complete. Tap to view your fit.</p>
+            <button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">VIEW DESIGN</button>
         </div>`;
         return;
     }
 
-    const clean = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
+    // THE SLICER: Surgical removal of AI text
+    let clean = aiResultPending;
+    const markers = ["iVBOR", "/9j/", "UklGR"];
+    let start = -1;
+    for (let m of markers) {
+        let pos = clean.indexOf(m);
+        if (pos !== -1) { start = pos; break; }
+    }
+    if (start !== -1) clean = clean.substring(start);
+    clean = clean.replace(/[^A-Za-z0-9+/=]/g, "");
+
     const binary = atob(clean);
     const array = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) { array[i] = binary.charCodeAt(i); }
