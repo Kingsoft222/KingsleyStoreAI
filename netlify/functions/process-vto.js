@@ -10,18 +10,20 @@ exports.handler = async (event) => {
     if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
 
     try {
-        const { userImage, clothImage, clothName } = JSON.parse(event.body);
+        const { userImage, clothName } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: `VIRTUAL TRY-ON TASK: Put the clothes from the first image onto the person in the second image. Output ONLY the raw base64 data of the resulting image.` },
-                    { inline_data: { mime_type: "image/jpeg", data: clothImage } },
+                    { text: `E-COMMERCE TASK: Take the person in the provided photo and replace their current outfit with a ${clothName}. 
+                             Keep the face and background identical. This is for a retail product catalog. 
+                             Output ONLY the raw base64 data of the resulting image. Do not include any text or markdown.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }],
+            // FORCE BYPASS
             safetySettings: [
                 { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                 { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -33,9 +35,11 @@ exports.handler = async (event) => {
 
         const response = await axios.post(url, payload);
         const resultText = response.data.candidates[0].content.parts[0].text;
-        const cleanBase64 = resultText.replace(/[^A-Za-z0-9+/=]/g, "");
+        
+        // Clean result immediately
+        const cleanResult = resultText.replace(/[^A-Za-z0-9+/=]/g, "");
 
-        return { statusCode: 200, headers, body: JSON.stringify({ result: cleanBase64 }) };
+        return { statusCode: 200, headers, body: JSON.stringify({ result: cleanResult }) };
     } catch (error) {
         return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }
