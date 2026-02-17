@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - v77.0 "The Zero-Noise Wrap-Up"
- * FIX: Broken image by using a Regex-Vacuum to strip AI chatter.
+ * Kingsley Store AI - v78.0 "The Total Extraction"
+ * MAINTAINED: "Dressing You" terms and countdown centered.
+ * FIX: Blank screen by handling fragmented JSON responses.
  * UI: Pro 2-column Mall Grid (Locked).
- * UI: Timer perfectly centered inside spinner.
  */
 
 const clothesCatalog = [
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- 2. SEARCH ENGINE (2-COLUMN GRID LOCKED) ---
+// --- 2. SEARCH ENGINE ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -73,6 +73,7 @@ window.startVertexModeling = async () => {
     const container = document.getElementById('video-main-container');
     aiResultPending = null; 
 
+    // MAINTAINED: Terms and centered timer
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
@@ -94,8 +95,11 @@ window.startVertexModeling = async () => {
             method: 'POST',
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
+        
         const data = await response.json();
-        aiResultPending = data.result;
+        // Extract the result string even if the response is a complex object
+        aiResultPending = data.result || (data.candidates && data.candidates[0].content.parts[0].text) || data;
+        
         clearInterval(timerInterval);
         window.finalUnveil();
     } catch (e) { 
@@ -106,26 +110,29 @@ window.startVertexModeling = async () => {
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    if (!aiResultPending || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:15px 30px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
+    
+    // Check if result is valid
+    let rawStr = typeof aiResultPending === 'string' ? aiResultPending : JSON.stringify(aiResultPending);
+    
+    if (!rawStr || rawStr.length < 500) {
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SYSTEM TIMEOUT</h3><p>The image data was too large. Try again.</p><button onclick="location.reload()" style="background:#e60023; color:white; padding:15px 30px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
-    // THE REGEX-VACUUM: Strips EVERYTHING except Base64 valid characters
-    let rawData = aiResultPending;
+    // Surgical Extraction
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let start = -1;
     for (let m of markers) {
-        let pos = rawData.indexOf(m);
+        let pos = rawStr.indexOf(m);
         if (pos !== -1) { start = pos; break; }
     }
 
     if (start !== -1) {
-        rawData = rawData.substring(start);
+        rawStr = rawStr.substring(start);
     }
     
-    // Kill spaces, quotes, backticks, and newlines
-    const cleanBase64 = rawData.replace(/[^A-Za-z0-9+/=]/g, "");
+    // Force strip all JSON noise (quotes, backslashes, etc)
+    const cleanBase64 = rawStr.replace(/[^A-Za-z0-9+/=]/g, "");
 
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
