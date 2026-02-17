@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v84.0 "Binary Handshake"
- * MATCHES: Backend vTO.js with isBase64Encoded: true
- * FIX: Uses response.blob() to handle heavy AI image data.
+ * Kingsley Store AI - v85.0 "Dynamic Unveil"
+ * FIX: Dynamic loading text based on countdown triggers (5s and 2s).
+ * FIX: Matches Binary Backend with isBase64Encoded: true.
  */
 
 const clothesCatalog = [
@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (icon) icon.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
 });
 
-// --- 1. SEARCH GRID (2-COLUMN LOCKED) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -37,7 +36,6 @@ window.executeSearch = () => {
         </div>`).join('');
 };
 
-// --- 2. UPLOAD LOGIC ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -57,7 +55,7 @@ window.handleUserFitUpload = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// --- 3. THE BINARY FETCH (THE FIX) ---
+// --- DYNAMIC LOADING ENGINE ---
 window.startVertexModeling = async () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
@@ -69,14 +67,25 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="margin-top:25px; font-weight:800; letter-spacing:1px;">DRESSING YOU...</h3>
+            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING NATIVE...</h3>
         </div>`;
 
     let timeLeft = 12;
     const timerInterval = setInterval(() => {
         timeLeft--;
         const timerEl = document.getElementById('countdown-timer');
+        const statusText = document.getElementById('loading-status-text');
+        
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
+        
+        // Dynamic Status Updates
+        if (statusText) {
+            if (timeLeft === 5) {
+                statusText.innerText = "Dressing You...";
+            } else if (timeLeft === 2) {
+                statusText.innerText = "Unveiling Your Look...";
+            }
+        }
     }, 1000);
 
     try {
@@ -87,20 +96,17 @@ window.startVertexModeling = async () => {
         
         if (!response.ok) throw new Error("Server Error");
 
-        // --- NEW BLOB METHOD ---
-        // Instead of .json(), we take the response as a raw BLOB (file)
         const blob = await response.blob();
         const imageUrl = URL.createObjectURL(blob);
         
         clearInterval(timerInterval);
         window.displayFinalAnkara(imageUrl);
     } catch (e) {
-        console.error(e);
+        clearInterval(timerInterval);
         container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SYSTEM ERROR</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button></div>`;
     }
 };
 
-// --- 4. FINAL UNVEIL ---
 window.displayFinalAnkara = (url) => {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
