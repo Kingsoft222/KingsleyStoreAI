@@ -1,7 +1,8 @@
 /**
- * Kingsley Store AI - v70.0 "The Clean Cut"
- * FIX: Broken image by aggressively sanitizing the Base64 string.
- * UI: Automatic unveil once countdown hits 0.
+ * Kingsley Store AI - v71.0 "The Final Handshake"
+ * FIX: Broken image by using a deeper binary extraction.
+ * UI: "Add to Cart" button now perfectly centered.
+ * UI: Countdown timer centered inside the spinner.
  */
 
 const clothesCatalog = [
@@ -68,7 +69,7 @@ window.startVertexModeling = async () => {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 5rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px; letter-spacing:1px;">WEAVING ANKARA...</h3>
+            <h3 style="font-weight:800; margin-top:30px;">STITCHING ANKARA...</h3>
         </div>`;
 
     let timeLeft = 12;
@@ -81,7 +82,7 @@ window.startVertexModeling = async () => {
             clearInterval(timerInterval);
             window.finalUnveil();
         }
-        if (timeLeft <= -10) { // Safety timeout
+        if (timeLeft <= -12) { 
             clearInterval(timerInterval);
             window.finalUnveil();
         }
@@ -93,9 +94,8 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
         const data = await response.json();
-        if (data.result) {
-            aiResultPending = data.result;
-        }
+        // Extracting result from potential nested JSON structure
+        aiResultPending = data.result || data.body || data;
     } catch (e) { aiResultPending = "ERROR"; }
 };
 
@@ -106,8 +106,8 @@ window.finalUnveil = () => {
         return;
     }
 
-    // THE CLEAN CUT: Force strip everything that isn't Base64
-    let clean = aiResultPending;
+    // THE DEEPER SLICER
+    let clean = typeof aiResultPending === 'string' ? aiResultPending : JSON.stringify(aiResultPending);
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let start = -1;
     for (let m of markers) {
@@ -117,8 +117,8 @@ window.finalUnveil = () => {
     
     if (start !== -1) clean = clean.substring(start);
     
-    // This regex is a 'Vacuum Cleaner' - it removes spaces, newlines, backticks, and words
-    clean = clean.replace(/\s/g, '').replace(/[^A-Za-z0-9+/=]/g, "");
+    // Remove JSON quotes, backslashes, and whitespace
+    clean = clean.replace(/["'\\ \n\r\t]/g, '').replace(/[^A-Za-z0-9+/=]/g, "");
 
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
@@ -127,8 +127,10 @@ window.finalUnveil = () => {
                      style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
                      onerror="this.src='data:image/jpeg;base64,${clean}'">
             </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
-                <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
+                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
+                    ADD TO CART 🛒
+                </button>
             </div>
         </div>`;
 };
