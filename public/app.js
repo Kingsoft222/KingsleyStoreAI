@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v79.0 "Final Victory"
+ * Kingsley Store AI - v80.0 "Direct-Injection"
  * MAINTAINED: "Dressing You" terms and centered countdown.
- * FIX: Broken image by using High-Speed Binary Blob conversion.
+ * FIX: Blank screen by bypassing Blobs and using Direct Base64.
  * UI: Pro 2-column Mall Grid (Locked).
  */
 
@@ -96,7 +96,6 @@ window.startVertexModeling = async () => {
         });
         
         const data = await response.json();
-        // Extract strictly
         aiResultPending = data.result || (data.candidates && data.candidates[0].content.parts[0].text) || data;
         
         clearInterval(timerInterval);
@@ -117,10 +116,8 @@ window.finalUnveil = () => {
         return;
     }
 
-    // THE SUPER-SLICER v2
+    // Surgical extraction of base64 data
     const cleanBase64 = rawStr.replace(/[^A-Za-z0-9+/=]/g, "");
-    
-    // Find the real image start
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let finalCode = cleanBase64;
     for (let m of markers) {
@@ -128,28 +125,16 @@ window.finalUnveil = () => {
         if (pos !== -1) { finalCode = cleanBase64.substring(pos); break; }
     }
 
-    try {
-        // CONVERT TO BLOB (The Most Stable Display Method)
-        const byteCharacters = atob(finalCode);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], {type: 'image/png'});
-        const blobUrl = URL.createObjectURL(blob);
-
-        container.innerHTML = `
-            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
-                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
-                </div>
-                <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
-                    <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
-                </div>
-            </div>`;
-    } catch (e) {
-        // Last-ditch direct display if Blob fails
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>DISPLAY ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
-    }
+    // THE DIRECT-INJECTION METHOD (Fixes Blank Screen)
+    container.innerHTML = `
+        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
+            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                <img src="data:image/png;base64,${finalCode}" 
+                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
+                     onerror="this.src='data:image/jpeg;base64,${finalCode}'">
+            </div>
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
+                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
+            </div>
+        </div>`;
 };
