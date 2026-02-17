@@ -1,8 +1,7 @@
 /**
- * Kingsley Store AI - v71.0 "The Final Handshake"
- * FIX: Broken image by using a deeper binary extraction.
- * UI: "Add to Cart" button now perfectly centered.
- * UI: Countdown timer centered inside the spinner.
+ * Kingsley Store AI - v72.0 "High-Stability"
+ * FIX: Blank screen by parsing JSON and using High-Stability Blobs.
+ * UI: "Add to Cart" button perfectly centered.
  */
 
 const clothesCatalog = [
@@ -37,14 +36,14 @@ window.executeSearch = () => {
         </div>`).join('');
 };
 
-// --- 2. ENGINE ---
+// --- 2. THE ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT STANDING PHOTO
+            📸 SELECT YOUR PHOTO
         </button>`;
 };
 
@@ -82,7 +81,7 @@ window.startVertexModeling = async () => {
             clearInterval(timerInterval);
             window.finalUnveil();
         }
-        if (timeLeft <= -12) { 
+        if (timeLeft <= -15) { 
             clearInterval(timerInterval);
             window.finalUnveil();
         }
@@ -94,21 +93,23 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
         const data = await response.json();
-        // Extracting result from potential nested JSON structure
-        aiResultPending = data.result || data.body || data;
-    } catch (e) { aiResultPending = "ERROR"; }
+        // Force extract the string even if nested
+        aiResultPending = data.result || (data.body ? JSON.parse(data.body).result : null) || data;
+    } catch (e) { 
+        aiResultPending = "ERROR"; 
+    }
 };
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    if (!aiResultPending || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>TRY AGAIN</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:12px 25px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
+    if (!aiResultPending || aiResultPending === "ERROR") {
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRYING...</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:12px 25px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
-    // THE DEEPER SLICER
-    let clean = typeof aiResultPending === 'string' ? aiResultPending : JSON.stringify(aiResultPending);
-    const markers = ["iVBOR", "/9j/", "UklGR"];
+    // THE HIGH-STABILITY SLICER
+    let clean = (typeof aiResultPending === 'string') ? aiResultPending : JSON.stringify(aiResultPending);
+    const markers = ["iVBORw0", "/9j/4"]; // PNG and JPEG headers
     let start = -1;
     for (let m of markers) {
         let pos = clean.indexOf(m);
@@ -116,21 +117,31 @@ window.finalUnveil = () => {
     }
     
     if (start !== -1) clean = clean.substring(start);
-    
-    // Remove JSON quotes, backslashes, and whitespace
-    clean = clean.replace(/["'\\ \n\r\t]/g, '').replace(/[^A-Za-z0-9+/=]/g, "");
+    clean = clean.replace(/[^A-Za-z0-9+/=]/g, "");
 
-    container.innerHTML = `
-        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${clean}" 
-                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
-                     onerror="this.src='data:image/jpeg;base64,${clean}'">
-            </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
-                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
-                    ADD TO CART 🛒
-                </button>
-            </div>
-        </div>`;
+    // THE BLOB ENGINE (Fixed Blank Screen)
+    try {
+        const binaryString = atob(clean);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'image/png' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        container.innerHTML = `
+            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
+                </div>
+                <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
+                    <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">
+                        ADD TO CART 🛒
+                    </button>
+                </div>
+            </div>`;
+    } catch (e) {
+        // Fallback for older browsers
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>DISPLAY ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
+    }
 };
