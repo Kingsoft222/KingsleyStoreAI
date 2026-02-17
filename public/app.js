@@ -1,8 +1,7 @@
 /**
- * Kingsley Store AI - v69.0 "Auto-Unveil"
- * FIX: Removed 'View Result' button; image now pops up automatically.
- * FIX: Refined binary slicing for Gemini 2.0 Flash responses.
- * UI: Timer perfectly centered inside spinner.
+ * Kingsley Store AI - v70.0 "The Clean Cut"
+ * FIX: Broken image by aggressively sanitizing the Base64 string.
+ * UI: Automatic unveil once countdown hits 0.
  */
 
 const clothesCatalog = [
@@ -37,7 +36,7 @@ window.executeSearch = () => {
         </div>`).join('');
 };
 
-// --- 2. THE ENGINE ---
+// --- 2. ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -78,13 +77,11 @@ window.startVertexModeling = async () => {
         const timerEl = document.getElementById('countdown-timer');
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
         
-        // If 12s is up AND we have the data, unveil!
         if (timeLeft <= 0 && aiResultPending) {
             clearInterval(timerInterval);
             window.finalUnveil();
         }
-        // Emergency stop after 20s
-        if (timeLeft <= -8) {
+        if (timeLeft <= -10) { // Safety timeout
             clearInterval(timerInterval);
             window.finalUnveil();
         }
@@ -96,33 +93,20 @@ window.startVertexModeling = async () => {
             body: JSON.stringify({ userImage: userPhoto.split(',')[1], clothName: selectedCloth.name })
         });
         const data = await response.json();
-        
         if (data.result) {
             aiResultPending = data.result;
-            // If the timer already hit 0, trigger unveil now
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                window.finalUnveil();
-            }
         }
-    } catch (e) {
-        aiResultPending = "ERROR";
-    }
+    } catch (e) { aiResultPending = "ERROR"; }
 };
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    
-    // Fallback if data is missing
     if (!aiResultPending || aiResultPending.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;">
-            <h3>TAILOR IS BUSY</h3>
-            <p>Connection was slow. Let's try one more time.</p>
-            <button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button>
-        </div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>TRY AGAIN</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:12px 25px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
+    // THE CLEAN CUT: Force strip everything that isn't Base64
     let clean = aiResultPending;
     const markers = ["iVBOR", "/9j/", "UklGR"];
     let start = -1;
@@ -132,36 +116,19 @@ window.finalUnveil = () => {
     }
     
     if (start !== -1) clean = clean.substring(start);
-    // Extra cleaning for Gemini 2.0 specific chatter
-    clean = clean.split('`')[0].split(' ')[0].replace(/[^A-Za-z0-9+/=]/g, "");
+    
+    // This regex is a 'Vacuum Cleaner' - it removes spaces, newlines, backticks, and words
+    clean = clean.replace(/\s/g, '').replace(/[^A-Za-z0-9+/=]/g, "");
 
-    try {
-        const binaryString = atob(clean);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blobUrl = URL.createObjectURL(new Blob([bytes]));
-
-        container.innerHTML = `
-            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
-                </div>
-                <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
-                    <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
-                </div>
-            </div>`;
-    } catch (err) {
-        // If Blob fails, fallback to direct Base64 display
-        container.innerHTML = `
-            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                    <img src="data:image/png;base64,${clean}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;" onerror="this.src='data:image/jpeg;base64,${clean}'">
-                </div>
-                <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
-                    <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
-                </div>
-            </div>`;
-    }
+    container.innerHTML = `
+        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                <img src="data:image/png;base64,${clean}" 
+                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
+                     onerror="this.src='data:image/jpeg;base64,${clean}'">
+            </div>
+            <div style="position:absolute; bottom:0; width:100%; padding:20px 20px 60px 20px; background:linear-gradient(transparent, #000 70%); display:flex; flex-direction:column; align-items:center;">
+                <button style="background:#e60023; color:white; width:100%; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
+            </div>
+        </div>`;
 };
