@@ -1,8 +1,8 @@
 /**
- * Kingsley Store AI - v73.0 "Person-First"
- * FIX: Broken image by strictly forcing human + clothes output.
- * FIX: Shaking by using a fail-safe Base64 cleaner.
- * UI: "Add to Cart" button centered.
+ * Kingsley Store AI - v74.0 "Pro-Mall UI"
+ * FIX: Search result cards now uniform and mobile-friendly.
+ * UI: Center-aligned Add to Cart button.
+ * STATUS: AI handshake preserved.
  */
 
 const clothesCatalog = [
@@ -23,28 +23,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// --- 2. SEARCH ENGINE (FIXED BOLDNESS/SIZE) ---
 window.executeSearch = () => {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input || !results) return;
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+
+    const matched = clothesCatalog.filter(item => 
+        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
+    );
+
+    // Force a clean 2-column grid and standard image heights to stop the "boldness"
     results.style.display = 'grid';
+    results.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    results.style.gap = '15px';
+    results.style.padding = '10px';
+
     results.innerHTML = matched.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-            <img src="images/${item.img}">
-            <h4>${item.name}</h4>
-            <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" 
+             style="background:#1a1a1a; border-radius:15px; overflow:hidden; border:1px solid #333; text-align:center; padding-bottom:10px;">
+            <img src="images/${item.img}" style="width:100%; height:180px; object-fit:cover; display:block;">
+            <h4 style="font-size:0.9rem; margin:10px 5px 5px; color:white; font-weight:600;">${item.name}</h4>
+            <p style="color:#e60023; font-weight:800; font-size:1rem; margin:0;">${item.price}</p>
         </div>`).join('');
+    
+    results.scrollIntoView({ behavior: 'smooth' });
 };
 
-// --- 2. THE ENGINE ---
+// --- 3. THE VTO ENGINE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR STANDING PHOTO
+            📸 SELECT STANDING PHOTO
         </button>`;
 };
 
@@ -65,11 +78,11 @@ window.startVertexModeling = async () => {
 
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; color:white; background:#000; text-align:center;">
-            <div style="relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
+            <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 5rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 style="font-weight:800; margin-top:30px;">DRESSING YOU...</h3>
+            <h3 style="font-weight:800; margin-top:30px; letter-spacing:1px;">FITTING DESIGN...</h3>
         </div>`;
 
     let timeLeft = 12;
@@ -90,7 +103,7 @@ window.startVertexModeling = async () => {
         });
         const data = await response.json();
         aiResultPending = data.result;
-        window.finalUnveil(); // Unveil immediately on data arrival
+        window.finalUnveil();
         clearInterval(timerInterval);
     } catch (e) { 
         aiResultPending = "ERROR"; 
@@ -105,30 +118,20 @@ window.finalUnveil = () => {
         return;
     }
 
-    // THE FAIL-SAFE CLEANER
     let clean = aiResultPending.replace(/[^A-Za-z0-9+/=]/g, "");
-    
-    // Find the actual start of the image data
     const markers = ["iVBOR", "/9j/", "UklGR"];
     for (let m of markers) {
         let pos = clean.indexOf(m);
-        if (pos !== -1) {
-            clean = clean.substring(pos);
-            break;
-        }
+        if (pos !== -1) { clean = clean.substring(pos); break; }
     }
 
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${clean}" 
-                     style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
-                     onerror="this.src='data:image/jpeg;base64,${clean}'">
+                <img src="data:image/png;base64,${clean}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;" onerror="this.src='data:image/jpeg;base64,${clean}'">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
-                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">
-                    ADD TO CART 🛒
-                </button>
+                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
             </div>
         </div>`;
 };
