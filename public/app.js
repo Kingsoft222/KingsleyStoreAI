@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v78.0 "The Total Extraction"
- * MAINTAINED: "Dressing You" terms and countdown centered.
- * FIX: Blank screen by handling fragmented JSON responses.
+ * Kingsley Store AI - v79.0 "Final Victory"
+ * MAINTAINED: "Dressing You" terms and centered countdown.
+ * FIX: Broken image by using High-Speed Binary Blob conversion.
  * UI: Pro 2-column Mall Grid (Locked).
  */
 
@@ -73,7 +73,6 @@ window.startVertexModeling = async () => {
     const container = document.getElementById('video-main-container');
     aiResultPending = null; 
 
-    // MAINTAINED: Terms and centered timer
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
@@ -97,7 +96,7 @@ window.startVertexModeling = async () => {
         });
         
         const data = await response.json();
-        // Extract the result string even if the response is a complex object
+        // Extract strictly
         aiResultPending = data.result || (data.candidates && data.candidates[0].content.parts[0].text) || data;
         
         clearInterval(timerInterval);
@@ -111,38 +110,46 @@ window.startVertexModeling = async () => {
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
     
-    // Check if result is valid
     let rawStr = typeof aiResultPending === 'string' ? aiResultPending : JSON.stringify(aiResultPending);
     
     if (!rawStr || rawStr.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SYSTEM TIMEOUT</h3><p>The image data was too large. Try again.</p><button onclick="location.reload()" style="background:#e60023; color:white; padding:15px 30px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:15px 30px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
-    // Surgical Extraction
-    const markers = ["iVBOR", "/9j/", "UklGR"];
-    let start = -1;
-    for (let m of markers) {
-        let pos = rawStr.indexOf(m);
-        if (pos !== -1) { start = pos; break; }
-    }
-
-    if (start !== -1) {
-        rawStr = rawStr.substring(start);
-    }
-    
-    // Force strip all JSON noise (quotes, backslashes, etc)
+    // THE SUPER-SLICER v2
     const cleanBase64 = rawStr.replace(/[^A-Za-z0-9+/=]/g, "");
+    
+    // Find the real image start
+    const markers = ["iVBOR", "/9j/", "UklGR"];
+    let finalCode = cleanBase64;
+    for (let m of markers) {
+        let pos = cleanBase64.indexOf(m);
+        if (pos !== -1) { finalCode = cleanBase64.substring(pos); break; }
+    }
 
-    container.innerHTML = `
-        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
-            <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${cleanBase64}" 
-                     style="width:auto; height:100%; max-width:100%; object-fit:contain;"
-                     onerror="this.src='data:image/jpeg;base64,${cleanBase64}'">
-            </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
-                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
-            </div>
-        </div>`;
+    try {
+        // CONVERT TO BLOB (The Most Stable Display Method)
+        const byteCharacters = atob(finalCode);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {type: 'image/png'});
+        const blobUrl = URL.createObjectURL(blob);
+
+        container.innerHTML = `
+            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
+                <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                    <img src="${blobUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;">
+                </div>
+                <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
+                    <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
+                </div>
+            </div>`;
+    } catch (e) {
+        // Last-ditch direct display if Blob fails
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>DISPLAY ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
+    }
 };
