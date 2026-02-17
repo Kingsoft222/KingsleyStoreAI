@@ -1,15 +1,28 @@
 const axios = require('axios');
 
+// ChatGPT's Bulletproof Extraction Logic
 function extractBase64(text) {
-    const codeBlockMatch = text.match(/```(?:base64)?\s*([\s\S]*?)```/i);
-    if (codeBlockMatch) return codeBlockMatch[1].replace(/\s/g, '');
-    const markers = ["iVBOR", "/9j/", "UklGR"];
-    let cleaned = text;
-    for (let m of markers) {
-        let pos = text.indexOf(m);
-        if (pos !== -1) { cleaned = text.substring(pos); break; }
+    if (!text || typeof text !== "string") throw new Error("Invalid Response");
+
+    // 1. Try markdown code block
+    const markdownMatch = text.match(/```(?:base64)?\s*([\s\S]*?)```/i);
+    if (markdownMatch) {
+        const candidate = markdownMatch[1].trim();
+        if (isValid(candidate)) return candidate;
     }
-    return cleaned.replace(/[^A-Za-z0-9+/=]/g, "");
+
+    // 2. Find large base64 chunk (at least 10k chars)
+    const base64Match = text.match(/([A-Za-z0-9+/=]{10000,})/);
+    if (base64Match) {
+        const candidate = base64Match[1];
+        if (isValid(candidate)) return candidate;
+    }
+    throw new Error("No valid image found");
+}
+
+function isValid(str) {
+    // Must be divisible by 4 and have valid header
+    return (str.length % 4 === 0) && (str.startsWith("iVBOR") || str.startsWith("/9j/"));
 }
 
 exports.handler = async (event) => {
@@ -29,7 +42,10 @@ exports.handler = async (event) => {
         const payload = {
             contents: [{
                 parts: [
-                    { text: `PROFESSIONAL VTO: Put the ${clothName} on the person in the photo. Preserve skin tone and background. Return ONLY base64.` },
+                    // FAST PROMPT: Lower resolution instruction to speed up inference
+                    { text: `VTO TASK: Put ${clothName} on the person. 
+                             Output ONLY raw base64. 
+                             Keep resolution at 768px height for speed. No markdown.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }],
@@ -41,29 +57,28 @@ exports.handler = async (event) => {
             ],
             generationConfig: { 
                 temperature: 0.1, 
-                maxOutputTokens: 3500 // Balanced: High enough for detail, low enough for speed
+                maxOutputTokens: 2500 // Balanced for speed
             }
         };
 
-        const response = await axios.post(url, payload, { timeout: 27000 }); 
+        const response = await axios.post(url, payload, { timeout: 26000 });
+        const aiText = response.data.candidates[0].content.parts[0].text;
         
-        if (!response.data.candidates) throw new Error("AI Busy");
-
-        const rawText = response.data.candidates[0].content.parts[0].text;
-        const cleanBase64 = extractBase64(rawText);
+        // SURGICAL EXTRACTION
+        const cleanBase64 = extractBase64(aiText);
 
         return {
             statusCode: 200,
             headers: { ...headers, "Content-Type": "image/png" },
             body: cleanBase64,
-            isBase64Encoded: true 
+            isBase64Encoded: true // MEMORY-SAFE PASS-THROUGH
         };
 
     } catch (error) {
         return { 
             statusCode: 500, 
             headers, 
-            body: JSON.stringify({ error: "Tailor took too long. Try once more." }) 
+            body: JSON.stringify({ error: error.message }) 
         };
     }
 };
