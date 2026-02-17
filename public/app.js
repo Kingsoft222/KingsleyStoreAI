@@ -1,7 +1,7 @@
 /**
- * Kingsley Store AI - v80.0 "Direct-Injection"
+ * Kingsley Store AI - v81.0 "The Binary Scalpel"
+ * FIX: Shaking by surgically removing AI "Intro" and "Outro" chatter.
  * MAINTAINED: "Dressing You" terms and centered countdown.
- * FIX: Blank screen by bypassing Blobs and using Direct Base64.
  * UI: Pro 2-column Mall Grid (Locked).
  */
 
@@ -108,30 +108,40 @@ window.startVertexModeling = async () => {
 
 window.finalUnveil = () => {
     const container = document.getElementById('video-main-container');
-    
     let rawStr = typeof aiResultPending === 'string' ? aiResultPending : JSON.stringify(aiResultPending);
     
     if (!rawStr || rawStr.length < 500) {
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY</h3><button onclick="location.reload()" style="background:#e60023; color:white; padding:15px 30px; border-radius:50px; border:none; margin-top:20px;">REFRESH</button></div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>RETRY</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:15px 30px; border-radius:50px; margin-top:20px;">REFRESH</button></div>`;
         return;
     }
 
-    // Surgical extraction of base64 data
-    const cleanBase64 = rawStr.replace(/[^A-Za-z0-9+/=]/g, "");
+    // THE BINARY SCALPEL
+    // 1. Hunt for the markers
     const markers = ["iVBOR", "/9j/", "UklGR"];
-    let finalCode = cleanBase64;
+    let startIdx = -1;
     for (let m of markers) {
-        let pos = cleanBase64.indexOf(m);
-        if (pos !== -1) { finalCode = cleanBase64.substring(pos); break; }
+        let pos = rawStr.indexOf(m);
+        if (pos !== -1) { startIdx = pos; break; }
     }
 
-    // THE DIRECT-INJECTION METHOD (Fixes Blank Screen)
+    if (startIdx === -1) {
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>FORMAT ERROR</h3><button onclick="location.reload()">RETRY</button></div>`;
+        return;
+    }
+
+    // 2. Cut the intro
+    let cleanCode = rawStr.substring(startIdx);
+
+    // 3. Cut the outro (Remove everything after the last valid Base64 character)
+    // Most AI responses end with a quote or a backtick - we kill those.
+    cleanCode = cleanCode.replace(/[^A-Za-z0-9+/=].*$/, "");
+
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden;">
             <div style="flex:1; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="data:image/png;base64,${finalCode}" 
+                <img src="data:image/png;base64,${cleanCode}" 
                      style="width:auto; height:100%; max-width:100%; object-fit:contain; display:block;"
-                     onerror="this.src='data:image/jpeg;base64,${finalCode}'">
+                     onerror="this.src='data:image/jpeg;base64,${cleanCode}'">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none;" onclick="location.reload()">ADD TO CART 🛒</button>
