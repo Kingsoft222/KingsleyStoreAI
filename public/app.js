@@ -1,8 +1,9 @@
 /**
- * Kingsley Store AI - v98.0 "The Direct Stitch"
- * ARCHITECTURE: Instant Direct Return for immediate visual results.
+ * Kingsley Store AI - v99.0 "The Midnight Victory"
+ * ARCHITECTURE: Direct AI return + Global Window Mapping
  */
 
+// 1. FIREBASE INITIALIZATION
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -26,7 +27,7 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
-// --- IMAGE COMPRESSOR (CRITICAL FOR SPEED) ---
+// --- IMAGE COMPRESSOR (STOPS TIMEOUTS) ---
 function compressImage(base64, maxHeight = 700, quality = 0.7) {
     return new Promise(resolve => {
         const img = new Image();
@@ -73,7 +74,7 @@ export function promptShowroomChoice(id) {
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR PHOTO
+            📸 SELECT YOUR STANDING PHOTO
         </button>`;
 }
 
@@ -98,7 +99,7 @@ export async function startVertexModeling() {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">25</div>
             </div>
-            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR FIT...</h3>
+            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
         </div>`;
 
     let timeLeft = 25;
@@ -109,10 +110,9 @@ export async function startVertexModeling() {
     }, 1000);
 
     try {
-        // Compress more aggressively for speed
         const compressedUserImage = await compressImage(userPhoto);
         
-        // Call AI Directly
+        // TRIGGER THE AI TAILOR
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -124,12 +124,12 @@ export async function startVertexModeling() {
 
         if (response.ok) {
             const blob = await response.blob();
-            const stitchedUrl = URL.createObjectURL(blob);
-            
+            const finalStitchedUrl = URL.createObjectURL(blob);
+
             clearInterval(timerInterval);
-            window.displayFinalAnkara(stitchedUrl);
-            
-            // Log success in background (no need to wait)
+            window.displayFinalAnkara(finalStitchedUrl);
+
+            // LOG TO FIREBASE IN BACKGROUND
             setDoc(doc(db, "vto_jobs", "job_" + Date.now()), {
                 status: "completed_direct",
                 clothId: selectedCloth.id.toString(),
@@ -158,7 +158,7 @@ export function displayFinalAnkara(url) {
         </div>`;
 }
 
-// Global Bridge
+// --- THE GLOBAL BRIDGE (CRITICAL FIX FOR DISABLED BUTTONS) ---
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
