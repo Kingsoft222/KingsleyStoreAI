@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - v89.0 "The Live Bridge"
- * ARCHITECTURE: Firebase SDK + Image Compression + Real-time Firestore Listener
+ * Kingsley Store AI - v92.0 "The Global Module"
+ * ARCHITECTURE: Firebase SDK + Module Export + Global Window Mapping
  */
 
 // 1. FIREBASE INITIALIZATION
@@ -14,7 +14,6 @@ const firebaseConfig = {
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
     appId: "1:31402654971:web:26f75b0f913bcaf9f6445e"
-    
 };
 
 const app = initializeApp(firebaseConfig);
@@ -28,16 +27,20 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
+// Ensure search icon works
 document.addEventListener('DOMContentLoaded', () => {
     const icon = document.querySelector('.search-box i');
     if (icon) {
         icon.style.cursor = "pointer";
-        icon.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
+        icon.onclick = (e) => { 
+            e.preventDefault(); 
+            window.executeSearch(); 
+        };
     }
 });
 
 // --- SEARCH GRID ---
-window.executeSearch = () => {
+export function executeSearch() {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input || !results) return;
@@ -58,9 +61,9 @@ window.executeSearch = () => {
             <h4 style="font-size:0.85rem; margin:8px 4px; color:white; font-weight:600;">${item.name}</h4>
             <p style="color:#e60023; font-weight:900; margin:0;">${item.price}</p>
         </div>`).join('');
-};
+}
 
-// --- IMAGE COMPRESSOR (STOPS TIMEOUTS) ---
+// --- IMAGE COMPRESSOR ---
 function compressImage(base64, maxHeight = 800, quality = 0.8) {
     return new Promise(resolve => {
         const img = new Image();
@@ -77,7 +80,7 @@ function compressImage(base64, maxHeight = 800, quality = 0.8) {
     });
 }
 
-window.promptShowroomChoice = (id) => {
+export function promptShowroomChoice(id) {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
@@ -85,19 +88,19 @@ window.promptShowroomChoice = (id) => {
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
             📸 SELECT STANDING PHOTO
         </button>`;
-};
+}
 
-window.handleUserFitUpload = (e) => {
+export function handleUserFitUpload(e) {
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhoto = event.target.result;
         window.startVertexModeling();
     };
     reader.readAsDataURL(e.target.files[0]);
-};
+}
 
 // --- THE LIVE ENGINE ---
-window.startVertexModeling = async () => {
+export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
@@ -125,11 +128,8 @@ window.startVertexModeling = async () => {
 
     try {
         const compressedUserImage = await compressImage(userPhoto);
-        
-        // 1. GENERATE A UNIQUE JOB ID
         const jobId = "job_" + Date.now();
 
-        // 2. CREATE THE JOB IN FIRESTORE
         await setDoc(doc(db, "vto_jobs", jobId), {
             userId: "guest_user",
             status: "processing",
@@ -137,11 +137,8 @@ window.startVertexModeling = async () => {
             createdAt: serverTimestamp()
         });
 
-        // 3. LISTEN FOR CHANGES (THE MAGIC)
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
             const data = docSnap.data();
-            console.log("Database Update:", data?.status);
-
             if (data?.status === "completed" && data.resultImageUrl) {
                 clearInterval(timerInterval);
                 unsub();
@@ -153,7 +150,6 @@ window.startVertexModeling = async () => {
             }
         });
 
-        // 4. TRIGGER THE BACKEND (Wait just for the trigger, not the image)
         fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -168,9 +164,9 @@ window.startVertexModeling = async () => {
         clearInterval(timerInterval);
         container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>${e.message}</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button></div>`;
     }
-};
+}
 
-window.displayFinalAnkara = (url) => {
+export function displayFinalAnkara(url) {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
@@ -181,4 +177,11 @@ window.displayFinalAnkara = (url) => {
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
             </div>
         </div>`;
-};
+}
+
+// --- THE GLOBAL BRIDGE (CRITICAL FIX) ---
+window.executeSearch = executeSearch;
+window.promptShowroomChoice = promptShowroomChoice;
+window.handleUserFitUpload = handleUserFitUpload;
+window.startVertexModeling = startVertexModeling;
+window.displayFinalAnkara = displayFinalAnkara;
