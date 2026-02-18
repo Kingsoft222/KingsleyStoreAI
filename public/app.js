@@ -1,12 +1,11 @@
 /**
- * Kingsley Store AI - v100.0 "The Secure Fortress"
- * ARCHITECTURE: Firebase SDK (No Secret Keys) + Real-time Firestore Listener
+ * Kingsley Store AI - v102.0 "The 20-Second Smooth Finish"
+ * ARCHITECTURE: Secure Firebase + Real-time Listener + 20s Countdown
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// SECURE CONFIG: No API Key here. The Backend handles the AI.
 const firebaseConfig = {
     authDomain: "kingsleystoreai.firebaseapp.com",
     projectId: "kingsleystoreai",
@@ -26,7 +25,6 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
-// --- IMAGE COMPRESSOR ---
 function compressImage(base64, maxHeight = 800, quality = 0.8) {
     return new Promise(resolve => {
         const img = new Image();
@@ -43,7 +41,6 @@ function compressImage(base64, maxHeight = 800, quality = 0.8) {
     });
 }
 
-// --- SEARCH GRID ---
 export function executeSearch() {
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
@@ -86,7 +83,6 @@ export function handleUserFitUpload(e) {
     reader.readAsDataURL(e.target.files[0]);
 }
 
-// --- THE SECURE ENGINE ---
 export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
@@ -94,31 +90,47 @@ export async function startVertexModeling() {
 
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
-            <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
-            <h3 style="margin-top:25px; font-weight:800; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
-            <p style="color:#666; margin-top:10px;">The AI Tailor is working. This may take 30-45 seconds.</p>
+            <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4.5rem;"></i>
+                <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">20</div>
+            </div>
+            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
+            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.9rem; padding:0 30px;">Gemini AI is fitting the ${selectedCloth.name} to your frame.</p>
         </div>`;
+
+    let timeLeft = 20;
+    const timerInterval = setInterval(() => {
+        if (timeLeft > 1) {
+            timeLeft--;
+            const timerEl = document.getElementById('countdown-timer');
+            if (timerEl) timerEl.innerText = timeLeft;
+        } else {
+            // Once it hits 1, we hold it and update text instead of showing 0
+            const statusText = document.getElementById('loading-status-text');
+            const subText = document.getElementById('loading-subtext');
+            if (statusText) statusText.innerText = "ALMOST READY...";
+            if (subText) subText.innerText = "Adding the final touches to your look...";
+        }
+    }, 1000);
 
     try {
         const compressedUserImage = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
-        // 1. Create job in Firestore
         await setDoc(doc(db, "vto_jobs", jobId), {
             status: "processing",
             createdAt: serverTimestamp()
         });
 
-        // 2. The Bridge: Listen for the AI to finish in the background
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
             const data = docSnap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
-                unsub(); // Stop listening
+                clearInterval(timerInterval);
+                unsub(); 
                 window.displayFinalAnkara(data.resultImageUrl);
             }
         });
 
-        // 3. Trigger Backend (Gemini processing happens here)
         fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -127,9 +139,10 @@ export async function startVertexModeling() {
                 clothName: selectedCloth.name,
                 jobId: jobId 
             })
-        }).catch(err => console.log("Request sent. Waiting for DB update..."));
+        }).catch(() => console.log("Request sent. Tailor is on it."));
 
     } catch (e) {
+        clearInterval(timerInterval);
         container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>${e.message}</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button></div>`;
     }
 }
@@ -147,7 +160,6 @@ export function displayFinalAnkara(url) {
         </div>`;
 }
 
-// Global Bridge
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
