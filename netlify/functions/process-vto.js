@@ -1,13 +1,11 @@
 const axios = require("axios");
 
-// ChatGPT's Multi-Path Extractor
+// Extract Base64 from Gemini's multi-part response
 function extractBase64FromParts(parts) {
   if (!Array.isArray(parts)) return null;
-  // Path 1: Inline Data
   for (const part of parts) {
     if (part.inlineData && part.inlineData.data) return part.inlineData.data;
   }
-  // Path 2: Text Extraction
   for (const part of parts) {
     if (part.text) {
       const match = part.text.match(/([A-Za-z0-9+/=]{50000,})/);
@@ -27,32 +25,38 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return { statusCode: 200, headers };
 
   try {
-    const { userImage, clothName } = JSON.parse(event.body);
+    // 1. Get data from Frontend (including the jobId)
+    const { userImage, clothName, jobId } = JSON.parse(event.body);
     const API_KEY = process.env.GEMINI_API_KEY;
 
+    // 2. Call Gemini for the Virtual Try-On
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
       {
         contents: [{
           parts: [
-            { text: `VTO: Replace clothing with ${clothName}. JPEG, 768px, RAW base64 only.` },
+            { text: `VTO: Replace clothing with ${clothName}. Return RAW base64 for JPEG. No text.` },
             { inline_data: { mime_type: "image/jpeg", data: userImage } }
           ]
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 12000 }
+        generationConfig: { 
+            temperature: 0.1, 
+            maxOutputTokens: 16000 // Boosted for high-res JPEG
+        }
       },
       { timeout: 27000 }
     );
 
-    // THE FIX: Check if the AI actually returned anything before processing
     const candidates = response.data?.candidates;
-    if (!candidates || candidates.length === 0) {
-        throw new Error("Gemini is currently overloaded. Please try again.");
-    }
+    if (!candidates || candidates.length === 0) throw new Error("AI overloaded");
 
     const cleanBase64 = extractBase64FromParts(candidates[0].content?.parts);
+    if (!cleanBase64) throw new Error("Image generation failed");
 
-    if (!cleanBase64) throw new Error("Image generation failed.");
+    // 3. THE "AUTO-UPDATE" (Optional for tonight)
+    // For tonight, the Frontend is listening for a change. 
+    // Usually, we'd save the image to Storage here and update Firestore.
+    // For the FASTEST result tonight, we still return the image directly.
 
     return {
       statusCode: 200,
