@@ -1,11 +1,10 @@
 /**
- * Kingsley Store AI - v92.0 "The Global Module"
- * ARCHITECTURE: Firebase SDK + Module Export + Global Window Mapping
+ * Kingsley Store AI - v95.0 "The Instant Stitch"
+ * ARCHITECTURE: Firebase SDK + Direct AI Return + Instant Display
  */
 
-// 1. FIREBASE INITIALIZATION
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -27,17 +26,22 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
-// Ensure search icon works
-document.addEventListener('DOMContentLoaded', () => {
-    const icon = document.querySelector('.search-box i');
-    if (icon) {
-        icon.style.cursor = "pointer";
-        icon.onclick = (e) => { 
-            e.preventDefault(); 
-            window.executeSearch(); 
+// --- IMAGE COMPRESSOR ---
+function compressImage(base64, maxHeight = 800, quality = 0.8) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const scale = maxHeight / img.height;
+            canvas.height = maxHeight;
+            canvas.width = img.width * scale;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
         };
-    }
-});
+        img.src = base64;
+    });
+}
 
 // --- SEARCH GRID ---
 export function executeSearch() {
@@ -63,30 +67,13 @@ export function executeSearch() {
         </div>`).join('');
 }
 
-// --- IMAGE COMPRESSOR ---
-function compressImage(base64, maxHeight = 800, quality = 0.8) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const scale = maxHeight / img.height;
-            canvas.height = maxHeight;
-            canvas.width = img.width * scale;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
-        };
-        img.src = base64;
-    });
-}
-
 export function promptShowroomChoice(id) {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT STANDING PHOTO
+            📸 SELECT YOUR STANDING PHOTO
         </button>`;
 }
 
@@ -111,25 +98,21 @@ export async function startVertexModeling() {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
             </div>
-            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING NATIVE...</h3>
+            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">DRESSING YOU...</h3>
         </div>`;
 
     let timeLeft = 12;
     const timerInterval = setInterval(() => {
         timeLeft--;
         const timerEl = document.getElementById('countdown-timer');
-        const statusText = document.getElementById('loading-status-text');
         if (timerEl) timerEl.innerText = timeLeft > 0 ? timeLeft : 0;
-        if (statusText) {
-            if (timeLeft === 5) statusText.innerText = "Dressing You...";
-            else if (timeLeft === 2) statusText.innerText = "Unveiling Your Look...";
-        }
     }, 1000);
 
     try {
         const compressedUserImage = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
+        // 1. Log the attempt to Firebase
         await setDoc(doc(db, "vto_jobs", jobId), {
             userId: "guest_user",
             status: "processing",
@@ -137,20 +120,8 @@ export async function startVertexModeling() {
             createdAt: serverTimestamp()
         });
 
-        const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
-            const data = docSnap.data();
-            if (data?.status === "completed" && data.resultImageUrl) {
-                clearInterval(timerInterval);
-                unsub();
-                window.displayFinalAnkara(data.resultImageUrl);
-            } else if (data?.status === "failed") {
-                clearInterval(timerInterval);
-                unsub();
-                alert("Processing failed: " + (data.errorDetails || "Unknown error"));
-            }
-        });
-
-        fetch('/.netlify/functions/process-vto', {
+        // 2. TRIGGER AI & WAIT FOR RESULT
+        const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -159,6 +130,19 @@ export async function startVertexModeling() {
                 jobId: jobId 
             })
         });
+
+        if (!response.ok) throw new Error("Tailor Busy");
+
+        // 3. GET THE GENERATED IMAGE (STITCHED VERSION)
+        const blob = await response.blob();
+        const finalStitchedUrl = URL.createObjectURL(blob);
+
+        // 4. DISPLAY THE RESULT
+        clearInterval(timerInterval);
+        window.displayFinalAnkara(finalStitchedUrl);
+
+        // 5. Update Database Record
+        await setDoc(doc(db, "vto_jobs", jobId), { status: "completed" }, { merge: true });
 
     } catch (e) {
         clearInterval(timerInterval);
@@ -171,7 +155,7 @@ export function displayFinalAnkara(url) {
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain;">
+                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:10px;">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
@@ -179,7 +163,7 @@ export function displayFinalAnkara(url) {
         </div>`;
 }
 
-// --- THE GLOBAL BRIDGE (CRITICAL FIX) ---
+// Global Bridge
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
