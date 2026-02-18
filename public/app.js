@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - v95.0 "The Instant Stitch"
- * ARCHITECTURE: Firebase SDK + Direct AI Return + Instant Display
+ * Kingsley Store AI - v98.0 "The Direct Stitch"
+ * ARCHITECTURE: Instant Direct Return for immediate visual results.
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -26,8 +26,8 @@ const clothesCatalog = [
 let userPhoto = "";
 let selectedCloth = null;
 
-// --- IMAGE COMPRESSOR ---
-function compressImage(base64, maxHeight = 800, quality = 0.8) {
+// --- IMAGE COMPRESSOR (CRITICAL FOR SPEED) ---
+function compressImage(base64, maxHeight = 700, quality = 0.7) {
     return new Promise(resolve => {
         const img = new Image();
         img.onload = () => {
@@ -73,7 +73,7 @@ export function promptShowroomChoice(id) {
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR STANDING PHOTO
+            📸 SELECT YOUR PHOTO
         </button>`;
 }
 
@@ -86,7 +86,7 @@ export function handleUserFitUpload(e) {
     reader.readAsDataURL(e.target.files[0]);
 }
 
-// --- THE LIVE ENGINE ---
+// --- THE DIRECT ENGINE ---
 export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
@@ -96,12 +96,12 @@ export async function startVertexModeling() {
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
-                <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">12</div>
+                <div id="countdown-timer" style="position:absolute; font-size:1.6rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">25</div>
             </div>
-            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">DRESSING YOU...</h3>
+            <h3 id="loading-status-text" style="margin-top:25px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR FIT...</h3>
         </div>`;
 
-    let timeLeft = 12;
+    let timeLeft = 25;
     const timerInterval = setInterval(() => {
         timeLeft--;
         const timerEl = document.getElementById('countdown-timer');
@@ -109,40 +109,35 @@ export async function startVertexModeling() {
     }, 1000);
 
     try {
+        // Compress more aggressively for speed
         const compressedUserImage = await compressImage(userPhoto);
-        const jobId = "job_" + Date.now();
-
-        // 1. Log the attempt to Firebase
-        await setDoc(doc(db, "vto_jobs", jobId), {
-            userId: "guest_user",
-            status: "processing",
-            clothId: selectedCloth.id.toString(),
-            createdAt: serverTimestamp()
-        });
-
-        // 2. TRIGGER AI & WAIT FOR RESULT
+        
+        // Call AI Directly
         const response = await fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
                 userImage: compressedUserImage, 
-                clothName: selectedCloth.name,
-                jobId: jobId 
+                clothName: selectedCloth.name 
             })
         });
 
-        if (!response.ok) throw new Error("Tailor Busy");
-
-        // 3. GET THE GENERATED IMAGE (STITCHED VERSION)
-        const blob = await response.blob();
-        const finalStitchedUrl = URL.createObjectURL(blob);
-
-        // 4. DISPLAY THE RESULT
-        clearInterval(timerInterval);
-        window.displayFinalAnkara(finalStitchedUrl);
-
-        // 5. Update Database Record
-        await setDoc(doc(db, "vto_jobs", jobId), { status: "completed" }, { merge: true });
+        if (response.ok) {
+            const blob = await response.blob();
+            const stitchedUrl = URL.createObjectURL(blob);
+            
+            clearInterval(timerInterval);
+            window.displayFinalAnkara(stitchedUrl);
+            
+            // Log success in background (no need to wait)
+            setDoc(doc(db, "vto_jobs", "job_" + Date.now()), {
+                status: "completed_direct",
+                clothId: selectedCloth.id.toString(),
+                createdAt: serverTimestamp()
+            });
+        } else {
+            throw new Error("Tailor Busy - Try a clearer photo!");
+        }
 
     } catch (e) {
         clearInterval(timerInterval);
@@ -155,7 +150,7 @@ export function displayFinalAnkara(url) {
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:10px;">
+                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px;">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
