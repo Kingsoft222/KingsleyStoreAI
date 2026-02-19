@@ -1,8 +1,3 @@
-/**
- * Kingsley Store AI - v108.0 "The Background Breakthrough"
- * ARCHITECTURE: Secure Firebase + Background Polling + Storage Render
- */
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -17,60 +12,22 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const clothesCatalog = [
-    { id: 1, name: "Premium Red Luxury Native", tags: "luxury red native", img: "senator_red.jpg", price: "₦25k" },
-    { id: 2, name: "Blue Ankara Suite", tags: "ankara blue native", img: "ankara_blue.jpg", price: "₦22k" }
-];
-
 let userPhoto = "";
 let selectedCloth = null;
 
-function compressImage(base64, maxHeight = 800, quality = 0.8) {
-    return new Promise(resolve => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            const scale = maxHeight / img.height;
-            canvas.height = maxHeight;
-            canvas.width = img.width * scale;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL("image/jpeg", quality).split(",")[1]);
-        };
-        img.src = base64;
-    });
-}
+const clothesCatalog = [
+    { id: 1, name: "Premium Red Luxury Native", img: "senator_red.jpg", price: "₦25k" },
+    { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
+];
 
-export function executeSearch() {
-    const input = document.getElementById('ai-input').value.toLowerCase();
-    const results = document.getElementById('ai-results');
-    if (!input || !results) return;
-
-    const matched = clothesCatalog.filter(item => 
-        item.name.toLowerCase().includes(input) || item.tags.toLowerCase().includes(input)
-    );
-
-    results.style.display = 'grid';
-    results.style.gridTemplateColumns = 'repeat(2, 1fr)';
-    results.style.gap = '12px';
-    results.style.padding = '10px';
-
-    results.innerHTML = matched.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" 
-             style="background:#111; border-radius:12px; overflow:hidden; border:1px solid #222; text-align:center; padding-bottom:10px; cursor:pointer;">
-            <img src="images/${item.img}" style="width:100%; height:160px; object-fit:cover; display:block;">
-            <h4 style="font-size:0.85rem; margin:8px 4px; color:white; font-weight:600;">${item.name}</h4>
-            <p style="color:#e60023; font-weight:900; margin:0;">${item.price}</p>
-        </div>`).join('');
-}
-
+// UI Functions
 export function promptShowroomChoice(id) {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
-        <button id="upload-trigger-btn" onclick="document.getElementById('user-fit-input').click()" 
+        <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 UPLOAD REFERENCE PHOTO
+            📸 UPLOAD PHOTO
         </button>`;
 }
 
@@ -83,88 +40,63 @@ export function handleUserFitUpload(e) {
     reader.readAsDataURL(e.target.files[0]);
 }
 
+async function compressImage(base64) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const scale = 800 / img.height;
+            canvas.height = 800;
+            canvas.width = img.width * scale;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL("image/jpeg", 0.7).split(",")[1]);
+        };
+        img.src = base64;
+    });
+}
+
 export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
 
     container.innerHTML = `
-        <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
-            <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
-                <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4.5rem;"></i>
-                <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">40</div>
-            </div>
-            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
-            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.85rem; padding:0 30px;">Our AI is processing your look. Please wait.</p>
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white;">
+            <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
+            <h3 style="margin-top:20px;">STITCHING YOUR LOOK...</h3>
         </div>`;
 
-    let timeLeft = 40;
-    const timerInterval = setInterval(() => {
-        if (timeLeft > 1) {
-            timeLeft--;
-            const timerEl = document.getElementById('countdown-timer');
-            if (timerEl) timerEl.innerText = timeLeft;
-        }
-    }, 1000);
-
     try {
-        const compressedUserImage = await compressImage(userPhoto);
+        const compressed = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
-        // 1. Create Job Entry
-        await setDoc(doc(db, "vto_jobs", jobId), {
-            status: "processing",
-            createdAt: serverTimestamp()
-        });
+        await setDoc(doc(db, "vto_jobs", jobId), { status: "pending" });
 
-        // 2. Real-time listener for Background Task completion
-        const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
-            const data = docSnap.data();
+        const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
+            const data = snap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
-                clearInterval(timerInterval);
-                unsub(); 
-                window.displayFinalAnkara(data.resultImageUrl);
-            } else if (data?.status === "failed") {
-                clearInterval(timerInterval);
                 unsub();
-                alert("AI Processing snagged. Please try again with a clearer photo.");
-                location.reload();
+                window.displayFinalAnkara(data.resultImageUrl);
             }
         });
 
-        // 3. Trigger the BACKGROUND function
         fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                userImage: compressedUserImage, 
-                clothName: selectedCloth.name,
-                jobId: jobId 
-            })
-        }).catch(() => console.log("Background request accepted."));
-
-    } catch (e) {
-        clearInterval(timerInterval);
-        console.error("Critical Failure:", e.message);
-    }
+            body: JSON.stringify({ userImage: compressed, clothName: selectedCloth.name, jobId: jobId })
+        });
+    } catch (e) { console.error(e); }
 }
 
 export function displayFinalAnkara(url) {
-    const container = document.getElementById('video-main-container');
-    
-    container.innerHTML = `
-        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-            <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px;" onerror="this.src='https://placehold.co/600x800?text=Render+Failed'">
-            </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
-                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
-            </div>
+    document.getElementById('video-main-container').innerHTML = `
+        <div style="width:100%; height:100vh; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <img src="${url}" style="max-height:80%; max-width:90%; border-radius:12px;">
+            <button onclick="location.reload()" style="margin-top:20px; background:#e60023; color:white; padding:15px 40px; border-radius:50px; border:none; font-weight:800;">FINISH 🛒</button>
         </div>`;
 }
 
-window.executeSearch = executeSearch;
+// Global attachment
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
 window.startVertexModeling = startVertexModeling;
-window.displayFinalAnkara = displayFinalAnkara;
