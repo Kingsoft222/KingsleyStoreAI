@@ -7,7 +7,6 @@ const initializeFirebase = () => {
             const rawKey = process.env.FIREBASE_PRIVATE_KEY;
             const cleanKey = rawKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\n|\s/g, "");
             const finalKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: "kingsleystoreai",
@@ -28,7 +27,6 @@ exports.handler = async (event) => {
     initializeFirebase();
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
-    
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const API_KEY = process.env.GEMINI_API_KEY;
 
@@ -36,25 +34,20 @@ exports.handler = async (event) => {
         const jobRef = db.collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
-        // --- FIXED URL & MODEL VERSION ---
-        // We use v1 instead of v1beta for maximum stability
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // --- THE CORRECT PRODUCTION URL ---
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await axios.post(url, {
             contents: [{
                 parts: [
-                    { text: `You are a fashion AI. Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown, no extra text.` },
+                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }]
-        }, { 
-            timeout: 90000,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        }, { timeout: 90000 });
 
-        // Add extra check to see what Gemini actually sent back
-        if (!response.data || !response.data.candidates) {
-            throw new Error("Gemini returned empty response");
+        if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            throw new Error("AI response format invalid");
         }
 
         let aiOutput = response.data.candidates[0].content.parts[0].text;
@@ -76,14 +69,10 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log("SUCCESS: Image generated and stored.");
+        console.log("SUCCESS: Image rendered and folder created.");
 
     } catch (error) {
-        // Detailed logging to find exactly what failed
-        console.error("HANDLER ERROR TYPE:", error.response ? "API Error" : "Logic Error");
-        console.error("ERROR MESSAGE:", error.message);
-        if (error.response) console.error("API DATA:", JSON.stringify(error.response.data));
-
+        console.error("FINAL ERROR LOG:", error.message);
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
