@@ -17,8 +17,7 @@ const initializeFirebase = () => {
             });
             console.log("SYSTEM: Firebase Initialized Successfully");
         } catch (error) {
-            console.error("CRITICAL: Firebase Init Failed:", error.message);
-            throw error;
+            console.error("Firebase Init Error:", error.message);
         }
     }
 };
@@ -34,20 +33,20 @@ exports.handler = async (event) => {
         const jobRef = db.collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
-        // --- THE ONLY URL THAT WORKS FOR FLASH 1.5 ---
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // TRYING THE MOST EXPLICIT MODEL PATH POSSIBLE
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
         const response = await axios.post(url, {
             contents: [{
                 parts: [
-                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown, no conversational text, just the string.` },
+                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }]
         }, { timeout: 95000 });
 
         if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            throw new Error("AI response format invalid - check API quota/card");
+            throw new Error("AI response format invalid - Check API console for model access");
         }
 
         let aiOutput = response.data.candidates[0].content.parts[0].text;
@@ -69,11 +68,11 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log("SUCCESS: Image rendered to Storage.");
+        console.log("SUCCESS: Saturday Demo is back on track!");
 
     } catch (error) {
-        console.error("FINAL ERROR LOG:", error.message);
-        if (error.response) console.error("API RESPONSE ERROR:", JSON.stringify(error.response.data));
+        console.error("FINAL ATTEMPT ERROR:", error.message);
+        if (error.response) console.error("FULL API ERROR:", JSON.stringify(error.response.data));
         
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
