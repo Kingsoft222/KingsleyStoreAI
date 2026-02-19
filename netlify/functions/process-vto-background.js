@@ -1,4 +1,4 @@
-const axios = require("axios");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const admin = require("firebase-admin");
 
 const initializeFirebase = () => {
@@ -15,7 +15,7 @@ const initializeFirebase = () => {
                 }),
                 storageBucket: "kingsleystoreai.firebasestorage.app"
             });
-            console.log("SYSTEM: Firebase Initialized Successfully");
+            console.log("SYSTEM: Firebase Ready");
         } catch (error) {
             console.error("Firebase Init Error:", error.message);
         }
@@ -27,29 +27,22 @@ exports.handler = async (event) => {
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     const { userImage, clothName, jobId } = JSON.parse(event.body);
-    const API_KEY = process.env.GEMINI_API_KEY;
+    
+    // Initialize Google AI SDK
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     try {
         const jobRef = db.collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
-        // TRYING THE MOST EXPLICIT MODEL PATH POSSIBLE
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+        // Generate content using the SDK (No URL to mess up)
+        const result = await model.generateContent([
+            `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.`,
+            { inlineData: { mimeType: "image/jpeg", data: userImage } }
+        ]);
 
-        const response = await axios.post(url, {
-            contents: [{
-                parts: [
-                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.` },
-                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
-                ]
-            }]
-        }, { timeout: 95000 });
-
-        if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            throw new Error("AI response format invalid - Check API console for model access");
-        }
-
-        let aiOutput = response.data.candidates[0].content.parts[0].text;
+        const aiOutput = result.response.text();
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
 
         const buffer = Buffer.from(cleanBase64, 'base64');
@@ -68,12 +61,10 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log("SUCCESS: Saturday Demo is back on track!");
+        console.log("SUCCESS: SDK utilized, image saved.");
 
     } catch (error) {
-        console.error("FINAL ATTEMPT ERROR:", error.message);
-        if (error.response) console.error("FULL API ERROR:", JSON.stringify(error.response.data));
-        
+        console.error("SDK ERROR:", error.message);
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
