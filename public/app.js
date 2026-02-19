@@ -19,9 +19,9 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-// FORCE ALL BUTTONS ENABLED
-function unlockButtons() {
-    document.querySelectorAll('button').forEach(btn => {
+function unlockUI() {
+    const buttons = document.querySelectorAll('button, #send-btn');
+    buttons.forEach(btn => {
         btn.disabled = false;
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
@@ -29,11 +29,9 @@ function unlockButtons() {
 }
 
 export function executeSearch() {
-    unlockButtons(); // Never lock out
     const input = document.getElementById('ai-input').value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input || !results) return;
-
     const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
     results.style.display = 'grid';
     results.innerHTML = matched.map(item => `
@@ -82,44 +80,63 @@ export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
+    
+    // --- COUNTDOWN UI RE-ADDED ---
+    let timeLeft = 40;
+    container.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white; text-align:center;">
+            <div id="countdown-circle" style="font-size: 5rem; font-weight: 800; color: #e60023; margin-bottom: 20px;">${timeLeft}</div>
+            <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 2rem; margin-bottom:20px;"></i>
+            <h3 style="letter-spacing:2px;">STITCHING YOUR NATIVE...</h3>
+            <p style="color:#666; font-size:0.8rem; margin-top:10px;">AI is generating your custom render</p>
+        </div>`;
 
-    container.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white;">
-        <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4rem;"></i>
-        <h3 style="margin-top:20px;">STITCHING YOUR ANKARA...</h3>
-    </div>`;
+    const timerInterval = setInterval(() => {
+        timeLeft--;
+        const timerDisplay = document.getElementById('countdown-circle');
+        if (timerDisplay) timerDisplay.innerText = timeLeft;
+        if (timeLeft <= 0) clearInterval(timerInterval);
+    }, 1000);
 
     try {
         const compressed = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
-        await setDoc(doc(db, "vto_jobs", jobId), { status: "pending" });
+        // 1. Create document BEFORE calling the function (Fixes 404)
+        await setDoc(doc(db, "vto_jobs", jobId), { 
+            status: "pending",
+            createdAt: serverTimestamp() 
+        });
 
+        // 2. Listen for Success
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
             const data = snap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
+                clearInterval(timerInterval);
                 unsub();
                 window.displayFinalAnkara(data.resultImageUrl);
             }
         });
 
+        // 3. Trigger Background
         fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
             body: JSON.stringify({ userImage: compressed, clothName: selectedCloth.name, jobId: jobId })
         });
-    } catch (e) { console.error(e); }
+
+    } catch (e) { console.error(e); clearInterval(timerInterval); }
 }
 
 export function displayFinalAnkara(url) {
     document.getElementById('video-main-container').innerHTML = `
         <div style="width:100%; height:100vh; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <img src="${url}" style="max-height:80%; max-width:90%; border-radius:12px;">
-            <button onclick="location.reload()" style="margin-top:20px; background:#e60023; color:white; padding:15px 40px; border-radius:50px; font-weight:800;">FINISH 🛒</button>
+            <img src="${url}" style="max-height:80%; max-width:90%; border-radius:12px; border:2px solid #e60023;">
+            <button onclick="location.reload()" style="margin-top:20px; background:#e60023; color:white; padding:15px 40px; border-radius:50px; font-weight:800; border:none; cursor:pointer;">ORDER NOW 🛍️</button>
         </div>`;
 }
 
-// Global scope
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
 window.startVertexModeling = startVertexModeling;
-unlockButtons();
+unlockUI();
