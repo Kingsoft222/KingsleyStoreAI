@@ -4,16 +4,7 @@ const admin = require("firebase-admin");
 if (!admin.apps.length) {
     try {
         const rawKey = process.env.FIREBASE_PRIVATE_KEY;
-
-        // The "Hammer" approach: Strip everything and manually rebuild
-        // This removes literal \n, actual newlines, and headers to start fresh
-        const cleanKey = rawKey
-            .replace(/-----BEGIN PRIVATE KEY-----/g, '')
-            .replace(/-----END PRIVATE KEY-----/g, '')
-            .replace(/\\n/g, '\n') // Fixes literal \n
-            .replace(/\n/g, '')    // Removes all existing newlines
-            .trim();
-
+        const cleanKey = rawKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\n|\s/g, "");
         const finalKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
 
         admin.initializeApp({
@@ -44,13 +35,12 @@ exports.handler = async (event) => {
         const { userImage, clothName, jobId } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
 
-        // 1. Call Gemini to perform the Virtual Try-On
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
             {
                 contents: [{
                     parts: [
-                        { text: `FASHION AI: Perform a virtual try-on. Replace the clothes with ${clothName}. Keep the person's face and background identical. Return ONLY the base64 jpeg string.` },
+                        { text: `FASHION AI: Perform a virtual try-on. Replace the clothes with ${clothName}. Keep the person's face and background identical. Return ONLY the raw base64 data string. Do not use markdown. Do not use code blocks.` },
                         { inline_data: { mime_type: "image/jpeg", data: userImage } }
                     ]
                 }]
@@ -58,17 +48,24 @@ exports.handler = async (event) => {
             { timeout: 55000 }
         );
 
-        const aiOutput = response.data.candidates[0].content.parts[0].text;
-        const cleanBase64 = aiOutput.replace(/[^A-Za-z0-9+/=]/g, ""); 
+        let aiOutput = response.data.candidates[0].content.parts[0].text;
+
+        // THE CLEANER: Strip Markdown backticks, "base64" labels, and newlines
+        const cleanBase64 = aiOutput
+            .replace(/```[a-z]*\n?/g, "") // Removes ```base64 or ```
+            .replace(/```/g, "")           // Removes closing ```
+            .replace(/\s/g, "")            // Removes all whitespace/newlines
+            .trim();
+
         const finalUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
-        // 2. Update Firestore so the App pops the image
         await db.collection("vto_jobs").doc(jobId).update({
             status: "completed",
             resultImageUrl: finalUrl,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
+        console.log("LOG: Image sanitized and saved to Firestore.");
         return { statusCode: 200, headers, body: JSON.stringify({ status: "success" }) };
 
     } catch (error) {
