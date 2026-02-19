@@ -1,10 +1,14 @@
 /**
- * Kingsley Store AI - v105.0 "The Executive Final"
- * ARCHITECTURE: Secure Firebase + Real-time Listener + 40s Pro Countdown
+ * Kingsley Store AI - v106.0 "The Crystal Clear Render"
+ * ARCHITECTURE: Secure Firebase + Pro Countdown + Image Sanitization
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+// Note: Ensure your imports are correct for your environment. 
+// If using standard CDN:
+import { getFirestore as fs, doc as d, onSnapshot as os, setDoc as sd, serverTimestamp as st } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     authDomain: "kingsleystoreai.firebaseapp.com",
@@ -15,7 +19,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = fs(app);
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", tags: "luxury red native", img: "senator_red.jpg", price: "₦25k" },
@@ -88,7 +92,6 @@ export async function startVertexModeling() {
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
 
-    // PROFESSIONAL UI: 40 second start
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
@@ -106,7 +109,6 @@ export async function startVertexModeling() {
             const timerEl = document.getElementById('countdown-timer');
             if (timerEl) timerEl.innerText = timeLeft;
             
-            // Professional Phase Updates
             const statusText = document.getElementById('loading-status-text');
             if (timeLeft === 30) statusText.innerText = "STITCHING GARMENT...";
             if (timeLeft === 15) statusText.innerText = "FINALIZING TEXTURES...";
@@ -122,29 +124,26 @@ export async function startVertexModeling() {
         const compressedUserImage = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
-        // 1. Create the doc in Firestore
-        await setDoc(doc(db, "vto_jobs", jobId), {
+        await sd(d(db, "vto_jobs", jobId), {
             status: "processing",
-            createdAt: serverTimestamp()
+            createdAt: st()
         });
 
-        // 2. The REAL-TIME LISTENER: This is what catches the image
-        const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
+        const unsub = os(d(db, "vto_jobs", jobId), (docSnap) => {
             const data = docSnap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
-                console.log("Success: Image received.");
+                // DATA CLEANING: Ensure the URL is a proper data URI
+                let cleanUrl = data.resultImageUrl.trim();
+                if (!cleanUrl.startsWith('data:image')) {
+                    cleanUrl = `data:image/jpeg;base64,${cleanUrl.replace(/^data:image\/[a-z]+;base64,/, '')}`;
+                }
+                
                 clearInterval(timerInterval);
                 unsub(); 
-                window.displayFinalAnkara(data.resultImageUrl);
-            } else if (data?.status === "failed") {
-                clearInterval(timerInterval);
-                unsub();
-                alert("Processing error. Please try a clearer photo.");
-                location.reload();
+                window.displayFinalAnkara(cleanUrl);
             }
         });
 
-        // 3. Trigger the Backend
         fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -153,25 +152,34 @@ export async function startVertexModeling() {
                 clothName: selectedCloth.name,
                 jobId: jobId 
             })
-        }).catch(() => console.error("Network sync in progress..."));
+        });
 
     } catch (e) {
         clearInterval(timerInterval);
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SESSION ERROR</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RESTART PROCESS</button></div>`;
+        console.error(e);
     }
 }
 
 export function displayFinalAnkara(url) {
     const container = document.getElementById('video-main-container');
-    container.innerHTML = `
-        <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
-            <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px;">
-            </div>
-            <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
-                <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
-            </div>
-        </div>`;
+    
+    // Create a new image object to verify loading
+    const testImg = new Image();
+    testImg.onload = () => {
+        container.innerHTML = `
+            <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
+                <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
+                    <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px; border: 2px solid #222;">
+                </div>
+                <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
+                    <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
+                </div>
+            </div>`;
+    };
+    testImg.onerror = () => {
+        container.innerHTML = `<div style="color:white; text-align:center; padding-top:100px;"><h3>Render Error</h3><p>The AI sent an invalid image format. Retrying...</p><button onclick="location.reload()">Try Again</button></div>`;
+    };
+    testImg.src = url;
 }
 
 window.executeSearch = executeSearch;
