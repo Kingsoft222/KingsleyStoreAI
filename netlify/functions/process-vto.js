@@ -3,22 +3,29 @@ const admin = require("firebase-admin");
 
 if (!admin.apps.length) {
     try {
-        // Step 1: Grab the Base64 string from your Netlify Environment Variable
-        const base64Key = process.env.FIREBASE_PRIVATE_KEY;
-        
-        // Step 2: Decode it into the original PEM format
-        const decodedKey = Buffer.from(base64Key, 'base64').toString('utf8');
+        const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+
+        // The "Hammer" approach: Strip everything and manually rebuild
+        // This removes literal \n, actual newlines, and headers to start fresh
+        const cleanKey = rawKey
+            .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+            .replace(/-----END PRIVATE KEY-----/g, '')
+            .replace(/\\n/g, '\n') // Fixes literal \n
+            .replace(/\n/g, '')    // Removes all existing newlines
+            .trim();
+
+        const finalKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
 
         admin.initializeApp({
             credential: admin.credential.cert({
                 projectId: "kingsleystoreai",
                 clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: decodedKey
+                privateKey: finalKey
             })
         });
-        console.log("SUCCESS: Firebase Admin Initialized via Base64 Bridge");
+        console.log("LOG: Firebase Authenticated Successfully.");
     } catch (error) {
-        console.error("FATAL: Firebase Admin Init Failed:", error.message);
+        console.error("LOG: Authentication Failed:", error.message);
     }
 }
 
@@ -37,9 +44,7 @@ exports.handler = async (event) => {
         const { userImage, clothName, jobId } = JSON.parse(event.body);
         const API_KEY = process.env.GEMINI_API_KEY;
 
-        console.log(`Processing AI request for Job: ${jobId}`);
-
-        // Call Gemini AI
+        // 1. Call Gemini to perform the Virtual Try-On
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
             {
@@ -57,14 +62,13 @@ exports.handler = async (event) => {
         const cleanBase64 = aiOutput.replace(/[^A-Za-z0-9+/=]/g, ""); 
         const finalUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
-        // Update Firestore
+        // 2. Update Firestore so the App pops the image
         await db.collection("vto_jobs").doc(jobId).update({
             status: "completed",
             resultImageUrl: finalUrl,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log(`Job ${jobId} successfully updated in Firestore.`);
         return { statusCode: 200, headers, body: JSON.stringify({ status: "success" }) };
 
     } catch (error) {
