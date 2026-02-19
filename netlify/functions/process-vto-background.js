@@ -34,7 +34,7 @@ exports.handler = async (event) => {
         const jobRef = db.collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
-        // --- THE CORRECT PRODUCTION URL ---
+        // --- THE CORRECT PRODUCTION URL (BACK TO v1beta) ---
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await axios.post(url, {
