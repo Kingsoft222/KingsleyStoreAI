@@ -34,20 +34,20 @@ exports.handler = async (event) => {
         const jobRef = db.collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
-        // --- THE CORRECT PRODUCTION URL (BACK TO v1beta) ---
+        // --- THE ONLY URL THAT WORKS FOR FLASH 1.5 ---
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await axios.post(url, {
             contents: [{
                 parts: [
-                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.` },
+                    { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown, no conversational text, just the string.` },
                     { inline_data: { mime_type: "image/jpeg", data: userImage } }
                 ]
             }]
-        }, { timeout: 90000 });
+        }, { timeout: 95000 });
 
         if (!response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            throw new Error("AI response format invalid");
+            throw new Error("AI response format invalid - check API quota/card");
         }
 
         let aiOutput = response.data.candidates[0].content.parts[0].text;
@@ -69,10 +69,12 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log("SUCCESS: Image rendered and folder created.");
+        console.log("SUCCESS: Image rendered to Storage.");
 
     } catch (error) {
         console.error("FINAL ERROR LOG:", error.message);
+        if (error.response) console.error("API RESPONSE ERROR:", JSON.stringify(error.response.data));
+        
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
