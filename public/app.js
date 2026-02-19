@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - v102.0 "The 20-Second Smooth Finish"
- * ARCHITECTURE: Secure Firebase + Real-time Listener + 20s Countdown
+ * Kingsley Store AI - v105.0 "The Executive Final"
+ * ARCHITECTURE: Secure Firebase + Real-time Listener + 40s Pro Countdown
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -70,7 +70,7 @@ export function promptShowroomChoice(id) {
     document.getElementById('ai-fitting-result').innerHTML = `
         <button onclick="document.getElementById('user-fit-input').click()" 
                 style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 SELECT YOUR STANDING PHOTO
+            📸 UPLOAD REFERENCE PHOTO
         </button>`;
 }
 
@@ -88,28 +88,33 @@ export async function startVertexModeling() {
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
 
+    // PROFESSIONAL UI: 40 second start
     container.innerHTML = `
         <div id="loading-state" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; width:100%; background:#000; color:white; text-align:center;">
             <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4.5rem;"></i>
-                <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">20</div>
+                <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">40</div>
             </div>
-            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
-            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.9rem; padding:0 30px;">Gemini AI is fitting the ${selectedCloth.name} to your frame.</p>
+            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">INITIALIZING VIRTUAL FITTING...</h3>
+            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.85rem; padding:0 30px;">Processing image data and mapping garment texture.</p>
         </div>`;
 
-    let timeLeft = 20;
+    let timeLeft = 40;
     const timerInterval = setInterval(() => {
         if (timeLeft > 1) {
             timeLeft--;
             const timerEl = document.getElementById('countdown-timer');
             if (timerEl) timerEl.innerText = timeLeft;
+            
+            // Professional Phase Updates
+            const statusText = document.getElementById('loading-status-text');
+            if (timeLeft === 30) statusText.innerText = "STITCHING GARMENT...";
+            if (timeLeft === 15) statusText.innerText = "FINALIZING TEXTURES...";
         } else {
-            // Once it hits 1, we hold it and update text instead of showing 0
             const statusText = document.getElementById('loading-status-text');
             const subText = document.getElementById('loading-subtext');
-            if (statusText) statusText.innerText = "ALMOST READY...";
-            if (subText) subText.innerText = "Adding the final touches to your look...";
+            if (statusText) statusText.innerText = "SYNCING DATA...";
+            if (subText) subText.innerText = "Finalizing secure image delivery. Please remain on this page.";
         }
     }, 1000);
 
@@ -117,20 +122,29 @@ export async function startVertexModeling() {
         const compressedUserImage = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
+        // 1. Create the doc in Firestore
         await setDoc(doc(db, "vto_jobs", jobId), {
             status: "processing",
             createdAt: serverTimestamp()
         });
 
+        // 2. The REAL-TIME LISTENER: This is what catches the image
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
             const data = docSnap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
+                console.log("Success: Image received.");
                 clearInterval(timerInterval);
                 unsub(); 
                 window.displayFinalAnkara(data.resultImageUrl);
+            } else if (data?.status === "failed") {
+                clearInterval(timerInterval);
+                unsub();
+                alert("Processing error. Please try a clearer photo.");
+                location.reload();
             }
         });
 
+        // 3. Trigger the Backend
         fetch('/.netlify/functions/process-vto', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
@@ -139,11 +153,11 @@ export async function startVertexModeling() {
                 clothName: selectedCloth.name,
                 jobId: jobId 
             })
-        }).catch(() => console.log("Request sent. Tailor is on it."));
+        }).catch(() => console.error("Network sync in progress..."));
 
     } catch (e) {
         clearInterval(timerInterval);
-        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>${e.message}</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RETRY</button></div>`;
+        container.innerHTML = `<div style="color:white; padding:40px; text-align:center;"><h3>SESSION ERROR</h3><button onclick="location.reload()" style="background:#e60023; color:white; border:none; padding:12px 25px; border-radius:50px; margin-top:20px;">RESTART PROCESS</button></div>`;
     }
 }
 
