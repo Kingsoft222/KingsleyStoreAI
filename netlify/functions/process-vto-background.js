@@ -1,7 +1,6 @@
 const axios = require("axios");
 const admin = require("firebase-admin");
 
-// --- 1. ROBUST INITIALIZATION ---
 const initializeFirebase = () => {
     if (admin.apps.length === 0) {
         try {
@@ -26,9 +25,7 @@ const initializeFirebase = () => {
 };
 
 exports.handler = async (event) => {
-    // Force init at the start of every invocation
     initializeFirebase();
-    
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     
@@ -37,31 +34,32 @@ exports.handler = async (event) => {
 
     try {
         const jobRef = db.collection("vto_jobs").doc(jobId);
+        await jobRef.set({ status: "processing" }, { merge: true });
 
-        // Update status to processing
-        await jobRef.set({ 
-            status: "processing",
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        // --- FIXED URL & MODEL VERSION ---
+        // We use v1 instead of v1beta for maximum stability
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        // Call Gemini
-        const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-            {
-                contents: [{
-                    parts: [
-                        { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.` },
-                        { inline_data: { mime_type: "image/jpeg", data: userImage } }
-                    ]
-                }]
-            },
-            { timeout: 110000 }
-        );
+        const response = await axios.post(url, {
+            contents: [{
+                parts: [
+                    { text: `You are a fashion AI. Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown, no extra text.` },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
+                ]
+            }]
+        }, { 
+            timeout: 90000,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
-        const aiOutput = response.data.candidates[0].content.parts[0].text;
+        // Add extra check to see what Gemini actually sent back
+        if (!response.data || !response.data.candidates) {
+            throw new Error("Gemini returned empty response");
+        }
+
+        let aiOutput = response.data.candidates[0].content.parts[0].text;
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
 
-        // Save to Storage
         const buffer = Buffer.from(cleanBase64, 'base64');
         const file = bucket.file(`results/${jobId}.jpg`);
         
@@ -72,21 +70,23 @@ exports.handler = async (event) => {
 
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/results/${jobId}.jpg`;
 
-        // Success Update
         await jobRef.update({
             status: "completed",
             resultImageUrl: publicUrl,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
+        console.log("SUCCESS: Image generated and stored.");
+
     } catch (error) {
-        console.error("HANDLER ERROR:", error.message);
-        // Attempt to log failure if possible
-        try {
-            await db.collection("vto_jobs").doc(jobId).set({ 
-                status: "failed", 
-                error: error.message 
-            }, { merge: true });
-        } catch (e) { /* ignore secondary error */ }
+        // Detailed logging to find exactly what failed
+        console.error("HANDLER ERROR TYPE:", error.response ? "API Error" : "Logic Error");
+        console.error("ERROR MESSAGE:", error.message);
+        if (error.response) console.error("API DATA:", JSON.stringify(error.response.data));
+
+        await db.collection("vto_jobs").doc(jobId).set({ 
+            status: "failed", 
+            error: error.message 
+        }, { merge: true });
     }
 };
