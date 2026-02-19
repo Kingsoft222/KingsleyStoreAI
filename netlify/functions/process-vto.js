@@ -14,9 +14,9 @@ if (!admin.apps.length) {
                 privateKey: finalKey
             })
         });
-        console.log("LOG: Firebase Authenticated Successfully.");
+        console.log("LOG: Firebase Authenticated.");
     } catch (error) {
-        console.error("LOG: Authentication Failed:", error.message);
+        console.error("LOG: Auth Error:", error.message);
     }
 }
 
@@ -40,7 +40,7 @@ exports.handler = async (event) => {
             {
                 contents: [{
                     parts: [
-                        { text: `FASHION AI: Perform a virtual try-on. Replace the clothes with ${clothName}. Keep the person's face and background identical. Return ONLY the raw base64 data string. Do not use markdown. Do not use code blocks.` },
+                        { text: `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown, no backticks, no text.` },
                         { inline_data: { mime_type: "image/jpeg", data: userImage } }
                     ]
                 }]
@@ -50,12 +50,18 @@ exports.handler = async (event) => {
 
         let aiOutput = response.data.candidates[0].content.parts[0].text;
 
-        // THE CLEANER: Strip Markdown backticks, "base64" labels, and newlines
+        // STRIP MARKDOWN (The "Broken Image" Killer)
         const cleanBase64 = aiOutput
-            .replace(/```[a-z]*\n?/g, "") // Removes ```base64 or ```
-            .replace(/```/g, "")           // Removes closing ```
-            .replace(/\s/g, "")            // Removes all whitespace/newlines
+            .replace(/```[a-z]*\n?/gi, "") 
+            .replace(/```/g, "")           
+            .replace(/\s/g, "")            
             .trim();
+
+        // SIZE CHECK (Firestore Limit is ~1MB)
+        const sizeInBytes = (cleanBase64.length * 3) / 4;
+        if (sizeInBytes > 1000000) {
+            throw new Error("AI Result too large for database.");
+        }
 
         const finalUrl = `data:image/jpeg;base64,${cleanBase64}`;
 
@@ -65,7 +71,6 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log("LOG: Image sanitized and saved to Firestore.");
         return { statusCode: 200, headers, body: JSON.stringify({ status: "success" }) };
 
     } catch (error) {
