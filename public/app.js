@@ -1,6 +1,6 @@
 /**
- * Kingsley Store AI - v107.0 "The High-Efficiency Build"
- * ARCHITECTURE: Secure Firebase + Real-time Listener + Always-Ready UI
+ * Kingsley Store AI - v108.0 "The Background Breakthrough"
+ * ARCHITECTURE: Secure Firebase + Background Polling + Storage Render
  */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -94,8 +94,8 @@ export async function startVertexModeling() {
                 <i class="fas fa-circle-notch fa-spin" style="color:#e60023; font-size: 4.5rem;"></i>
                 <div id="countdown-timer" style="position:absolute; font-size:1.8rem; font-weight:900; color:white; top:50%; left:50%; transform:translate(-50%, -50%);">40</div>
             </div>
-            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">INITIALIZING VIRTUAL FITTING...</h3>
-            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.85rem; padding:0 30px;">Processing image data and mapping garment texture.</p>
+            <h3 id="loading-status-text" style="margin-top:30px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">STITCHING YOUR NATIVE...</h3>
+            <p id="loading-subtext" style="color:#888; margin-top:10px; font-size:0.85rem; padding:0 30px;">Our AI is processing your look. Please wait.</p>
         </div>`;
 
     let timeLeft = 40;
@@ -111,22 +111,29 @@ export async function startVertexModeling() {
         const compressedUserImage = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
+        // 1. Create Job Entry
         await setDoc(doc(db, "vto_jobs", jobId), {
             status: "processing",
             createdAt: serverTimestamp()
         });
 
-        // Real-time listener handles the "pop"
+        // 2. Real-time listener for Background Task completion
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (docSnap) => {
             const data = docSnap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
                 clearInterval(timerInterval);
                 unsub(); 
                 window.displayFinalAnkara(data.resultImageUrl);
+            } else if (data?.status === "failed") {
+                clearInterval(timerInterval);
+                unsub();
+                alert("AI Processing snagged. Please try again with a clearer photo.");
+                location.reload();
             }
         });
 
-        fetch('/.netlify/functions/process-vto', {
+        // 3. Trigger the BACKGROUND function
+        fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -134,7 +141,7 @@ export async function startVertexModeling() {
                 clothName: selectedCloth.name,
                 jobId: jobId 
             })
-        });
+        }).catch(() => console.log("Background request accepted."));
 
     } catch (e) {
         clearInterval(timerInterval);
@@ -144,13 +151,11 @@ export async function startVertexModeling() {
 
 export function displayFinalAnkara(url) {
     const container = document.getElementById('video-main-container');
-    // Sanitize incoming URL to prevent broken images
-    const sanitizedUrl = url.includes('base64,') ? url : `data:image/jpeg;base64,${url}`;
     
     container.innerHTML = `
         <div style="width:100%; height:100dvh; display:flex; flex-direction:column; background:#000; position:fixed; inset:0; overflow:hidden; z-index:99999;">
             <div style="flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; padding-bottom:120px;">
-                <img src="${sanitizedUrl}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px;">
+                <img src="${url}" style="width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:12px;" onerror="this.src='https://placehold.co/600x800?text=Render+Failed'">
             </div>
             <div style="position:absolute; bottom:0; width:100%; padding:20px 0 60px 0; background:linear-gradient(transparent, #000 70%); display:flex; justify-content:center; align-items:center;">
                 <button style="background:#e60023; color:white; width:90vw; max-width:400px; height:60px; border-radius:50px; font-weight:800; border:none; cursor:pointer;" onclick="location.reload()">ADD TO CART 🛒</button>
