@@ -4,6 +4,7 @@
   "description": "AI Virtual Try-On for African Native Wear",
   "main": "index.js",
   "scripts": {
+    "build": "echo 'Building Kingsley Store AI...'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
@@ -12,12 +13,12 @@
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.6.0",
-    "google-auth-library": "^10.5.0",
-    "firebase-admin": "^13.6.0",
-    "firebase-functions": "^7.0.0"
+    "google-auth-library": "^9.0.0",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^6.0.0"
   },
   "devDependencies": {
-    "firebase-functions-test": "^3.4.1"
+    "firebase-functions-test": "^3.1.0"
   },
   "private": true
 }
