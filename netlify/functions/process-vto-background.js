@@ -15,9 +15,8 @@ if (!admin.apps.length) {
             }),
             storageBucket: "kingsleystoreai.firebasestorage.app"
         });
-        console.log("SYSTEM: Background Auth Success");
     } catch (error) {
-        console.error("Auth Error:", error.message);
+        console.error("Firebase Init Error:", error.message);
     }
 }
 
@@ -29,13 +28,10 @@ exports.handler = async (event) => {
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
-        // 1. Mark as Processing
-        await db.collection("vto_jobs").doc(jobId).update({ 
-            status: "processing",
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+        // Step 1: Status Processing
+        await db.collection("vto_jobs").doc(jobId).update({ status: "processing" });
 
-        // 2. Call Gemini
+        // Step 2: Call Gemini
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
             {
@@ -52,7 +48,7 @@ exports.handler = async (event) => {
         let aiOutput = response.data.candidates[0].content.parts[0].text;
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
 
-        // 3. Upload to Firebase Storage
+        // Step 3: Save to Storage (No 1MB Limit)
         const buffer = Buffer.from(cleanBase64, 'base64');
         const file = bucket.file(`results/${jobId}.jpg`);
         
@@ -63,19 +59,15 @@ exports.handler = async (event) => {
 
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/results/${jobId}.jpg`;
 
-        // 4. Update Firestore with URL
+        // Step 4: Update Firestore with URL
         await db.collection("vto_jobs").doc(jobId).update({
             status: "completed",
             resultImageUrl: publicUrl,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        console.log(`SUCCESS: Job ${jobId} uploaded to storage.`);
     } catch (error) {
-        console.error("FAIL:", error.message);
-        await db.collection("vto_jobs").doc(jobId).update({ 
-            status: "failed", 
-            error: error.message 
-        });
+        console.error("Process Error:", error.message);
+        await db.collection("vto_jobs").doc(jobId).update({ status: "failed", error: error.message });
     }
 };
