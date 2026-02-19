@@ -1,24 +1,50 @@
 const axios = require("axios");
 const admin = require("firebase-admin");
 
-// [Keep your existing admin.initializeApp block here]
+// --- 1. ROBUST INITIALIZATION ---
+const initializeFirebase = () => {
+    if (admin.apps.length === 0) {
+        try {
+            const rawKey = process.env.FIREBASE_PRIVATE_KEY;
+            const cleanKey = rawKey.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\\n|\s/g, "");
+            const finalKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: "kingsleystoreai",
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+                    privateKey: finalKey
+                }),
+                storageBucket: "kingsleystoreai.firebasestorage.app"
+            });
+            console.log("SYSTEM: Firebase Initialized Successfully");
+        } catch (error) {
+            console.error("CRITICAL: Firebase Init Failed:", error.message);
+            throw error;
+        }
+    }
+};
 
 exports.handler = async (event) => {
+    // Force init at the start of every invocation
+    initializeFirebase();
+    
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+    
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
-        const jobRef = admin.firestore().collection("vto_jobs").doc(jobId);
+        const jobRef = db.collection("vto_jobs").doc(jobId);
 
-        // HARD FIX: Wait 2 seconds for Firestore to propagate before updating
-        await new Promise(r => setTimeout(r, 2000));
-
+        // Update status to processing
         await jobRef.set({ 
             status: "processing",
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        // Gemini Call
+        // Call Gemini
         const response = await axios.post(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
             {
@@ -35,14 +61,18 @@ exports.handler = async (event) => {
         const aiOutput = response.data.candidates[0].content.parts[0].text;
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
 
-        // Storage Save
+        // Save to Storage
         const buffer = Buffer.from(cleanBase64, 'base64');
-        const file = admin.storage().bucket().file(`results/${jobId}.jpg`);
+        const file = bucket.file(`results/${jobId}.jpg`);
         
-        await file.save(buffer, { metadata: { contentType: 'image/jpeg' }, public: true });
+        await file.save(buffer, {
+            metadata: { contentType: 'image/jpeg' },
+            public: true
+        });
 
-        const publicUrl = `https://storage.googleapis.com/${admin.storage().bucket().name}/results/${jobId}.jpg`;
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/results/${jobId}.jpg`;
 
+        // Success Update
         await jobRef.update({
             status: "completed",
             resultImageUrl: publicUrl,
@@ -50,10 +80,13 @@ exports.handler = async (event) => {
         });
 
     } catch (error) {
-        console.error("Process Error:", error.message);
-        await admin.firestore().collection("vto_jobs").doc(jobId).set({ 
-            status: "failed", 
-            error: error.message 
-        }, { merge: true });
+        console.error("HANDLER ERROR:", error.message);
+        // Attempt to log failure if possible
+        try {
+            await db.collection("vto_jobs").doc(jobId).set({ 
+                status: "failed", 
+                error: error.message 
+            }, { merge: true });
+        } catch (e) { /* ignore secondary error */ }
     }
 };
