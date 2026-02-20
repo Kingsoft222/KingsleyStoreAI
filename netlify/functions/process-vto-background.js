@@ -15,7 +15,6 @@ const initializeFirebase = () => {
                 }),
                 storageBucket: "kingsleystoreai.firebasestorage.app"
             });
-            console.log("SYSTEM: Firebase Ready for Saturday");
         } catch (error) { console.error("Firebase Init Error:", error.message); }
     }
 };
@@ -23,23 +22,37 @@ const initializeFirebase = () => {
 exports.handler = async (event) => {
     initializeFirebase();
     const { userImage, clothName, jobId } = JSON.parse(event.body);
-    
-    // UPDATED FOR 2026: Switching to gemini-2.5-flash to kill the 404
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    
+    // SAFETY BYPASS: This prevents the "empty response" 0kb bug
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash", 
+        safetySettings: [
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
+    });
 
     try {
         const jobRef = admin.firestore().collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
         const result = await model.generateContent([
-            `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.`,
+            `Task: Generate a photo of this person wearing a ${clothName}. Return ONLY the base64 jpeg string.`,
             { inlineData: { mimeType: "image/jpeg", data: userImage } }
         ]);
 
-        const aiOutput = result.response.text();
-        const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
+        const response = await result.response;
+        const aiOutput = response.text();
 
+        // VALIDATION: Stop the 0kb file creation
+        if (!aiOutput || aiOutput.length < 100) {
+            throw new Error("AI returned empty content. Possible safety block or thinking timeout.");
+        }
+
+        const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
         const buffer = Buffer.from(cleanBase64, 'base64');
         const file = admin.storage().bucket().file(`results/${jobId}.jpg`);
         
@@ -48,16 +61,17 @@ exports.handler = async (event) => {
             public: true
         });
 
+        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/kingsleystoreai.firebasestorage.app/o/${encodeURIComponent('results/' + jobId + '.jpg')}?alt=media`;
+
         await jobRef.update({
             status: "completed",
-            resultImageUrl: `https://storage.googleapis.com/${admin.storage().bucket().name}/results/${jobId}.jpg`,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            resultImageUrl: publicUrl
         });
 
-        console.log("SUCCESS: Ankara render created with Gemini 2.5!");
+        console.log("SUCCESS: Real data saved!");
 
     } catch (error) {
-        console.error("SATURDAY ERROR:", error.message);
+        console.error("FINAL ERROR:", error.message);
         await admin.firestore().collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
