@@ -15,6 +15,7 @@ const initializeFirebase = () => {
                 }),
                 storageBucket: "kingsleystoreai.firebasestorage.app"
             });
+            console.log("SYSTEM: Firebase Ready for Saturday");
         } catch (error) { console.error("Firebase Init Error:", error.message); }
     }
 };
@@ -24,9 +25,9 @@ exports.handler = async (event) => {
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // SAFETY BYPASS: This prevents the "empty response" 0kb bug
+    // 2026 STABLE ALIAS: gemini-1.5-flash is the stable path for new accounts
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash", 
+        model: "gemini-1.5-flash", 
         safetySettings: [
             { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
             { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -47,9 +48,9 @@ exports.handler = async (event) => {
         const response = await result.response;
         const aiOutput = response.text();
 
-        // VALIDATION: Stop the 0kb file creation
+        // 0KB FIX: Ensure we have data before saving
         if (!aiOutput || aiOutput.length < 100) {
-            throw new Error("AI returned empty content. Possible safety block or thinking timeout.");
+            throw new Error("AI returned empty content. Safety block triggered.");
         }
 
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
@@ -61,6 +62,7 @@ exports.handler = async (event) => {
             public: true
         });
 
+        // URL FIX: Adding ?alt=media for instant viewing
         const publicUrl = `https://firebasestorage.googleapis.com/v0/b/kingsleystoreai.firebasestorage.app/o/${encodeURIComponent('results/' + jobId + '.jpg')}?alt=media`;
 
         await jobRef.update({
@@ -68,7 +70,7 @@ exports.handler = async (event) => {
             resultImageUrl: publicUrl
         });
 
-        console.log("SUCCESS: Real data saved!");
+        console.log("SUCCESS: Image generated successfully!");
 
     } catch (error) {
         console.error("FINAL ERROR:", error.message);
