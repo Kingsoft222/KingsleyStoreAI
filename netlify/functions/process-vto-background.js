@@ -1,35 +1,59 @@
 const admin = require("firebase-admin");
 const { VertexAI } = require("@google-cloud/vertexai");
 
-// --- 1. PREPARE THE KEY ---
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+// --- 1. SAFE ENVIRONMENT LOADING ---
+// This prevents the "SyntaxError: undefined" crash during the init phase
+let serviceAccount;
+try {
+    const rawJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (!rawJson) {
+        console.error("❌ CRITICAL: GOOGLE_SERVICE_ACCOUNT_JSON is missing from Netlify!");
+    } else {
+        serviceAccount = JSON.parse(rawJson);
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+    }
+} catch (err) {
+    console.error("❌ JSON PARSE ERROR:", err.message);
+}
 
 // --- 2. INITIALIZE FIREBASE ---
-if (!admin.apps.length) {
+if (serviceAccount && !admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         storageBucket: "kingsleystoreai.firebasestorage.app"
     });
 }
 
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
-
-// --- 3. INITIALIZE VERTEX AI (THE AUTH FIX) ---
-const vertex_ai = new VertexAI({
-    project: serviceAccount.project_id,
-    location: "us-central1",
-    googleAuthOptions: {
-        credentials: serviceAccount // This line kills the AuthError
-    }
-});
-
-// Using 1.5 Flash for the highest stability in 2026
-const model = vertex_ai.getGenerativeModel({ model: "gemini-1.5-flash" });
-
 exports.handler = async (event) => {
-    const { jobId, userImage, clothName } = JSON.parse(event.body);
+    // Check if init failed
+    if (!serviceAccount) {
+        return { 
+            statusCode: 500, 
+            body: JSON.stringify({ error: "Backend Configuration Missing (JSON error)" }) 
+        };
+    }
+
+    const db = admin.firestore();
+    const bucket = admin.storage().bucket();
+
+    // Safe Body Parsing
+    let body;
+    try {
+        body = JSON.parse(event.body);
+    } catch (e) {
+        return { statusCode: 400, body: JSON.stringify({ error: "Invalid Request Body" }) };
+    }
+
+    const { jobId, userImage, clothName } = body;
+
+    // --- 3. INITIALIZE VERTEX AI ---
+    const vertex_ai = new VertexAI({
+        project: serviceAccount.project_id,
+        location: "us-central1",
+        googleAuthOptions: { credentials: serviceAccount }
+    });
+
+    const model = vertex_ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     try {
         await db.collection("vto_jobs").doc(jobId).update({
@@ -41,7 +65,7 @@ exports.handler = async (event) => {
             contents: [{
                 role: "user",
                 parts: [
-                    { text: `TASK: Photo-realistic virtual try-on. Render the person wearing ${clothName}. Return ONLY raw base64 jpeg data.` },
+                    { text: `TASK: Photo-realistic virtual try-on. Edit the person to wear ${clothName}. Return ONLY raw base64 jpeg data.` },
                     { inlineData: { mimeType: "image/jpeg", data: userImage } }
                 ]
             }]
@@ -69,7 +93,7 @@ exports.handler = async (event) => {
             resultImageUrl: publicUrl
         });
 
-        console.log("✅ SUCCESS: Vertex AI Render Complete.");
+        console.log("✅ SUCCESS: Vertex AI Handshake Complete.");
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
 
     } catch (error) {
