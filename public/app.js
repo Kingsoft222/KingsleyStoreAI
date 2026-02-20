@@ -23,7 +23,6 @@ const clothesCatalog = [
 
 // --- 3. UI UTILITIES ---
 function unlockUI() {
-    // FIX: Target the send-circle button specifically
     const sendBtn = document.querySelector('.send-circle');
     const allButtons = document.querySelectorAll('button');
     
@@ -101,13 +100,13 @@ export async function startVertexModeling() {
     
     let timeLeft = 45;
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white; font-family:sans-serif;">
+        <div class="mall-loader-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100dvh; width:100%; background:#000; color:white;">
             <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
                 <div style="position:absolute; width:100%; height:100%; border:6px solid #222; border-top:6px solid #e60023; border-radius:50%; animation: spin 1.2s linear infinite;"></div>
                 <div id="countdown-number" style="font-size: 3rem; font-weight: 900; color: white;">${timeLeft}</div>
             </div>
-            <h3 style="margin-top:40px; letter-spacing:2px; font-weight:800; color:#fff;">STITCHING YOUR LOOK...</h3>
-            <p id="status-label" style="color:#888; margin-top:10px; font-size:0.9rem;">Processing on Secure Cloud</p>
+            <h3 style="margin-top:40px; letter-spacing:2px; font-weight:800; color:#fff; text-align:center;">STITCHING YOUR LOOK...</h3>
+            <p id="status-label" style="color:#888; margin-top:10px; font-size:0.9rem;">Connecting to Kingsley AI Cloud</p>
         </div>
         <style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>`;
 
@@ -136,8 +135,7 @@ export async function startVertexModeling() {
             } else if (data?.status === "failed") {
                 clearInterval(timerInterval);
                 unsub();
-                // FIX: Show the REAL error instead of "Busy"
-                alert("AI Engine Error: " + (data.error || "Unknown Failure"));
+                alert("AI Error: " + (data.error || "Please try again."));
                 unlockUI();
                 document.getElementById('video-experience-modal').style.display = 'none';
             }
@@ -157,14 +155,27 @@ export async function startVertexModeling() {
 }
 
 export function displayFinalAnkara(url) {
+    // This creates the Full Page experience with the button pinned at the bottom
     document.getElementById('video-main-container').innerHTML = `
-        <div style="width:100%; height:100vh; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; animation: fadeIn 0.8s ease-in;">
-            <img src="${url}" style="max-height:80%; max-width:92%; border-radius:16px; border:2px solid #333; box-shadow: 0 0 30px rgba(230,0,35,0.3);">
-            <div style="margin-top:30px; display:flex; gap:15px;">
-                <button onclick="location.reload()" style="background:#e60023; color:white; padding:18px 45px; border-radius:50px; font-weight:800; border:none; cursor:pointer; font-size:1rem;">ADD TO CART 🛍️</button>
+        <div style="display: flex; flex-direction: column; height: 100dvh; width: 100%; background: #000; overflow: hidden;">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;">
+                <img src="${url}" 
+                     style="max-width: 100%; max-height: 80dvh; border-radius: 16px; border: 2px solid #333; box-shadow: 0 0 50px rgba(230,0,35,0.4); animation: fadeInScale 0.8s ease-out;"
+                     alt="Result">
+            </div>
+            <div style="padding: 20px 20px 40px 20px; background: linear-gradient(to top, #000, transparent);">
+                <button onclick="location.reload()" 
+                        style="background:#e60023; color:white; padding:20px; border-radius:50px; font-weight:800; border:none; width:100%; cursor:pointer; font-size:1.2rem; box-shadow: 0 10px 25px rgba(230,0,35,0.3); text-transform: uppercase; letter-spacing: 1px;">
+                    ADD TO CART 🛍️
+                </button>
             </div>
         </div>
-        <style> @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } } </style>`;
+        <style> 
+            @keyframes fadeInScale { 
+                from { opacity: 0; transform: scale(0.95); } 
+                to { opacity: 1; transform: scale(1); } 
+            } 
+        </style>`;
 }
 
 // --- 5. EXPOSE TO WINDOW ---
