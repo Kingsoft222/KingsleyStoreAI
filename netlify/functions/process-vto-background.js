@@ -24,46 +24,39 @@ exports.handler = async (event) => {
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // 2026 STABLE PRODUCTION MODEL
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // 2026 MANDATORY MODEL: Switching to gemini-3.0-flash
+    const model = genAI.getGenerativeModel({ model: "gemini-3.0-flash" });
 
     try {
         const jobRef = admin.firestore().collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
         const result = await model.generateContent([
-            `Task: Generate a high-quality photo of this person wearing a ${clothName}. Return ONLY the base64 string for the jpeg.`,
+            `Task: Photo-realistic render of this person wearing ${clothName}. Return ONLY the base64 jpeg string.`,
             { inlineData: { mimeType: "image/jpeg", data: userImage } }
         ]);
 
         const response = await result.response;
         const aiOutput = response.text();
 
-        // BLOCK EMPTY RESPONSES - Saves your money
         if (!aiOutput || aiOutput.length < 500) {
-            throw new Error("EMPTY_AI_RESPONSE: The model failed to generate data. Check image content or safety.");
+            throw new Error("EMPTY_RESPONSE: AI failed to produce image data.");
         }
 
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
         const buffer = Buffer.from(cleanBase64, 'base64');
         const file = admin.storage().bucket().file(`results/${jobId}.jpg`);
         
-        await file.save(buffer, {
-            metadata: { contentType: 'image/jpeg' },
-            public: true
-        });
+        await file.save(buffer, { metadata: { contentType: 'image/jpeg' }, public: true });
 
         const publicUrl = `https://firebasestorage.googleapis.com/v0/b/kingsleystoreai.firebasestorage.app/o/${encodeURIComponent('results/' + jobId + '.jpg')}?alt=media`;
 
-        await jobRef.update({
-            status: "completed",
-            resultImageUrl: publicUrl
-        });
-
-        console.log("SUCCESS: Image generated and saved.");
+        await jobRef.update({ status: "completed", resultImageUrl: publicUrl });
+        console.log("SUCCESS: Gemini 3.0 Render Complete.");
 
     } catch (error) {
-        console.error("2AM ERROR:", error.message);
+        console.error("CRITICAL ERROR:", error.message);
+        // This is our insurance policy: it will log the actual supported models if we fail again
         await admin.firestore().collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
