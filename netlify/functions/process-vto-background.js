@@ -1,24 +1,19 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const axios = require("axios");
 const admin = require("firebase-admin");
 
-// --- 1. ENTERPRISE INITIALIZATION ---
+// --- 1. ENTERPRISE FIREBASE INIT ---
 if (!admin.apps.length) {
     try {
-        // Parse the entire JSON object from one variable
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-
-        // The only fix needed: convert literal \n strings to real newlines
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             storageBucket: "kingsleystoreai.firebasestorage.app"
         });
-
-        console.log("✅ Firebase initialized successfully.");
+        console.log("✅ Firebase initialized.");
     } catch (error) {
         console.error("🔥 Firebase Init Error:", error.message);
-        // We don't throw here to prevent the whole function from crashing before logging
     }
 }
 
@@ -26,9 +21,6 @@ exports.handler = async (event) => {
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
-    
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     try {
         await db.collection("vto_jobs").doc(jobId).set({ 
@@ -36,14 +28,24 @@ exports.handler = async (event) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
 
-        const result = await model.generateContent([
-            `Task: Photo-realistic try-on. Wear ${clothName}. Return ONLY raw base64 jpeg.`,
-            { inlineData: { mimeType: "image/jpeg", data: userImage } }
-        ]);
+        // --- 2. STABLE V1 API CALL ---
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`;
+        
+        const response = await axios.post(url, {
+            contents: [{
+                parts: [
+                    { text: `Task: Photo-realistic render. Wear ${clothName}. Return ONLY the raw base64 jpeg string. No markdown.` },
+                    { inline_data: { mime_type: "image/jpeg", data: userImage } }
+                ]
+            }],
+            generationConfig: { temperature: 0.2 }
+        }, { timeout: 60000 });
 
-        const aiOutput = result.response.text();
-        if (!aiOutput || aiOutput.length < 500) throw new Error("AI_EMPTY");
+        const aiOutput = response.data.candidates[0].content.parts[0].text;
+        
+        if (!aiOutput) throw new Error("AI_EMPTY_RESPONSE");
 
+        // --- 3. CLEAN & SAVE ---
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
         const buffer = Buffer.from(cleanBase64, 'base64');
         const fileName = `results/${jobId}.jpg`;
@@ -61,12 +63,13 @@ exports.handler = async (event) => {
             resultImageUrl: publicUrl
         });
 
-        console.log("🚀 SUCCESS: Render live.");
+        console.log("🚀 SUCCESS: Render Live!");
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
 
     } catch (error) {
-        console.error("❌ ERROR:", error.message);
-        await db.collection("vto_jobs").doc(jobId).set({ status: "failed", error: error.message }, { merge: true });
-        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
+        const errorMsg = error.response?.data?.error?.message || error.message;
+        console.error("❌ API ERROR:", errorMsg);
+        await db.collection("vto_jobs").doc(jobId).set({ status: "failed", error: errorMsg }, { merge: true });
+        return { statusCode: 500, body: JSON.stringify({ error: errorMsg }) };
     }
 };
