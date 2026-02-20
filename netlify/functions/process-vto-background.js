@@ -1,21 +1,20 @@
 const admin = require("firebase-admin");
 const { VertexAI } = require("@google-cloud/vertexai");
 
-// --- 1. THE "NO-GUESING" AUTH LOADER ---
+// --- 1. THE NAME MATCH FIX ---
 let serviceAccount;
-const rawEnv = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+// Use the name that showed up in your DEBUG logs
+const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT; 
 
 if (!rawEnv) {
-    // This will show up in your Netlify logs to tell us exactly what happened
-    console.error("❌ ERROR: GOOGLE_SERVICE_ACCOUNT_JSON is NOT in process.env");
-    console.log("DEBUG: Available Env Keys:", Object.keys(process.env).filter(k => !k.includes('KEY') && !k.includes('SECRET')));
+    console.error("❌ CRITICAL: FIREBASE_SERVICE_ACCOUNT is missing from Netlify!");
 } else {
     try {
         serviceAccount = JSON.parse(rawEnv);
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-        console.log("✅ SUCCESS: Service Account Loaded for Project:", serviceAccount.project_id);
+        console.log("✅ SUCCESS: Service Account Loaded for:", serviceAccount.project_id);
     } catch (e) {
-        console.error("❌ ERROR: JSON Parse failed. Check for trailing commas or extra quotes.");
+        console.error("❌ ERROR: JSON Parse failed. Key might be corrupted.");
     }
 }
 
@@ -23,19 +22,20 @@ if (!rawEnv) {
 if (serviceAccount && !admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: `${serviceAccount.project_id}.firebasestorage.app`
+        storageBucket: "kingsleystoreai.firebasestorage.app"
     });
 }
 
 exports.handler = async (event) => {
     if (!serviceAccount) {
-        return { statusCode: 500, body: JSON.stringify({ error: "Environment Variable Missing. Check Netlify Scopes." }) };
+        return { statusCode: 500, body: JSON.stringify({ error: "Firebase Service Account Missing" }) };
     }
 
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     const { jobId, userImage, clothName } = JSON.parse(event.body);
 
+    // --- 3. VERTEX AI WITH EXPLICIT AUTH ---
     const vertex_ai = new VertexAI({
         project: serviceAccount.project_id,
         location: "us-central1",
@@ -45,13 +45,16 @@ exports.handler = async (event) => {
     const model = vertex_ai.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     try {
-        await db.collection("vto_jobs").doc(jobId).update({ status: "processing" });
+        await db.collection("vto_jobs").doc(jobId).update({
+            status: "processing",
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
 
         const request = {
             contents: [{
                 role: "user",
                 parts: [
-                    { text: `Wear ${clothName}. Return ONLY raw base64 jpeg.` },
+                    { text: `TASK: Virtual Try-On. Render this person wearing ${clothName}. Return ONLY raw base64 jpeg.` },
                     { inlineData: { mimeType: "image/jpeg", data: userImage } }
                 ]
             }]
@@ -61,21 +64,32 @@ exports.handler = async (event) => {
         const response = await result.response;
         const aiOutput = response.candidates[0].content.parts[0].text;
 
+        // 4. CLEAN AND SAVE
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
         const buffer = Buffer.from(cleanBase64, "base64");
         const fileName = `results/${jobId}.jpg`;
         const file = bucket.file(fileName);
 
-        await file.save(buffer, { metadata: { contentType: "image/jpeg" }, public: true });
+        await file.save(buffer, {
+            metadata: { contentType: "image/jpeg" },
+            public: true
+        });
 
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-        await db.collection("vto_jobs").doc(jobId).update({ status: "completed", resultImageUrl: publicUrl });
+
+        await db.collection("vto_jobs").doc(jobId).update({
+            status: "completed",
+            resultImageUrl: publicUrl
+        });
 
         return { statusCode: 200, body: JSON.stringify({ success: true }) };
 
     } catch (error) {
         console.error("VTO ERROR:", error.message);
-        await db.collection("vto_jobs").doc(jobId).update({ status: "failed", error: error.message });
+        await db.collection("vto_jobs").doc(jobId).update({
+            status: "failed",
+            error: error.message
+        });
         return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
