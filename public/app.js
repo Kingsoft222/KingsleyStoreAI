@@ -1,19 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- 1. FIREBASE CONFIGURATION ---
 const firebaseConfig = {
-    authDomain: "kingsleystoreai.firebaseapp.com",
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
-    messagingSenderId: "31402654971",
-    appId: "1:31402654971:web:26f75b0f913bcaf9f6445e"
+    // ... rest of your config
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- 2. APP STATE ---
 let userPhoto = "";
 let selectedCloth = null;
 const clothesCatalog = [
@@ -21,59 +17,15 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-// --- 3. UI UTILITIES ---
-function unlockUI() {
-    const sendBtn = document.querySelector('.send-circle');
-    const allButtons = document.querySelectorAll('button');
-    
-    allButtons.forEach(btn => {
-        btn.disabled = false;
-        btn.style.opacity = '1';
-        btn.style.pointerEvents = 'auto';
+// --- HELPER: CONVERT IMAGE URL TO BASE64 ---
+async function getBase64FromUrl(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
     });
-    
-    if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.style.opacity = '1';
-    }
-}
-
-window.onload = unlockUI;
-
-export function executeSearch() {
-    unlockUI();
-    const inputField = document.getElementById('ai-input');
-    const input = inputField.value.toLowerCase();
-    const results = document.getElementById('ai-results');
-    if (!input || !results) return;
-
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
-    results.style.display = 'grid';
-    results.innerHTML = matched.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; padding-bottom:10px; cursor:pointer; border:1px solid #222;">
-            <img src="images/${item.img}" style="width:100%; height:160px; object-fit:cover; border-radius:12px 12px 0 0;">
-            <h4 style="color:white; margin:8px; font-size:0.9rem;">${item.name}</h4>
-            <p style="color:#e60023; font-weight:900; margin-left:8px;">${item.price}</p>
-        </div>`).join('');
-}
-
-export function promptShowroomChoice(id) {
-    selectedCloth = clothesCatalog.find(c => c.id === id);
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" 
-                style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 UPLOAD REFERENCE PHOTO
-        </button>`;
-}
-
-export function handleUserFitUpload(e) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        userPhoto = event.target.result;
-        window.startVertexModeling();
-    };
-    reader.readAsDataURL(e.target.files[0]);
 }
 
 async function compressImage(base64) {
@@ -92,95 +44,69 @@ async function compressImage(base64) {
     });
 }
 
-// --- 4. THE CORE AI ENGINE ---
 export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    let timeLeft = 45;
-    container.innerHTML = `
-        <div class="mall-loader-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100dvh; width:100%; background:#000; color:white;">
-            <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
-                <div style="position:absolute; width:100%; height:100%; border:6px solid #222; border-top:6px solid #e60023; border-radius:50%; animation: spin 1.2s linear infinite;"></div>
-                <div id="countdown-number" style="font-size: 3rem; font-weight: 900; color: white;">${timeLeft}</div>
-            </div>
-            <h3 style="margin-top:40px; letter-spacing:2px; font-weight:800; color:#fff; text-align:center;">STITCHING YOUR LOOK...</h3>
-            <p id="status-label" style="color:#888; margin-top:10px; font-size:0.9rem;">Connecting to Kingsley AI Cloud</p>
-        </div>
-        <style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>`;
-
-    const timerInterval = setInterval(() => {
-        timeLeft--;
-        const timerDisplay = document.getElementById('countdown-number');
-        if (timerDisplay) timerDisplay.innerText = timeLeft;
-        if (timeLeft <= 0) clearInterval(timerInterval);
-    }, 1000);
+    // ... (Loader/Timer UI remains the same)
 
     try {
-        const compressed = await compressImage(userPhoto);
-        const jobId = "job_" + Date.now();
+        const compressedUser = await compressImage(userPhoto);
+        // Get the pixels for the selected suit
+        const clothPath = `images/${selectedCloth.img}`; 
+        const clothBase64 = await getBase64FromUrl(clothPath);
 
-        await setDoc(doc(db, "vto_jobs", jobId), { 
-            status: "pending", 
-            createdAt: serverTimestamp() 
-        });
+        const jobId = "job_" + Date.now();
+        await setDoc(doc(db, "vto_jobs", jobId), { status: "pending", createdAt: serverTimestamp() });
 
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
             const data = snap.data();
-            if (data?.status === "completed" && data.resultImageUrl) {
-                clearInterval(timerInterval);
+            if (data?.status === "completed") {
                 unsub();
                 window.displayFinalAnkara(data.resultImageUrl);
             } else if (data?.status === "failed") {
-                clearInterval(timerInterval);
                 unsub();
-                alert("AI Error: " + (data.error || "Please try again."));
-                unlockUI();
-                document.getElementById('video-experience-modal').style.display = 'none';
+                alert("AI Error: " + data.error);
             }
         });
 
+        // SEND BOTH IMAGES
         fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: compressed, clothName: selectedCloth.name, jobId: jobId })
+            body: JSON.stringify({ 
+                userImage: compressedUser, 
+                clothImage: clothBase64, 
+                jobId: jobId 
+            })
         });
 
-    } catch (e) { 
-        console.error("Critical Error:", e); 
-        clearInterval(timerInterval);
-        unlockUI();
-    }
+    } catch (e) { console.error(e); }
 }
 
 export function displayFinalAnkara(url) {
-    // This creates the Full Page experience with the button pinned at the bottom
+    // Full Page Display Logic
     document.getElementById('video-main-container').innerHTML = `
-        <div style="display: flex; flex-direction: column; height: 100dvh; width: 100%; background: #000; overflow: hidden;">
+        <div style="display: flex; flex-direction: column; height: 100dvh; width: 100%; background: #000;">
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <img src="${url}" 
-                     style="max-width: 100%; max-height: 80dvh; border-radius: 16px; border: 2px solid #333; box-shadow: 0 0 50px rgba(230,0,35,0.4); animation: fadeInScale 0.8s ease-out;"
-                     alt="Result">
+                <img src="${url}" style="max-width: 100%; max-height: 80vh; border-radius: 16px; box-shadow: 0 0 50px rgba(230,0,35,0.4);">
             </div>
-            <div style="padding: 20px 20px 40px 20px; background: linear-gradient(to top, #000, transparent);">
-                <button onclick="location.reload()" 
-                        style="background:#e60023; color:white; padding:20px; border-radius:50px; font-weight:800; border:none; width:100%; cursor:pointer; font-size:1.2rem; box-shadow: 0 10px 25px rgba(230,0,35,0.3); text-transform: uppercase; letter-spacing: 1px;">
-                    ADD TO CART 🛍️
-                </button>
+            <div style="padding: 20px 20px 40px;">
+                <button onclick="location.reload()" style="background:#e60023; color:white; padding:20px; border-radius:50px; width:100%; font-weight:800; border:none; cursor:pointer; font-size:1.2rem;">ADD TO CART 🛍️</button>
             </div>
-        </div>
-        <style> 
-            @keyframes fadeInScale { 
-                from { opacity: 0; transform: scale(0.95); } 
-                to { opacity: 1; transform: scale(1); } 
-            } 
-        </style>`;
+        </div>`;
 }
 
-// --- 5. EXPOSE TO WINDOW ---
-window.executeSearch = executeSearch;
-window.promptShowroomChoice = promptShowroomChoice;
-window.handleUserFitUpload = handleUserFitUpload;
+// Expose functions to window
+window.handleUserFitUpload = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => { userPhoto = ev.target.result; window.startVertexModeling(); };
+    reader.readAsDataURL(e.target.files[0]);
+};
 window.startVertexModeling = startVertexModeling;
 window.displayFinalAnkara = displayFinalAnkara;
+window.promptShowroomChoice = (id) => {
+    selectedCloth = clothesCatalog.find(c => c.id === id);
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+};
