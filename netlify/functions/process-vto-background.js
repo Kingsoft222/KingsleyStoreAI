@@ -25,35 +25,21 @@ exports.handler = async (event) => {
     const { userImage, clothName, jobId } = JSON.parse(event.body);
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // 2026 STABLE ALIAS: gemini-1.5-flash is the stable path for new accounts
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash", 
-        safetySettings: [
-            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-        ]
-    });
+    // 2026 STABLE MODEL: Switching to 2.5 to kill the 404 once and for all
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     try {
         const jobRef = admin.firestore().collection("vto_jobs").doc(jobId);
         await jobRef.set({ status: "processing" }, { merge: true });
 
         const result = await model.generateContent([
-            `Task: Generate a photo of this person wearing a ${clothName}. Return ONLY the base64 jpeg string.`,
+            `Return ONLY the raw base64 jpeg string of the person wearing ${clothName}. No markdown.`,
             { inlineData: { mimeType: "image/jpeg", data: userImage } }
         ]);
 
-        const response = await result.response;
-        const aiOutput = response.text();
-
-        // 0KB FIX: Ensure we have data before saving
-        if (!aiOutput || aiOutput.length < 100) {
-            throw new Error("AI returned empty content. Safety block triggered.");
-        }
-
+        const aiOutput = result.response.text();
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
+
         const buffer = Buffer.from(cleanBase64, 'base64');
         const file = admin.storage().bucket().file(`results/${jobId}.jpg`);
         
@@ -62,7 +48,7 @@ exports.handler = async (event) => {
             public: true
         });
 
-        // URL FIX: Adding ?alt=media for instant viewing
+        // URL format update for 2026
         const publicUrl = `https://firebasestorage.googleapis.com/v0/b/kingsleystoreai.firebasestorage.app/o/${encodeURIComponent('results/' + jobId + '.jpg')}?alt=media`;
 
         await jobRef.update({
@@ -70,10 +56,10 @@ exports.handler = async (event) => {
             resultImageUrl: publicUrl
         });
 
-        console.log("SUCCESS: Image generated successfully!");
+        console.log("SUCCESS: Gemini 2.5 Render Completed!");
 
     } catch (error) {
-        console.error("FINAL ERROR:", error.message);
+        console.error("SATURDAY ERROR:", error.message);
         await admin.firestore().collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
