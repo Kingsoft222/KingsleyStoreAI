@@ -1,68 +1,62 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const admin = require("firebase-admin");
 
-// --- 1. SECURE FIREBASE INITIALIZATION ---
+// --- 1. THE PEM KEY FIX ---
 const initializeFirebase = () => {
     if (admin.apps.length === 0) {
         try {
             let privateKey = process.env.FIREBASE_PRIVATE_KEY;
             
-            // Clean the key: remove quotes and fix the \n newline issue from Netlify
-            if (privateKey) {
-                privateKey = privateKey.replace(/^['"]|['"]$/g, '');
-                privateKey = privateKey.replace(/\\n/g, '\n');
-            }
+            // This is the absolute fix for the string you have on Netlify
+            const formattedKey = privateKey
+                .replace(/\\n/g, '\n')     // Convert literal \n to real newlines
+                .replace(/^['"]|['"]$/g, ''); // Remove any accidental quotes
 
             admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId: "kingsleystoreai",
                     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                    privateKey: privateKey
+                    privateKey: formattedKey
                 }),
                 storageBucket: "kingsleystoreai.firebasestorage.app"
             });
-            console.log("SYSTEM: Firebase Initialized Successfully");
+            console.log("SYSTEM: Firebase Key Successfully Parsed.");
         } catch (error) {
             console.error("Firebase Init Error:", error.message);
-            throw error; // Stop the function if Firebase fails
+            throw error;
         }
     }
 };
 
 exports.handler = async (event) => {
-    // Basic setup
     initializeFirebase();
+    const { userImage, clothName, jobId } = JSON.parse(event.body);
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
     
-    const { userImage, clothName, jobId } = JSON.parse(event.body);
-    
-    // 2026 STABLE MODEL
+    // Using the absolute latest production model for 2026
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     try {
-        // Update status in Firestore
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "processing",
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            updatedAt: admin.firestore.FieldValue.serverTimestamp() 
         }, { merge: true });
 
-        // --- 2. CALL GEMINI ---
+        // CALL GEMINI
         const result = await model.generateContent([
-            `Task: Wear ${clothName}. Return ONLY the base64 jpeg string. No markdown, no text.`,
+            `Task: Generate a photo of the person wearing a ${clothName}. Return ONLY the raw base64 jpeg string. No text or markdown.`,
             { inlineData: { mimeType: "image/jpeg", data: userImage } }
         ]);
 
-        const response = await result.response;
-        const aiOutput = response.text();
+        const aiOutput = result.response.text();
 
-        // Safety check for empty data
         if (!aiOutput || aiOutput.length < 500) {
-            throw new Error("AI_EMPTY: Model returned no image data.");
+            throw new Error("AI_FAILURE: The response was empty or blocked.");
         }
 
-        // --- 3. PROCESS & SAVE ---
+        // CLEAN AND SAVE
         const cleanBase64 = aiOutput.replace(/```[a-z]*\n?|```|\s/gi, "");
         const buffer = Buffer.from(cleanBase64, 'base64');
         const fileName = `results/${jobId}.jpg`;
@@ -73,35 +67,22 @@ exports.handler = async (event) => {
             public: true
         });
 
-        // Format the Public URL correctly
         const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
 
-        // --- 4. SUCCESS UPDATE ---
         await db.collection("vto_jobs").doc(jobId).update({
             status: "completed",
-            resultImageUrl: publicUrl,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            resultImageUrl: publicUrl
         });
 
-        console.log("SUCCESS: Ankara image saved and public.");
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: "Job processed successfully" })
-        };
+        console.log("SUCCESS: Image generated successfully!");
+        return { statusCode: 200, body: JSON.stringify({ success: true }) };
 
     } catch (error) {
-        console.error("FUNCTION ERROR:", error.message);
-        
-        // Log the failure so the frontend knows
+        console.error("FINAL ERROR:", error.message);
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: error.message 
         }, { merge: true });
-
-        return {
-            statusCode: 500,
-            body: JSON.stringify({ error: error.message })
-        };
+        return { statusCode: 500, body: JSON.stringify({ error: error.message }) };
     }
 };
