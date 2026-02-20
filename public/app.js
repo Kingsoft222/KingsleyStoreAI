@@ -23,21 +23,28 @@ const clothesCatalog = [
 
 // --- 3. UI UTILITIES ---
 function unlockUI() {
-    const buttons = document.querySelectorAll('button, #send-btn');
-    buttons.forEach(btn => {
+    // FIX: Target the send-circle button specifically
+    const sendBtn = document.querySelector('.send-circle');
+    const allButtons = document.querySelectorAll('button');
+    
+    allButtons.forEach(btn => {
         btn.disabled = false;
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
-        btn.removeAttribute('disabled');
     });
+    
+    if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1';
+    }
 }
 
-// Ensure UI is unlocked on every load
 window.onload = unlockUI;
 
 export function executeSearch() {
     unlockUI();
-    const input = document.getElementById('ai-input').value.toLowerCase();
+    const inputField = document.getElementById('ai-input');
+    const input = inputField.value.toLowerCase();
     const results = document.getElementById('ai-results');
     if (!input || !results) return;
 
@@ -92,8 +99,7 @@ export async function startVertexModeling() {
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    // --- UI: COUNTDOWN INSIDE SPINNER ---
-    let timeLeft = 40;
+    let timeLeft = 45;
     container.innerHTML = `
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:white; font-family:sans-serif;">
             <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
@@ -101,7 +107,7 @@ export async function startVertexModeling() {
                 <div id="countdown-number" style="font-size: 3rem; font-weight: 900; color: white;">${timeLeft}</div>
             </div>
             <h3 style="margin-top:40px; letter-spacing:2px; font-weight:800; color:#fff;">STITCHING YOUR LOOK...</h3>
-            <p id="status-label" style="color:#888; margin-top:10px; font-size:0.9rem;">Connecting to Secure AI Cloud</p>
+            <p id="status-label" style="color:#888; margin-top:10px; font-size:0.9rem;">Processing on Secure Cloud</p>
         </div>
         <style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>`;
 
@@ -109,7 +115,6 @@ export async function startVertexModeling() {
         timeLeft--;
         const timerDisplay = document.getElementById('countdown-number');
         if (timerDisplay) timerDisplay.innerText = timeLeft;
-        if (timeLeft <= 10) document.getElementById('status-label').innerText = "Finalizing Render...";
         if (timeLeft <= 0) clearInterval(timerInterval);
     }, 1000);
 
@@ -117,13 +122,11 @@ export async function startVertexModeling() {
         const compressed = await compressImage(userPhoto);
         const jobId = "job_" + Date.now();
 
-        // STEP 1: PRE-CREATE DOCUMENT (FIXES 404)
         await setDoc(doc(db, "vto_jobs", jobId), { 
             status: "pending", 
             createdAt: serverTimestamp() 
         });
 
-        // STEP 2: LISTEN FOR AI COMPLETION
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
             const data = snap.data();
             if (data?.status === "completed" && data.resultImageUrl) {
@@ -133,14 +136,16 @@ export async function startVertexModeling() {
             } else if (data?.status === "failed") {
                 clearInterval(timerInterval);
                 unsub();
-                alert("AI Engine is busy. Please try again in a moment.");
-                location.reload();
+                // FIX: Show the REAL error instead of "Busy"
+                alert("AI Engine Error: " + (data.error || "Unknown Failure"));
+                unlockUI();
+                document.getElementById('video-experience-modal').style.display = 'none';
             }
         });
 
-        // STEP 3: TRIGGER BACKGROUND WORKER
         fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userImage: compressed, clothName: selectedCloth.name, jobId: jobId })
         });
 
