@@ -1,12 +1,16 @@
 [build]
-  # We tell Netlify the publish directory is the root (.)
+  # This tells Netlify: "Run the command I just added to package.json"
+  command = "npm run build"
+  
+  # This tells Netlify: "The index.html is right here in the main folder"
   publish = "."
 
 [functions]
-  # Tell Netlify where your AI code is hiding
+  # This ensures your AI Tailor logic is bundled correctly
   directory = "netlify/functions"
 
 [[redirects]]
+  # This maps your local API calls to the Netlify cloud functions
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
