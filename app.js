@@ -32,6 +32,7 @@ async function getBase64FromUrl(url) {
 
 export function executeSearch() {
     const results = document.getElementById('ai-results');
+    if (!results) return;
     results.style.display = 'grid';
     results.innerHTML = clothesCatalog.map(item => `
         <div class="card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; padding:15px; border-radius:15px; cursor:pointer; border:1px solid #222; text-align:center;">
@@ -58,6 +59,8 @@ export function handleUserFitUpload(e) {
 }
 
 export async function startVertexModeling() {
+    if (!selectedCloth) return alert("Please select an item first.");
+
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
@@ -81,8 +84,11 @@ export async function startVertexModeling() {
     try {
         const clothB64 = await getBase64FromUrl(`/images/${selectedCloth.img}`);
         const jobId = "job_" + Date.now();
+        
+        // Initialize Firebase Entry
         await setDoc(doc(db, "vto_jobs", jobId), { status: "pending", createdAt: serverTimestamp() });
 
+        // Listen for AI completion
         onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
             const data = snap.data();
             if (data?.status === "completed") {
@@ -95,11 +101,21 @@ export async function startVertexModeling() {
             }
         });
 
+        // HIT THE NEW .mjs BACKEND
         await fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
-            body: JSON.stringify({ jobId, userImage: userPhotoRaw, clothImage: clothB64 })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                jobId, 
+                userImage: userPhotoRaw, 
+                clothImage: clothB64 
+            })
         });
-    } catch (e) { alert(e.message); location.reload(); }
+
+    } catch (e) { 
+        alert("Client Error: " + e.message); 
+        location.reload(); 
+    }
 }
 
 export function displayFinalAnkara(url) {
@@ -116,6 +132,7 @@ export function displayFinalAnkara(url) {
         </div>`;
 }
 
+// Global Bridge
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
