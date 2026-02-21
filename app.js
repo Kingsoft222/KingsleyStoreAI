@@ -17,6 +17,16 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
+async function getBase64FromUrl(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
+    });
+}
+
 export function executeSearch() {
     const results = document.getElementById('ai-results');
     results.style.display = 'grid';
@@ -24,7 +34,7 @@ export function executeSearch() {
         <div class="card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; padding:15px; border-radius:15px; cursor:pointer; border:1px solid #222; text-align:center;">
             <img src="/images/${item.img}" style="width:100%; border-radius:10px; height:200px; object-fit:cover;">
             <h3 style="color:white; margin:10px 0;">${item.name}</h3>
-            <p style="color:#e60023; font-weight:800; margin:0;">${item.price}</p>
+            <p style="color:#e60023; font-weight:800;">${item.price}</p>
         </div>`).join('');
 }
 
@@ -44,55 +54,45 @@ export function handleUserFitUpload(e) {
     reader.readAsDataURL(file);
 }
 
-export async function startVertexModeling() {
+async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    container.innerHTML = `
-        <div style="color:white; text-align:center; padding-top:100px; background:#000; height:100vh;">
-            <div class="spinner-ring"></div>
-            <h2 style="margin-top:20px;">PULSE TESTING SERVER...</h2>
-            <p>Wait for the server to reply</p>
-        </div>`;
+    container.innerHTML = `<div style="text-align:center; padding-top:100px; color:white;">
+        <div class="spinner-ring"></div>
+        <h2>AI IS STITCHING...</h2>
+        <p>This takes about 30 seconds</p>
+    </div>`;
 
     try {
+        const clothB64 = await getBase64FromUrl(`/images/${selectedCloth.img}`);
+        
         const response = await fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                jobId: "test_" + Date.now(), 
-                userImage: userPhotoRaw 
-            })
+            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64 })
         });
 
-        // This is where the 'Unexpected token I' usually happens
-        const text = await response.text(); 
-        let result;
-        try {
-            result = JSON.parse(text);
-        } catch (e) {
-            console.error("Server sent non-JSON response:", text);
-            throw new Error("Server sent an error page instead of data.");
-        }
+        const result = await response.json();
 
         if (result.success) {
             displayFinalAnkara(`data:image/jpeg;base64,${result.image}`);
         } else {
-            throw new Error(result.error);
+            alert("AI Error: " + result.error);
+            location.reload();
         }
     } catch (e) {
-        alert("PULSE FAILED: " + e.message);
+        alert("System Error: " + e.message);
+        location.reload();
     }
 }
 
-export function displayFinalAnkara(src) {
+function displayFinalAnkara(src) {
     document.getElementById('video-main-container').innerHTML = `
-        <div style="text-align:center; padding:20px; background:#000; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <h2 style="color:#2ecc71; font-weight:900;">SERVER ALIVE!</h2>
-            <p style="color:#888;">The backend received your photo successfully.</p>
-            <img src="${src}" style="max-width:80%; border-radius:15px; border:2px solid #2ecc71; margin:20px 0;">
-            <button onclick="location.reload()" style="padding:15px 40px; background:#e60023; color:white; border:none; border-radius:50px; font-weight:800;">RESTART</button>
+        <div style="text-align:center; background:#000; height:100vh; padding:20px;">
+            <h2 style="color:#e60023;">YOUR NEW LOOK</h2>
+            <img src="${src}" style="max-width:90%; border-radius:15px; border:2px solid #e60023;">
+            <button onclick="location.reload()" style="display:block; margin:20px auto; padding:15px 40px; background:#e60023; color:white; border:none; border-radius:50px; font-weight:800;">RESTART</button>
         </div>`;
 }
 
