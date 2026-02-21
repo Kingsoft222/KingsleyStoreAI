@@ -21,15 +21,14 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-// --- 3. UI UTILITIES ---
+// --- 3. UI UTILITIES & FORCE UNLOCK ---
 function unlockUI() {
-    // Force enable the send circle, mic, and input
     const sendBtn = document.querySelector('.send-circle');
     const micBtn = document.querySelector('.mic-circle');
     const inputField = document.getElementById('ai-input');
     
-    const allButtons = document.querySelectorAll('button');
-    allButtons.forEach(btn => {
+    // Wake up all buttons
+    document.querySelectorAll('button').forEach(btn => {
         btn.disabled = false;
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
@@ -51,48 +50,11 @@ function unlockUI() {
     }
 }
 
-// Run immediately and whenever the page gains focus
+// Ensure buttons are active on load
 window.onload = unlockUI;
 document.addEventListener('visibilitychange', () => { if (!document.hidden) unlockUI(); });
 
-// --- 4. SEARCH & SELECTION ---
-export function executeSearch() {
-    unlockUI();
-    const inputField = document.getElementById('ai-input');
-    const input = inputField.value.toLowerCase();
-    const results = document.getElementById('ai-results');
-    if (!input || !results) return;
-
-    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
-    results.style.display = 'grid';
-    results.innerHTML = matched.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; padding-bottom:10px; cursor:pointer; border:1px solid #222;">
-            <img src="images/${item.img}" style="width:100%; height:160px; object-fit:cover; border-radius:12px 12px 0 0;">
-            <h4 style="color:white; margin:8px; font-size:0.9rem;">${item.name}</h4>
-            <p style="color:#e60023; font-weight:900; margin-left:8px;">${item.price}</p>
-        </div>`).join('');
-}
-
-export function promptShowroomChoice(id) {
-    selectedCloth = clothesCatalog.find(c => c.id === id);
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <button onclick="document.getElementById('user-fit-input').click()" 
-                style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
-            📸 UPLOAD YOUR PHOTO
-        </button>`;
-}
-
-export function handleUserFitUpload(e) {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        userPhoto = event.target.result;
-        window.startVertexModeling();
-    };
-    reader.readAsDataURL(e.target.files[0]);
-}
-
-// --- 5. IMAGE HELPERS ---
+// --- 4. IMAGE HELPERS (BASE64 & COMPRESSION) ---
 async function getBase64FromUrl(url) {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -119,6 +81,43 @@ async function compressImage(base64) {
     });
 }
 
+// --- 5. SEARCH & SELECTION LOGIC ---
+export function executeSearch() {
+    unlockUI();
+    const inputField = document.getElementById('ai-input');
+    const input = inputField.value.toLowerCase();
+    const results = document.getElementById('ai-results');
+    if (!input || !results) return;
+
+    const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+    results.style.display = 'grid';
+    results.innerHTML = matched.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; padding-bottom:10px; cursor:pointer; border:1px solid #222;">
+            <img src="images/${item.img}" style="width:100%; height:160px; object-fit:cover; border-radius:12px 12px 0 0;">
+            <h4 style="color:white; margin:8px; font-size:0.9rem;">${item.name}</h4>
+            <p style="color:#e60023; font-weight:900; margin-left:8px;">${item.price}</p>
+        </div>`).join('');
+}
+
+export function promptShowroomChoice(id) {
+    selectedCloth = clothesCatalog.find(c => c.id === id);
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <button onclick="document.getElementById('user-fit-input').click()" 
+                style="background:#e60023; color:white; border-radius:50px; padding:18px; border:none; width:100%; font-weight:800; cursor:pointer;">
+            📸 UPLOAD REFERENCE PHOTO
+        </button>`;
+}
+
+export function handleUserFitUpload(e) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        userPhoto = event.target.result;
+        window.startVertexModeling();
+    };
+    reader.readAsDataURL(e.target.files[0]);
+}
+
 // --- 6. THE CORE VTO ENGINE ---
 export async function startVertexModeling() {
     document.getElementById('fitting-room-modal').style.display = 'none';
@@ -133,7 +132,7 @@ export async function startVertexModeling() {
                 <div id="countdown-number" style="font-size: 3rem; font-weight: 900;">${timeLeft}</div>
             </div>
             <h3 style="margin-top:40px; letter-spacing:2px; font-weight:800;">STITCHING YOUR LOOK...</h3>
-            <p style="color:#888; margin-top:10px;">Using Virtual Try-On 001</p>
+            <p style="color:#888; margin-top:10px;">Vertex AI Virtual Try-On 001</p>
         </div>
         <style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>`;
 
@@ -161,13 +160,12 @@ export async function startVertexModeling() {
             } else if (data?.status === "failed") {
                 clearInterval(timerInterval);
                 unsub();
-                alert("AI Error: " + (data.error || "Please try again."));
+                alert("Tailor is busy: " + (data.error || "Try again shortly."));
                 unlockUI();
                 document.getElementById('video-experience-modal').style.display = 'none';
             }
         });
 
-        // Trigger the background function with DUAL images
         fetch('/.netlify/functions/process-vto-background', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -180,23 +178,25 @@ export async function startVertexModeling() {
 
     } catch (e) { 
         console.error("Critical Error:", e); 
-        clearInterval(timerInterval);
         unlockUI();
     }
 }
 
+// --- 7. THE FULL-PAGE RESULT SCREEN ---
 export function displayFinalAnkara(url) {
-    // FULL PAGE RESULT LAYOUT
-    document.getElementById('video-main-container').innerHTML = `
-        <div style="display: flex; flex-direction: column; height: 100dvh; width: 100%; background: #000; overflow: hidden;">
+    const finalUrl = `${url}?t=${Date.now()}`; // Cache buster
+    const container = document.getElementById('video-main-container');
+
+    container.innerHTML = `
+        <div style="display: flex; flex-direction: column; height: 100dvh; width: 100%; background: #000; overflow: hidden; position: fixed; inset: 0; z-index: 9999;">
             <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px;">
-                <img src="${url}" 
-                     style="max-width: 100%; max-height: 80vh; border-radius: 16px; border: 2px solid #333; box-shadow: 0 0 50px rgba(230,0,35,0.4); animation: fadeIn 0.8s ease-out;"
-                     alt="Result">
+                <img src="${finalUrl}" 
+                     style="max-width: 100%; max-height: 80vh; border-radius: 16px; border: 2px solid #333; box-shadow: 0 0 50px rgba(230,0,35,0.4); animation: fadeIn 0.8s ease-in;" 
+                     alt="Kingsley AI Result">
             </div>
-            <div style="padding: 20px 20px 40px; background: linear-gradient(to top, #000, transparent);">
+            <div style="padding: 20px 20px 40px; background: linear-gradient(to top, #000 80%, transparent); display: flex; justify-content: center;">
                 <button onclick="location.reload()" 
-                        style="background:#e60023; color:white; padding:22px; border-radius:50px; font-weight:800; border:none; width:100%; cursor:pointer; font-size:1.2rem; box-shadow: 0 10px 25px rgba(230,0,35,0.3); text-transform: uppercase;">
+                        style="background:#e60023; color:white; padding:22px; border-radius:50px; font-weight:800; border:none; width:100%; max-width: 400px; cursor:pointer; font-size:1.2rem; box-shadow: 0 10px 25px rgba(230,0,35,0.3); text-transform: uppercase;">
                     ADD TO CART 🛍️
                 </button>
             </div>
@@ -204,7 +204,7 @@ export function displayFinalAnkara(url) {
         <style> @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } } </style>`;
 }
 
-// --- 7. EXPOSE TO WINDOW ---
+// --- 8. EXPOSE TO WINDOW ---
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
