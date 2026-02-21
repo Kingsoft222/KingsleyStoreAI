@@ -32,9 +32,7 @@ export default async function handler(req, res) {
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction || !prediction.bytesBase64Encoded) {
-            throw new Error("AI engine failed to generate image.");
-        }
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI engine failed to respond.");
 
         return res.status(200).json({
             success: true,

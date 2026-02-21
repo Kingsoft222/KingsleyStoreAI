@@ -41,7 +41,7 @@ export function promptShowroomChoice(id) {
     document.getElementById('fitting-room-modal').style.display = 'flex';
 }
 
-// --- THE FIX: RESIZING BEFORE UPLOAD ---
+// THE PRE-PROCESSOR (Shrinks image to prevent "Too Big" error)
 export function handleUserFitUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -54,18 +54,11 @@ export function handleUserFitUpload(e) {
             let width = img.width;
             let height = img.height;
 
-            // Constrain to max 1024px to satisfy Google OpenCV limits
-            const MAX_SIDE = 1024;
+            const MAX_SIDE = 1024; // Safe size for Google AI
             if (width > height) {
-                if (width > MAX_SIDE) {
-                    height *= MAX_SIDE / width;
-                    width = MAX_SIDE;
-                }
+                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
             } else {
-                if (height > MAX_SIDE) {
-                    width *= MAX_SIDE / height;
-                    height = MAX_SIDE;
-                }
+                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
             }
 
             canvas.width = width;
@@ -73,7 +66,6 @@ export function handleUserFitUpload(e) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Convert to JPEG at 80% quality (Massively reduces pixel buffer size)
             userPhotoRaw = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
             startVertexModeling();
         };
@@ -92,7 +84,7 @@ async function startVertexModeling() {
         <div class="mall-loader-container">
             <div class="spinner-ring"></div>
             <h2 id="timer-count" style="color:#e60023; font-size: 3rem;">${timeLeft}s</h2>
-            <p style="color:white; font-weight:900;">STITCHING YOUR NEW LOOK...</p>
+            <p style="color:white; font-weight:900;">AI IS RENDERING YOUR LOOK...</p>
         </div>`;
 
     const timer = setInterval(() => {
@@ -103,12 +95,10 @@ async function startVertexModeling() {
 
     try {
         const clothB64 = await getBase64FromUrl(`/images/${selectedCloth.img}`);
-        
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64 })
         });
-
         const result = await response.json();
         clearInterval(timer);
 
@@ -128,7 +118,7 @@ function displayFinalResult(src) {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
         <div class="result-wrapper">
-            <img src="${src}" style="max-width:90%; border:3px solid #e60023; border-radius:15px;">
+            <img src="${src}" style="max-width:95%; border:3px solid #e60023; border-radius:15px;">
         </div>
         <div class="vto-action-footer">
             <button id="vto-add-to-cart" onclick="location.reload()">ORDER THIS LOOK 🛍️</button>
