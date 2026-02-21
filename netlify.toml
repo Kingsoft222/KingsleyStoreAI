@@ -1,5 +1,10 @@
 [build]
-  functions = "netlify/functions"
+  # We tell Netlify the publish directory is the root (.)
+  publish = "."
+
+[functions]
+  # Tell Netlify where your AI code is hiding
+  directory = "netlify/functions"
 
 [[redirects]]
   from = "/api/*"
