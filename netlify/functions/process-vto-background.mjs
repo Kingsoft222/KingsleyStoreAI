@@ -1,75 +1,40 @@
-import axios from "axios";
-import { GoogleAuth } from 'google-auth-library';
-
-// LOG TO PROVE THE ENGINE IS TURNING OVER
-console.log("!!! [VTO-BACKEND] INITIALIZING ENGINE !!!");
+/** * Netlify Function: process-vto-background.mjs
+ * This version uses the standard 'export default' for Netlify V2 functions.
+ */
 
 export default async (request, context) => {
-    console.log("!!! [VTO-BACKEND] REQUEST RECEIVED !!!");
+    // This MUST show up in Netlify logs now
+    console.log("--- [PULSE-TEST] FUNCTION INVOKED ---");
 
     try {
-        // 1. Parse Request
+        // Modern request parsing for .mjs files
         const body = await request.json();
-        const { userImage, clothImage } = body;
+        const { jobId, userImage } = body;
 
-        const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-        if (!rawEnv) throw new Error("Server Environment Variable 'FIREBASE_SERVICE_ACCOUNT' is missing.");
+        console.log("--- [PULSE-TEST] JOB ID:", jobId);
 
-        const serviceAccount = JSON.parse(rawEnv);
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+        // Prove we can read your Netlify environment variables
+        const hasEnv = !!process.env.FIREBASE_SERVICE_ACCOUNT;
+        console.log("--- [PULSE-TEST] ENV DETECTED:", hasEnv);
 
-        // 2. Authenticate with Google
-        const auth = new GoogleAuth({
-            credentials: serviceAccount,
-            scopes: 'https://www.googleapis.com/auth/cloud-platform',
-        });
-        const client = await auth.getClient();
-        const token = await client.getAccessToken();
-
-        // 3. Call Vertex AI Virtual Try-On
-        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
-
-        console.log("!!! [VTO-BACKEND] CALLING VERTEX AI...");
-
-        const response = await axios.post(url, {
-            instances: [{
-                personImage: { image: { bytesBase64Encoded: userImage } },
-                productImages: [{ image: { bytesBase64Encoded: clothImage } }]
-            }],
-            parameters: { sampleCount: 1, addWatermark: false }
-        }, {
-            headers: { 
-                Authorization: `Bearer ${token.token}`, 
-                'Content-Type': 'application/json' 
-            }
-        });
-
-        const prediction = response.data.predictions[0];
-        if (!prediction || !prediction.bytesBase64Encoded) {
-            throw new Error("Google AI returned an empty result.");
-        }
-
-        console.log("!!! [VTO-BACKEND] SUCCESS: SENDING IMAGE BACK TO FRONTEND !!!");
-
-        // 4. Send the result back as JSON
+        // RETURN SUCCESS: We send your image back to prove the loop works
         return new Response(JSON.stringify({ 
             success: true, 
-            image: prediction.bytesBase64Encoded 
+            message: "SERVER IS TALKING!", 
+            image: userImage 
         }), { 
             status: 200,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" }
         });
 
     } catch (error) {
-        const msg = error.response?.data?.error?.message || error.message;
-        console.error("!!! [VTO-BACKEND] CRASH DETAIL:", msg);
-        
+        console.error("--- [PULSE-TEST] CRASH:", error.message);
         return new Response(JSON.stringify({ 
             success: false, 
-            error: msg 
+            error: error.message 
         }), { 
             status: 500,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { "Content-Type": "application/json" }
         });
     }
 };
