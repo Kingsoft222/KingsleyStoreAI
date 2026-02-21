@@ -41,21 +41,20 @@ export function promptShowroomChoice(id) {
     document.getElementById('fitting-room-modal').style.display = 'flex';
 }
 
-// --- NEW RESIZER LOGIC ---
+// --- THE FIX: RESIZING BEFORE UPLOAD ---
 export function handleUserFitUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const img = new Image();
     const reader = new FileReader();
-
     reader.onload = (event) => {
+        const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             let width = img.width;
             let height = img.height;
 
-            // Resize to max 1024px side (Prevents OpenCV crash)
+            // Constrain to max 1024px to satisfy Google OpenCV limits
             const MAX_SIDE = 1024;
             if (width > height) {
                 if (width > MAX_SIDE) {
@@ -74,7 +73,7 @@ export function handleUserFitUpload(e) {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // Convert to JPEG (Smaller payload, more compatible)
+            // Convert to JPEG at 80% quality (Massively reduces pixel buffer size)
             userPhotoRaw = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
             startVertexModeling();
         };
@@ -93,7 +92,7 @@ async function startVertexModeling() {
         <div class="mall-loader-container">
             <div class="spinner-ring"></div>
             <h2 id="timer-count" style="color:#e60023; font-size: 3rem;">${timeLeft}s</h2>
-            <p style="color:white; font-weight:900;">AI IS RENDERING YOUR LOOK...</p>
+            <p style="color:white; font-weight:900;">STITCHING YOUR NEW LOOK...</p>
         </div>`;
 
     const timer = setInterval(() => {
@@ -120,7 +119,7 @@ async function startVertexModeling() {
         }
     } catch (e) {
         clearInterval(timer);
-        alert("STITCHING FAILED: " + e.message);
+        alert("ERROR: " + e.message);
         location.reload();
     }
 }
