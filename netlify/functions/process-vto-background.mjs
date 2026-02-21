@@ -1,45 +1,24 @@
-import admin from "firebase-admin";
 import axios from "axios";
 import { GoogleAuth } from 'google-auth-library';
 
-// LOG 1: Prove the file loaded
-console.log("--- [VTO] FILE LOADED ---");
+// LOG TO PROVE THE ENGINE IS TURNING OVER
+console.log("!!! [VTO-BACKEND] INITIALIZING ENGINE !!!");
 
-const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-let serviceAccount = null;
-
-try {
-    if (rawEnv) {
-        serviceAccount = JSON.parse(rawEnv);
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-        console.log("--- [VTO] CREDENTIALS READY ---");
-    }
-} catch (e) {
-    console.error("--- [VTO] JSON PARSE ERROR:", e.message);
-}
-
-if (serviceAccount && !admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        storageBucket: "kingsleystoreai.firebasestorage.app"
-    });
-}
-
-// NETLIFY V2 HANDLER SYNTAX
 export default async (request, context) => {
-    console.log("--- [VTO] HANDLER TRIGGERED ---");
-    
-    const db = admin.firestore();
-    const bucket = admin.storage().bucket();
+    console.log("!!! [VTO-BACKEND] REQUEST RECEIVED !!!");
 
     try {
-        const body = await request.json(); // Modern way to get body in .mjs
-        const { jobId, userImage, clothImage } = body;
+        // 1. Parse Request
+        const body = await request.json();
+        const { userImage, clothImage } = body;
 
-        console.log("--- [VTO] JOB ID:", jobId);
+        const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+        if (!rawEnv) throw new Error("Server Environment Variable 'FIREBASE_SERVICE_ACCOUNT' is missing.");
 
-        await db.collection("vto_jobs").doc(jobId).set({ status: "processing" }, { merge: true });
+        const serviceAccount = JSON.parse(rawEnv);
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
+        // 2. Authenticate with Google
         const auth = new GoogleAuth({
             credentials: serviceAccount,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
@@ -47,7 +26,10 @@ export default async (request, context) => {
         const client = await auth.getClient();
         const token = await client.getAccessToken();
 
+        // 3. Call Vertex AI Virtual Try-On
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+
+        console.log("!!! [VTO-BACKEND] CALLING VERTEX AI...");
 
         const response = await axios.post(url, {
             instances: [{
@@ -56,27 +38,38 @@ export default async (request, context) => {
             }],
             parameters: { sampleCount: 1, addWatermark: false }
         }, {
-            headers: { Authorization: `Bearer ${token.token}`, 'Content-Type': 'application/json' }
+            headers: { 
+                Authorization: `Bearer ${token.token}`, 
+                'Content-Type': 'application/json' 
+            }
         });
 
         const prediction = response.data.predictions[0];
-        const fileName = `results/${jobId}.jpg`;
-        const file = bucket.file(fileName);
-        
-        await file.save(Buffer.from(prediction.bytesBase64Encoded, "base64"), {
-            metadata: { contentType: "image/jpeg" },
-            public: true
+        if (!prediction || !prediction.bytesBase64Encoded) {
+            throw new Error("Google AI returned an empty result.");
+        }
+
+        console.log("!!! [VTO-BACKEND] SUCCESS: SENDING IMAGE BACK TO FRONTEND !!!");
+
+        // 4. Send the result back as JSON
+        return new Response(JSON.stringify({ 
+            success: true, 
+            image: prediction.bytesBase64Encoded 
+        }), { 
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
         });
-
-        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-        await db.collection("vto_jobs").doc(jobId).update({ status: "completed", resultImageUrl: publicUrl });
-
-        console.log("--- [VTO] SUCCESS ---");
-        return new Response(JSON.stringify({ success: true }), { status: 200 });
 
     } catch (error) {
         const msg = error.response?.data?.error?.message || error.message;
-        console.error("--- [VTO] CRASH:", msg);
-        return new Response(JSON.stringify({ error: msg }), { status: 500 });
+        console.error("!!! [VTO-BACKEND] CRASH DETAIL:", msg);
+        
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: msg 
+        }), { 
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 };
