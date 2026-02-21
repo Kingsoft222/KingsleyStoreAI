@@ -2,27 +2,20 @@ const admin = require("firebase-admin");
 const axios = require("axios");
 const { GoogleAuth } = require('google-auth-library');
 
-// 1. SECURE INITIALIZATION
+// 1. INITIALIZE FIREBASE
 const rawEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-let serviceAccount;
-if (rawEnv) {
-    try {
-        serviceAccount = JSON.parse(rawEnv);
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-    } catch (e) {
-        console.error("❌ ERROR: Service Account JSON is malformed.");
-    }
-}
+let serviceAccount = rawEnv ? JSON.parse(rawEnv) : null;
+if (serviceAccount) serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
 if (serviceAccount && !admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: `${serviceAccount.project_id}.firebasestorage.app`
+        storageBucket: "kingsleystoreai.firebasestorage.app"
     });
 }
 
 exports.handler = async (event) => {
-    // Add CORS headers so the browser doesn't block the response
+    // CORS Headers to prevent browser blocks
     const headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
@@ -33,9 +26,9 @@ exports.handler = async (event) => {
         return { statusCode: 200, headers, body: "" };
     }
 
-    const { jobId, userImage, clothImage } = JSON.parse(event.body);
     const db = admin.firestore();
     const bucket = admin.storage().bucket();
+    const { jobId, userImage, clothImage } = JSON.parse(event.body);
 
     try {
         await db.collection("vto_jobs").doc(jobId).set({ status: "processing" }, { merge: true });
@@ -48,22 +41,29 @@ exports.handler = async (event) => {
         const client = await auth.getClient();
         const token = await client.getAccessToken();
 
-        // 3. THE OFFICIAL VTO ENDPOINT
+        // 3. THE OFFICIAL VTO-001 ENDPOINT
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // CORRECT PAYLOAD STRUCTURE FOR VTO-001
+        // THE CRITICAL FIX: EXACT JSON STRUCTURE REQUIRED BY VTO-001
         const requestBody = {
-            instances: [{
-                personImage: { image: { bytesBase64Encoded: userImage } },
-                productImage: { image: { bytesBase64Encoded: clothImage } }
-            }],
+            instances: [
+                {
+                    personImage: {
+                        image: { bytesBase64Encoded: userImage }
+                    },
+                    productImages: [
+                        {
+                            image: { bytesBase64Encoded: clothImage }
+                        }
+                    ]
+                }
+            ],
             parameters: {
                 sampleCount: 1,
                 addWatermark: false
             }
         };
 
-        console.log("📡 Sending request to Vertex AI...");
         const response = await axios.post(url, requestBody, {
             headers: { 
                 Authorization: `Bearer ${token.token}`, 
@@ -71,24 +71,28 @@ exports.handler = async (event) => {
             }
         });
 
-        // 4. DATA EXTRACTION
+        // 4. EXTRACT DATA FROM RESPONSE
         const prediction = response.data.predictions[0];
         if (!prediction || !prediction.bytesBase64Encoded) {
-            throw new Error("AI model returned no image data.");
+            throw new Error("VTO Model returned no image data. Ensure your images are clear.");
         }
 
         const buffer = Buffer.from(prediction.bytesBase64Encoded, "base64");
         const fileName = `results/${jobId}.jpg`;
         const file = bucket.file(fileName);
 
+        // SAVE WITH PUBLIC ACCESS
         await file.save(buffer, {
-            metadata: { contentType: "image/jpeg", cacheControl: "public, max-age=31536000" },
+            metadata: { 
+                contentType: "image/jpeg",
+                cacheControl: "public, max-age=31536000"
+            },
             public: true,
             resumable: false
         });
 
         const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-        
+
         await db.collection("vto_jobs").doc(jobId).update({
             status: "completed",
             resultImageUrl: publicUrl
@@ -101,15 +105,14 @@ exports.handler = async (event) => {
         };
 
     } catch (error) {
-        // Detailed error logging for Netlify
+        console.error("VTO_CRASH:", error.response?.data || error.message);
         const errorMsg = error.response?.data?.error?.message || error.message;
-        console.error("❌ VTO CRASH:", errorMsg);
-
+        
         await db.collection("vto_jobs").doc(jobId).set({ 
             status: "failed", 
             error: errorMsg 
         }, { merge: true });
-
+        
         return { 
             statusCode: 500, 
             headers, 
