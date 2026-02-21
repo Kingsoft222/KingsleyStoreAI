@@ -41,20 +41,49 @@ export function promptShowroomChoice(id) {
     document.getElementById('fitting-room-modal').style.display = 'flex';
 }
 
+// --- NEW RESIZER LOGIC ---
 export function handleUserFitUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const img = new Image();
     const reader = new FileReader();
+
     reader.onload = (event) => {
-        userPhotoRaw = event.target.result.split(',')[1];
-        startVertexModeling();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            // Resize to max 1024px side (Prevents OpenCV crash)
+            const MAX_SIDE = 1024;
+            if (width > height) {
+                if (width > MAX_SIDE) {
+                    height *= MAX_SIDE / width;
+                    width = MAX_SIDE;
+                }
+            } else {
+                if (height > MAX_SIDE) {
+                    width *= MAX_SIDE / height;
+                    height = MAX_SIDE;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to JPEG (Smaller payload, more compatible)
+            userPhotoRaw = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            startVertexModeling();
+        };
+        img.src = event.target.result;
     };
     reader.readAsDataURL(file);
 }
 
 async function startVertexModeling() {
-    if (!selectedCloth) return alert("Select a cloth first!");
-    
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
@@ -64,7 +93,7 @@ async function startVertexModeling() {
         <div class="mall-loader-container">
             <div class="spinner-ring"></div>
             <h2 id="timer-count" style="color:#e60023; font-size: 3rem;">${timeLeft}s</h2>
-            <p style="color:white; font-weight:900;">KINGSLEY AI IS SEWING YOUR LOOK...</p>
+            <p style="color:white; font-weight:900;">AI IS RENDERING YOUR LOOK...</p>
         </div>`;
 
     const timer = setInterval(() => {
@@ -87,11 +116,11 @@ async function startVertexModeling() {
         if (result.success) {
             displayFinalResult(`data:image/jpeg;base64,${result.image}`);
         } else {
-            throw new Error(result.error || "AI Stitching failed.");
+            throw new Error(result.error);
         }
     } catch (e) {
         clearInterval(timer);
-        alert("ERROR: " + e.message);
+        alert("STITCHING FAILED: " + e.message);
         location.reload();
     }
 }
@@ -100,7 +129,7 @@ function displayFinalResult(src) {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
         <div class="result-wrapper">
-            <img src="${src}">
+            <img src="${src}" style="max-width:90%; border:3px solid #e60023; border-radius:15px;">
         </div>
         <div class="vto-action-footer">
             <button id="vto-add-to-cart" onclick="location.reload()">ORDER THIS LOOK 🛍️</button>
