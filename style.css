@@ -1,24 +1,68 @@
-/* --- 4. MALL RESULT MODAL (OPTIMIZED FOR FULL PAGE) --- */
+/* --- 1. CORE BRANDING --- */
+:root {
+    --primary: #e60023;
+    --dark: #000000;
+    --gray: #1a1a1a;
+    --text: #ffffff;
+}
+
+body {
+    background-color: var(--dark);
+    color: var(--text);
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow-x: hidden;
+}
+
+/* --- 2. THE SPINNER (FIXED SIZE) --- */
+.spinner-ring {
+    width: 60px !important;
+    height: 60px !important;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+    border-top: 5px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* --- 3. PRODUCT CARDS --- */
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 20px;
+}
+
+.card {
+    background: var(--gray);
+    padding: 15px;
+    border-radius: 20px;
+    text-align: center;
+    border: 1px solid #333;
+    transition: transform 0.2s;
+}
+
+.card img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+/* --- 4. MALL RESULT MODAL (YOUR OPTIMIZED CODE) --- */
 #video-experience-modal {
     position: fixed;
     inset: 0;
     background: #000;
-    z-index: 100000; /* Ensure it's above everything */
-    display: none; /* Controlled by JS */
+    z-index: 100000;
+    display: none;
     flex-direction: column;
-    height: 100dvh; /* Use dynamic viewport height for mobile */
-}
-
-.modal-header-glass {
-    width: 100%;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: flex-end; /* Align close button to right */
-    align-items: center;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-    position: absolute; /* Float over the image */
-    top: 0;
-    z-index: 100;
+    height: 100dvh;
 }
 
 #video-main-container {
@@ -26,28 +70,27 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* This pins the button to the bottom */
+    justify-content: space-between;
     align-items: center;
     padding: 0;
 }
 
-/* THE HERO IMAGE AREA */
 .result-wrapper {
-    flex: 1; /* Takes all available space */
+    flex: 1;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #000;
-    padding-top: 60px; /* Room for header */
+    padding-top: 60px;
 }
 
 .result-wrapper img {
-    max-width: 100%;
-    max-height: 80vh; /* Prevents overflow */
+    max-width: 90%;
+    max-height: 75vh;
     object-fit: contain;
     border-radius: 15px;
-    box-shadow: 0 0 50px rgba(230, 0, 35, 0.4); /* Red glow for Kingsley Store brand */
+    box-shadow: 0 0 50px rgba(230, 0, 35, 0.4);
     animation: fadeInScale 0.8s ease-out;
 }
 
@@ -56,10 +99,9 @@
     to { opacity: 1; transform: scale(1); }
 }
 
-/* THE FIXED BOTTOM ACTION AREA */
 .vto-action-footer {
     width: 100%;
-    padding: 20px 20px 40px 20px; /* Extra bottom padding for iPhone bars */
+    padding: 20px 20px 40px 20px;
     background: linear-gradient(to top, #000 80%, transparent);
     display: flex;
     justify-content: center;
@@ -67,10 +109,10 @@
 }
 
 #vto-add-to-cart {
-    width: 100%;
+    width: 90%;
     max-width: 400px;
     padding: 18px;
-    background: #e60023; /* Your brand red */
+    background: var(--primary);
     color: white;
     border: none;
     border-radius: 50px;
@@ -79,16 +121,19 @@
     text-transform: uppercase;
     letter-spacing: 1.5px;
     cursor: pointer;
-    box-shadow: 0 10px 25px rgba(230, 0, 35, 0.3);
-    transition: all 0.3s ease;
 }
 
-#vto-add-to-cart:active {
-    transform: scale(0.95);
-    background: #b3001b;
+/* --- 5. VOICE/UPLOAD MODAL --- */
+.voice-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
 }
 
-/* SLEEK TAILOR SPINNER RE-CENTERED */
 .mall-loader-container {
     display: flex;
     flex-direction: column;
@@ -96,4 +141,5 @@
     justify-content: center;
     height: 100%;
     color: white;
+    width: 100%;
 }
