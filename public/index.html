@@ -55,6 +55,8 @@
             cursor: pointer; 
             font-family: 'Inter', sans-serif; 
             transition: 0.3s;
+            background: #e60023;
+            color: white;
         }
         
         .close-video-btn { 
@@ -81,6 +83,19 @@
             align-items: center; 
             justify-content: center; 
         }
+
+        /* Fixed Search Bar Styling */
+        .send-circle {
+            background: #e60023;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +108,7 @@
         <div class="store-profile">
             <div class="profile-pic-container">
                 <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile">
+                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile" onerror="this.src='https://ui-avatars.com/api/?name=Kingsley+Store&background=e60023&color=fff'">
                 </div>
             </div>
             <input type="file" id="profile-input" hidden accept="image/*">
@@ -106,9 +121,17 @@
     <div id="fitting-room-modal" class="voice-overlay">
         <div class="voice-modal" style="background: white; padding: 30px; border-radius: 30px; text-align: center; width: 90%; max-width: 400px; position: relative;">
             <span onclick="document.getElementById('fitting-room-modal').style.display='none'" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:24px; font-weight: 800;">×</span>
+            
             <h2 id="modal-subtext" style="color:#e60023; margin-bottom:20px; font-weight:800;">Virtual Try-On</h2>
+            
+            <div id="ai-fitting-result" style="width: 100%;">
+                <p style="color: #666; margin-bottom: 20px;">Upload a clear photo of yourself to try on this outfit.</p>
+                <button onclick="document.getElementById('user-fit-input').click()" class="primary-btn">
+                    📸 UPLOAD YOUR PHOTO
+                </button>
+            </div>
+
             <input type="file" id="user-fit-input" hidden accept="image/*" onchange="window.handleUserFitUpload(event)">
-            <div id="ai-fitting-result" style="width: 100%;"></div>
         </div>
     </div>
 
@@ -129,7 +152,7 @@
             </div>
         </div>
         <div class="search-bar">
-            <input type="text" id="ai-input" placeholder="Search Senator or Ankara...">
+            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." onkeypress="if(event.key === 'Enter') window.executeSearch()">
             <div class="input-icons">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 <button class="send-circle" onclick="window.executeSearch()">

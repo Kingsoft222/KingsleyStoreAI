@@ -23,7 +23,10 @@ const clothesCatalog = [
 // --- 3. UI UNLOCKER ---
 function unlockUI() {
     const ids = ['ai-input', 'user-fit-input'];
-    ids.forEach(id => { if(document.getElementById(id)) document.getElementById(id).disabled = false; });
+    ids.forEach(id => { 
+        const el = document.getElementById(id);
+        if(el) el.disabled = false; 
+    });
     document.querySelectorAll('.send-circle, .mic-circle').forEach(el => {
         el.style.opacity = '1';
         el.style.pointerEvents = 'auto';
@@ -48,7 +51,8 @@ async function compressImage(base64) {
         img.onload = () => {
             const canvas = document.createElement("canvas");
             const scale = 800 / img.height;
-            canvas.height = 800; canvas.width = img.width * scale;
+            canvas.height = 800; 
+            canvas.width = img.width * scale;
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             resolve(canvas.toDataURL("image/jpeg", 0.7).split(",")[1]);
@@ -59,10 +63,13 @@ async function compressImage(base64) {
 
 // --- 5. CORE SEARCH & VTO LOGIC ---
 export function executeSearch() {
-    const input = document.getElementById('ai-input').value.toLowerCase();
+    const inputEl = document.getElementById('ai-input');
     const results = document.getElementById('ai-results');
-    if (!input || !results) return;
+    if (!inputEl || !results) return;
+    
+    const input = inputEl.value.toLowerCase();
     const matched = clothesCatalog.filter(item => item.name.toLowerCase().includes(input));
+    
     results.style.display = 'grid';
     results.innerHTML = matched.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})" style="background:#111; border-radius:12px; padding-bottom:10px; cursor:pointer; border:1px solid #222;">
@@ -78,9 +85,15 @@ export function promptShowroomChoice(id) {
 }
 
 export function handleUserFitUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
     const reader = new FileReader();
-    reader.onload = (ev) => { userPhoto = ev.target.result; window.startVertexModeling(); };
-    reader.readAsDataURL(e.target.files[0]);
+    reader.onload = (ev) => { 
+        userPhoto = ev.target.result; 
+        window.startVertexModeling(); 
+    };
+    reader.readAsDataURL(file);
 }
 
 export async function startVertexModeling() {
@@ -100,7 +113,11 @@ export async function startVertexModeling() {
         </div>
         <style> @keyframes spin { to { transform: rotate(360deg); } } </style>`;
 
-    const timer = setInterval(() => { if(timeLeft > 0) timeLeft--; document.getElementById('countdown-number').innerText = timeLeft; }, 1000);
+    const timer = setInterval(() => { 
+        if(timeLeft > 0) timeLeft--; 
+        const countEl = document.getElementById('countdown-number');
+        if(countEl) countEl.innerText = timeLeft; 
+    }, 1000);
 
     try {
         const userB64 = await compressImage(userPhoto);
@@ -112,10 +129,12 @@ export async function startVertexModeling() {
         const unsub = onSnapshot(doc(db, "vto_jobs", jobId), (snap) => {
             const data = snap.data();
             if (data?.status === "completed") {
-                clearInterval(timer); unsub();
+                clearInterval(timer); 
+                unsub();
                 window.displayFinalAnkara(data.resultImageUrl);
             } else if (data?.status === "failed") {
-                clearInterval(timer); unsub();
+                clearInterval(timer); 
+                unsub();
                 alert("AI Tailor Error: " + (data.error || "Please try a clearer photo."));
                 location.reload();
             }
