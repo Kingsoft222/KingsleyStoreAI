@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 const firebaseConfig = {
     authDomain: "kingsleystoreai.firebaseapp.com",
     projectId: "kingsleystoreai",
-    storageBucket: "kingsleystoreai.firebasestorage.app"
+    storageBucket: "kingsleystoreai.firebasestorage.app",
 };
 initializeApp(firebaseConfig);
 
@@ -15,7 +15,6 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
-// Helper to convert images to Base64
 async function getBase64FromUrl(url) {
     const response = await fetch(url);
     const blob = await response.blob();
@@ -48,57 +47,50 @@ export function handleUserFitUpload(e) {
     const reader = new FileReader();
     reader.onload = (event) => {
         userPhotoRaw = event.target.result.split(',')[1];
-        startVtoProcess();
+        startVertexModeling();
     };
     reader.readAsDataURL(file);
 }
 
-async function startVtoProcess() {
-    if (!selectedCloth) return alert("Please select a cloth first!");
-
+async function startVertexModeling() {
+    if (!selectedCloth) return alert("Select a cloth first!");
+    
     document.getElementById('fitting-room-modal').style.display = 'none';
     document.getElementById('video-experience-modal').style.display = 'flex';
     const container = document.getElementById('video-main-container');
     
-    let timeLeft = 30;
+    let timeLeft = 35;
     container.innerHTML = `
         <div class="mall-loader-container">
             <div class="spinner-ring"></div>
-            <h2 id="timer-text" style="color:#e60023; font-size: 2.5rem; margin: 10px 0;">${timeLeft}s</h2>
-            <p style="color:white; font-weight:bold;">KINGSLEY AI IS STITCHING YOUR WEAR...</p>
+            <h2 id="timer-count" style="color:#e60023; font-size: 3rem;">${timeLeft}s</h2>
+            <p style="color:white; font-weight:900;">KINGSLEY AI IS SEWING YOUR LOOK...</p>
         </div>`;
 
-    const countdown = setInterval(() => {
-        timeLeft--;
-        const el = document.getElementById('timer-text');
+    const timer = setInterval(() => {
+        if (timeLeft > 0) timeLeft--;
+        const el = document.getElementById('timer-count');
         if (el) el.innerText = timeLeft + "s";
-        if (timeLeft <= 0) clearInterval(countdown);
     }, 1000);
 
     try {
         const clothB64 = await getBase64FromUrl(`/images/${selectedCloth.img}`);
         
-        // POINTING TO VERCEL API
         const response = await fetch('/api/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ 
-                userImage: userPhotoRaw, 
-                clothImage: clothB64 
-            })
+            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64 })
         });
 
         const result = await response.json();
-        clearInterval(countdown);
+        clearInterval(timer);
 
         if (result.success) {
-            // result.image will contain the Base64 data from the API
             displayFinalResult(`data:image/jpeg;base64,${result.image}`);
         } else {
-            throw new Error(result.error || "AI failed to respond");
+            throw new Error(result.error || "AI Stitching failed.");
         }
     } catch (e) {
-        clearInterval(countdown);
-        console.error("VTO Error:", e);
+        clearInterval(timer);
         alert("ERROR: " + e.message);
         location.reload();
     }
@@ -108,14 +100,13 @@ function displayFinalResult(src) {
     const container = document.getElementById('video-main-container');
     container.innerHTML = `
         <div class="result-wrapper">
-            <img src="${src}" style="max-width:90%; border: 3px solid #e60023; border-radius:15px;">
+            <img src="${src}">
         </div>
         <div class="vto-action-footer">
-            <button id="vto-add-to-cart" onclick="location.reload()">ADD TO CART 🛍️</button>
+            <button id="vto-add-to-cart" onclick="location.reload()">ORDER THIS LOOK 🛍️</button>
         </div>`;
 }
 
-// Global scope bridges
 window.executeSearch = executeSearch;
 window.promptShowroomChoice = promptShowroomChoice;
 window.handleUserFitUpload = handleUserFitUpload;
