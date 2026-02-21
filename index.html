@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kingsley Store | AI Virtual Try-On</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .spinner-ring { position: absolute; inset: -4px; border: 4px solid transparent; border-top-color: #e60023; border-radius: 50%; animation: spin 1s linear infinite; }
+        body { background: #000; color: white; margin: 0; font-family: 'Inter', sans-serif; }
+        #video-experience-modal { display: none; position: fixed; inset: 0; background: #000; z-index: 100000; }
+        .voice-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; }
+        .results-grid { display: none; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 20px; padding-bottom: 120px; }
+    </style>
+</head>
+<body>
+    <div style="text-align:center; padding:40px 20px;">
+        <h1 style="font-weight:800; color:white; margin:0;">Kingsley Store</h1>
+        <p style="color:#888;">AI Virtual Fashion Assistant</p>
+    </div>
+
+    <div id="ai-results" class="results-grid"></div>
+
+    <div id="fitting-room-modal" class="voice-overlay">
+        <div style="background:white; padding:40px; border-radius:30px; text-align:center; width:85%; max-width:400px; color:#000;">
+            <h2 style="color:#e60023; font-weight:800; margin-bottom:10px;">Virtual Try-On</h2>
+            <p style="color:#666; margin-bottom:25px;">Take or upload a photo of yourself.</p>
+            <button onclick="document.getElementById('user-fit-input').click()" style="background:#e60023; color:white; width:100%; padding:20px; border-radius:50px; border:none; font-weight:800; cursor:pointer;">
+                📸 UPLOAD PHOTO
+            </button>
+            <input type="file" id="user-fit-input" hidden accept="image/*" onchange="window.handleUserFitUpload(event)">
+            <p onclick="document.getElementById('fitting-room-modal').style.display='none'" style="margin-top:20px; color:#999; cursor:pointer;">Cancel</p>
+        </div>
+    </div>
+
+    <div id="video-experience-modal">
+        <div id="video-main-container"></div>
+    </div>
+
+    <footer style="position:fixed; bottom:20px; width:100%; padding:0 20px; box-sizing:border-box;">
+        <div style="background:#1a1a1a; border-radius:50px; padding:10px 20px; display:flex; align-items:center; border:1px solid #333;">
+            <input type="text" id="ai-input" placeholder="Search Senator..." style="background:none; border:none; color:white; flex:1; outline:none; font-size:16px;">
+            <button onclick="window.executeSearch()" style="background:#e60023; border:none; border-radius:50%; width:40px; height:40px; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </footer>
+    <script type="module" src="/app.js"></script>
+</body>
+</html>
