@@ -15,12 +15,38 @@ const clothesCatalog = [
     { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
 ];
 
+// NEW: Helper to resize ANY image (user or cloth) to ensure Google can read it
+async function resizeImage(base64Str) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_SIDE = 1024;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
+            } else {
+                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        };
+        img.src = base64Str;
+    });
+}
+
 async function getBase64FromUrl(url) {
     const response = await fetch(url);
     const blob = await response.blob();
     return new Promise((resolve) => {
         const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onloadend = () => resolve(reader.result);
         reader.readAsDataURL(blob);
     });
 }
@@ -41,35 +67,15 @@ export function promptShowroomChoice(id) {
     document.getElementById('fitting-room-modal').style.display = 'flex';
 }
 
-// THE PRE-PROCESSOR (Shrinks image to prevent "Too Big" error)
 export function handleUserFitUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-
-            const MAX_SIDE = 1024; // Safe size for Google AI
-            if (width > height) {
-                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
-            } else {
-                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            userPhotoRaw = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-            startVertexModeling();
-        };
-        img.src = event.target.result;
+    reader.onload = async (event) => {
+        // Resize user photo immediately
+        userPhotoRaw = await resizeImage(event.target.result);
+        startVertexModeling();
     };
     reader.readAsDataURL(file);
 }
@@ -84,7 +90,7 @@ async function startVertexModeling() {
         <div class="mall-loader-container">
             <div class="spinner-ring"></div>
             <h2 id="timer-count" style="color:#e60023; font-size: 3rem;">${timeLeft}s</h2>
-            <p style="color:white; font-weight:900;">AI IS RENDERING YOUR LOOK...</p>
+            <p style="color:white; font-weight:900;">CLEANING IMAGE & STITCHING...</p>
         </div>`;
 
     const timer = setInterval(() => {
@@ -94,7 +100,10 @@ async function startVertexModeling() {
     }, 1000);
 
     try {
-        const clothB64 = await getBase64FromUrl(`/images/${selectedCloth.img}`);
+        // Resize cloth image too, just in case the original file is huge
+        const rawClothData = await getBase64FromUrl(`/images/${selectedCloth.img}`);
+        const clothB64 = await resizeImage(rawClothData);
+        
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64 })
@@ -109,7 +118,7 @@ async function startVertexModeling() {
         }
     } catch (e) {
         clearInterval(timer);
-        alert("ERROR: " + e.message);
+        alert("TECHNICAL ERROR: " + e.message);
         location.reload();
     }
 }
