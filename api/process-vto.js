@@ -25,16 +25,16 @@ export default async function handler(req, res) {
                 personImage: { image: { bytesBase64Encoded: userImage } },
                 productImages: [{ 
                     image: { bytesBase64Encoded: clothImage },
-                    category: "DRESS" // This is the main signal for full-length
+                    category: "DRESS" 
                 }]
-                // PROMPT REMOVED TO FIX THE INVALID FIELD ERROR
             }],
             parameters: { 
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // Increase guidanceScale to force the gown to overwrite the original clothes/legs
-                guidanceScale: isBridal ? 3.5 : 2.5 
+                // THE BRIDAL FIX: We boost the guidance scale even higher 
+                // and use "DRESS" category to force the model to look at the floor.
+                guidanceScale: isBridal ? 5.0 : 2.5 
             }
         }, {
             headers: { 
