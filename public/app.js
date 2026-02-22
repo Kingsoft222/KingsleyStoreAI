@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2500);
 
-    // 2. Profile Check
+    // 2. Profile Sync
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
         document.getElementById('owner-img').src = saved;
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- STRICT SEARCH & CLICKABLE CARDS ---
+// --- FIXED STRICT SEARCH ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
@@ -58,30 +58,33 @@ window.executeSearch = () => {
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
             <img src="images/${item.img}">
-            <h4 style="margin:8px 0;">${item.name}</h4>
+            <h4 style="margin:8px 0; color:white;">${item.name}</h4>
             <p style="color:#e60023; font-weight:bold;">${item.price}</p>
         </div>`).join('');
 };
 
+// --- FIXED LOGIC GATE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
     
-    if (!userPhotoRaw) {
+    // STOP FLOW: Force upload if photo is missing
+    if (!userPhotoRaw || userPhotoRaw === "") {
         resultDiv.innerHTML = `
-            <div style="padding:20px;">
+            <div style="padding:20px; text-align:center;">
                 <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
-                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border:none; border-radius:15px; font-weight:bold; cursor:pointer;">Upload Standing Image</button>
+                <p>Upload a standing photo to see how this fits.</p>
+                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
             </div>`;
     } else {
+        // Photo exists, proceed to stitching
         window.startTryOn();
     }
 };
 
 window.startTryOn = async () => {
     const resultDiv = document.getElementById('ai-fitting-result');
-    // ROTATING DOTTED SPINNER
     resultDiv.innerHTML = `
         <div class="loader-container">
             <div class="rotating-dots">
@@ -100,13 +103,13 @@ window.startTryOn = async () => {
         const result = await response.json();
         if (result.success) {
             resultDiv.innerHTML = `
-                <div style="width:100%; display:flex; justify-content:flex-end; margin-bottom:10px;">
-                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another Look</span>
+                <div style="width:100%; text-align:right; margin-bottom:10px;">
+                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another</span>
                 </div>
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; margin-bottom:15px;">
-                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold;">Add to Cart 🛍️</button>`;
+                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
+                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">Add to Cart 🛍️</button>`;
         } else { throw new Error(result.error); }
-    } catch (e) { alert("AI error. Please use a clearer photo."); window.closeFittingRoom(); }
+    } catch (e) { alert("AI error. Please ensure the photo shows your full body."); window.closeFittingRoom(); }
 };
 
 window.handleProfileUpload = (e) => {
@@ -117,7 +120,7 @@ window.handleProfileUpload = (e) => {
         document.getElementById('owner-img').src = userPhotoRaw;
         window.startTryOn();
     };
-    reader.readAsDataURL(e.target.files[0]);
+    if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
