@@ -1,51 +1,64 @@
-const { onRequest } = require("firebase-functions/v2/https");
-const { GoogleAuth } = require("google-auth-library");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Kingsley Store | AI Virtual Try-On</title>
+    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <header class="app-header">
+        <button class="menu-btn" style="background:none; border:none; font-size:1.5rem; color:var(--text-main); cursor:pointer;">☰</button>
+        <div class="cart-icon" style="font-size:1.2rem; cursor:pointer; color:var(--text-main);">🛒<span id="cart-count" style="font-size:0.8rem; background:var(--accent); color:white; padding:2px 6px; border-radius:50%; margin-left:5px;">0</span></div>
+    </header>
 
-exports.generateLook = onRequest({ cors: true, timeoutSeconds: 300 }, async (req, res) => {
-    // Only allow POST requests
-    if (req.method !== "POST") {
-        return res.status(405).send("Method Not Allowed");
-    }
+    <main class="home-container">
+        <div class="store-profile">
+            <div class="profile-pic-container">
+                <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
+                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile" />
+                </div>
+                <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
+            </div>
+            <input type="file" id="profile-input" hidden accept="image/*" onchange="window.handleProfileUpload(event)" />
+            
+            <h1 class="store-name">Kingsley Store</h1>
+            <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
+        </div>
 
-    const { user_image, garment_image } = req.body;
-    const project = "kingsleystoreai"; 
-    const location = "us-central1"; 
+        <div id="ai-results" class="results-grid"></div>
+    </main>
 
-    try {
-        // Authenticate using the built-in service account
-        const auth = new GoogleAuth({ 
-            scopes: "https://www.googleapis.com/auth/cloud-platform" 
-        });
-        const client = await auth.getClient();
-        const accessToken = (await client.getAccessToken()).token;
+    <div id="fitting-room-modal" class="voice-overlay">
+        <div class="voice-modal">
+            <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:28px; font-weight: 800; color: var(--text-main);">×</span>
+            <div id="ai-fitting-result" style="width: 100%;"></div>
+        </div>
+    </div>
 
-        // The official Google Vertex AI Virtual Try-On endpoint
-        const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/virtual-try-on-001:predict`;
-
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                instances: [{
-                    personImage: { image: { bytesBase64Encoded: user_image } },
-                    productImages: [{ image: { bytesBase64Encoded: garment_image } }]
-                }],
-                parameters: { sampleCount: 1 }
-            })
-        });
-
-        const data = await response.json();
+    <footer class="bottom-controls">
+        <div class="split-cards">
+            <div class="chip spaced-card" onclick="window.quickSearch('Dinner outfit')">
+                <strong>Dinner outfit</strong>
+            </div>
+            <div class="chip spaced-card" onclick="window.quickSearch('jeans')">
+                <strong>Jeans</strong>
+            </div>
+        </div>
         
-        if (data.predictions && data.predictions[0]) {
-            // Return the processed image back to your website
-            res.status(200).json({ output_image: data.predictions[0].bytesBase64Encoded });
-        } else {
-            res.status(500).json({ error: "AI failed to generate results", details: data });
-        }
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+        <div class="search-bar">
+            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." />
+            <div class="input-icons">
+                <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
+                <button class="send-circle" onclick="window.executeSearch()">
+                    <svg viewBox="0 0 24 24" style="width:20px;"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white"/></svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <script src="./app.js" type="module"></script>
+</body>
+</html>
