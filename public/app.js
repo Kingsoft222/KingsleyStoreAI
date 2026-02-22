@@ -9,7 +9,7 @@ initializeApp(firebaseConfig);
 
 let userPhotoRaw = "";
 let selectedCloth = null;
-const ADMIN_PHONE = "2348000000000"; // REPLACE WITH YOUR NUMBER
+const ADMIN_PHONE = "2348000000000"; // SET YOUR NUMBER HERE
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
@@ -101,7 +101,6 @@ async function startVertexModeling() {
     try {
         const rawClothData = await getBase64FromUrl(`/images/${selectedCloth.img}`);
         const clothB64 = await resizeImage(rawClothData);
-        
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             body: JSON.stringify({ 

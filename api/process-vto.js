@@ -18,7 +18,6 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Logic to force full coverage for Bridal Gowns
         const isBridal = category === "Bridal";
         
         const response = await axios.post(url, {
@@ -26,16 +25,16 @@ export default async function handler(req, res) {
                 personImage: { image: { bytesBase64Encoded: userImage } },
                 productImages: [{ 
                     image: { bytesBase64Encoded: clothImage },
-                    category: "DRESS" 
-                }],
-                // Overrides the user's current clothes for Bridal
-                prompt: isBridal ? "Full-length floor-reaching royal bridal gown covering legs and feet" : ""
+                    category: "DRESS" // This is the main signal for full-length
+                }]
+                // PROMPT REMOVED TO FIX THE INVALID FIELD ERROR
             }],
             parameters: { 
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                guidanceScale: isBridal ? 3.8 : 2.5 
+                // Increase guidanceScale to force the gown to overwrite the original clothes/legs
+                guidanceScale: isBridal ? 3.5 : 2.5 
             }
         }, {
             headers: { 
