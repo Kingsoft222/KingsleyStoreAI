@@ -28,25 +28,24 @@ const greetings = [
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Greetings Cycle
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
     }, 2500);
 
-    // 2. Profile Sync
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
         document.getElementById('owner-img').src = saved;
-        // Pre-process saved image so it's ready for AI
+        // Restoring the clean resize for the saved image
         resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
 });
 
-// --- RESTORED WORKING IMAGE LOGIC FROM FILE 1 ---
+// WORKING RESIZE LOGIC
 async function resizeImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const MAX_SIDE = 1024;
@@ -61,7 +60,8 @@ async function resizeImage(base64Str) {
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+            // This .split(',')[1] is the magic that stops the AI error
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
         };
         img.src = base64Str;
     });
@@ -77,18 +77,11 @@ async function getBase64FromUrl(url) {
     });
 }
 
-// --- FIXED STRICT SEARCH ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
-    
     if (!query) { results.innerHTML = ""; return; }
-
-    const filtered = clothesCatalog.filter(c => 
-        c.name.toLowerCase().includes(query) || 
-        c.tags.toLowerCase().includes(query)
-    );
-
+    const filtered = clothesCatalog.filter(c => c.name.toLowerCase().includes(query) || c.tags.toLowerCase().includes(query));
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
@@ -98,22 +91,17 @@ window.executeSearch = () => {
         </div>`).join('');
 };
 
-// --- FIXED LOGIC GATE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
-    
-    if (!userPhotoRaw || userPhotoRaw === "") {
+    if (!userPhotoRaw) {
         resultDiv.innerHTML = `
             <div style="padding:20px; text-align:center;">
                 <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
-                <p>Upload a standing photo to see how this fits.</p>
-                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
+                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload Standing Image</button>
             </div>`;
-    } else {
-        window.startTryOn();
-    }
+    } else { window.startTryOn(); }
 };
 
 window.startTryOn = async () => {
@@ -128,7 +116,8 @@ window.startTryOn = async () => {
         </div>`;
     
     try {
-        const rawClothData = await getBase64FromUrl(`images/${selectedCloth.img}`);
+        const clothUrl = `images/${selectedCloth.img}`;
+        const rawClothData = await getBase64FromUrl(clothUrl);
         const clothB64 = await resizeImage(rawClothData);
 
         const response = await fetch('/api/process-vto', { 
@@ -158,8 +147,6 @@ window.handleProfileUpload = (e) => {
         const originalData = event.target.result;
         localStorage.setItem('kingsley_profile_locked', originalData);
         document.getElementById('owner-img').src = originalData;
-        
-        // Use the working resize logic
         userPhotoRaw = await resizeImage(originalData);
         window.startTryOn();
     };
