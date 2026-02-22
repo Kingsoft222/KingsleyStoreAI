@@ -15,22 +15,19 @@ const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", tags: "native senator red ankara luxury suit", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
     { id: 2, name: "Classic White Polo", tags: "polo white corporate shirt office suit", img: "white_polo.jpg", price: "₦10,000", cat: "Corporate" },
     { id: 3, name: "Urban Baggy Jeans", tags: "jeans denim baggy trousers casual", img: "baggy_jeans.jpg", price: "₦28,000", cat: "Casual" },
-    { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal dress white ceremony", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
+    { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal dress white ceremony gown", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
 ];
 
 const greetings = [
-    "Nne, what are you looking for today?", 
-    "My guy, what are you looking for today?", 
-    "Classic Man, what are you looking for today?",
-    "Chief, looking for premium native?",
-    "Boss, let's find your style!",
-    "Classic Babe, what are you looking for today?",
+    "Nne, what are you looking for today?", "My guy, what are you looking for today?", 
+    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
+    "Boss, let's find your style!", "Classic Babe, what are you looking for today?",
     "Baddie, let's find your style!"
 ];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. GREETINGS CYCLE
+    // 1. GREETINGS
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
@@ -43,9 +40,73 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
 
-    // HOME PAGE: Starts empty. window.executeSearch() is NOT called here.
+    // 3. VOICE RECOGNITION SETUP
+    initVoiceSearch();
 });
 
+// --- VOICE SEARCH FUNCTIONALITY ---
+function initVoiceSearch() {
+    const micBtn = document.getElementById('mic-btn');
+    const searchInput = document.getElementById('ai-input');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        console.log("Voice search not supported in this browser.");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-NG'; // Set to Nigerian English for better accuracy
+    recognition.interimResults = false;
+
+    micBtn.addEventListener('click', () => {
+        micBtn.style.color = "#e60023"; // Glow red when listening
+        recognition.start();
+    });
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        searchInput.value = transcript;
+        micBtn.style.color = "#5f6368"; // Reset color
+        window.executeSearch(); // Automatically trigger search
+    };
+
+    recognition.onerror = () => { micBtn.style.color = "#5f6368"; };
+    recognition.onspeechend = () => { recognition.stop(); micBtn.style.color = "#5f6368"; };
+}
+
+// --- SMART SEARCH ENGINE ---
+window.executeSearch = () => {
+    const query = document.getElementById('ai-input').value.toLowerCase().trim();
+    const results = document.getElementById('ai-results');
+    
+    if (!query) {
+        results.innerHTML = "";
+        results.style.display = 'none';
+        return;
+    }
+
+    const filtered = clothesCatalog.filter(c => 
+        c.name.toLowerCase().includes(query) || 
+        c.tags.toLowerCase().includes(query) ||
+        c.cat.toLowerCase().includes(query)
+    );
+
+    if (filtered.length > 0) {
+        results.style.display = 'grid';
+        results.innerHTML = filtered.map(item => `
+            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
+                <img src="images/${item.img}">
+                <h4 style="margin:8px 0; color:white;">${item.name}</h4>
+                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
+            </div>`).join('');
+    } else {
+        results.style.display = 'block';
+        results.innerHTML = `<p style="text-align:center; padding:20px;">No items found for "${query}". Try 'Senator' or 'Jeans'.</p>`;
+    }
+};
+
+// --- STABLE IMAGE CLEANER ---
 async function resizeImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -73,37 +134,6 @@ async function getBase64FromUrl(url) {
         reader.readAsDataURL(blob);
     });
 }
-
-// --- SMART SEARCH: CLEANS HOME & FINDS EVERYTHING ---
-window.executeSearch = () => {
-    const query = document.getElementById('ai-input').value.toLowerCase().trim();
-    const results = document.getElementById('ai-results');
-    
-    if (!query) {
-        results.innerHTML = "";
-        results.style.display = 'none';
-        return;
-    }
-
-    const filtered = clothesCatalog.filter(c => 
-        c.name.toLowerCase().includes(query) || 
-        c.tags.toLowerCase().includes(query) ||
-        c.cat.toLowerCase().includes(query)
-    );
-
-    if (filtered.length > 0) {
-        results.style.display = 'grid';
-        results.innerHTML = filtered.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
-                <img src="images/${item.img}">
-                <h4 style="margin:8px 0; color:white;">${item.name}</h4>
-                <p style="color:#e60023; font-weight:bold;">${item.price}</p>
-            </div>`).join('');
-    } else {
-        results.style.display = 'block';
-        results.innerHTML = `<p style="text-align:center; padding:20px;">No items found for "${query}".</p>`;
-    }
-};
 
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
