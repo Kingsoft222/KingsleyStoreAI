@@ -23,7 +23,11 @@ export default async function handler(req, res) {
                 personImage: { image: { bytesBase64Encoded: userImage } },
                 productImages: [{ image: { bytesBase64Encoded: clothImage } }]
             }],
-            parameters: { sampleCount: 1, addWatermark: false }
+            parameters: { 
+                sampleCount: 1, 
+                addWatermark: false,
+                enableImageRefinement: true // Helps keep long gowns full-length
+            }
         }, {
             headers: { 
                 Authorization: `Bearer ${token.token}`,
