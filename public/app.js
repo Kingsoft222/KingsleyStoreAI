@@ -34,7 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Restore Profile Lock
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
-        document.getElementById('owner-img').src = saved;
+        const ownerImg = document.getElementById('owner-img');
+        if (ownerImg) ownerImg.src = saved;
         userPhotoRaw = saved;
     }
 
@@ -48,12 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('webkitSpeechRecognition' in window) {
         const rec = new webkitSpeechRecognition();
         const micBtn = document.getElementById('mic-btn');
-        micBtn.onclick = () => { rec.start(); micBtn.style.color = "#e60023"; };
-        rec.onresult = (e) => {
-            document.getElementById('ai-input').value = e.results[0][0].transcript;
-            micBtn.style.color = "#5f6368";
-            window.executeSearch();
-        };
+        if (micBtn) {
+            micBtn.onclick = () => { rec.start(); micBtn.style.color = "#e60023"; };
+            rec.onresult = (e) => {
+                document.getElementById('ai-input').value = e.results[0][0].transcript;
+                micBtn.style.color = "#5f6368";
+                window.executeSearch();
+            };
+        }
     }
 });
 
@@ -64,9 +67,9 @@ window.handleProfileUpload = (e) => {
         document.getElementById('owner-img').src = imgData;
         localStorage.setItem('kingsley_profile_locked', imgData);
         userPhotoRaw = await resizeImage(imgData);
-        if (selectedCloth) window.startTryOn(); // Continue flow if cloth was picked
+        if (selectedCloth) window.startTryOn(); 
     };
-    reader.readAsDataURL(e.target.files[0]);
+    if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
 };
 
 window.executeSearch = () => {
@@ -80,12 +83,12 @@ window.executeSearch = () => {
     );
 
     results.style.display = 'grid';
-    results.innerHTML = matched.map(item => `
+    results.innerHTML = matched.length > 0 ? matched.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
             <img src="images/${item.img}" alt="${item.name}">
             <h4 style="margin:8px 0;">${item.name}</h4>
             <p style="color:#e60023; font-weight:bold;">${item.price}</p>
-        </div>`).join('');
+        </div>`).join('') : `<p style="grid-column: 1/-1; text-align:center; padding: 20px;">No items found matching "${input}"</p>`;
 };
 
 async function resizeImage(base64Str) {
@@ -110,7 +113,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     const modal = document.getElementById('fitting-room-modal');
     const resultDiv = document.getElementById('ai-fitting-result');
-    modal.style.display = 'flex';
+    if (modal) modal.style.display = 'flex';
 
     if (!userPhotoRaw) {
         resultDiv.innerHTML = `
@@ -125,15 +128,34 @@ window.promptShowroomChoice = (id) => {
 
 window.startTryOn = async () => {
     const resultDiv = document.getElementById('ai-fitting-result');
-    resultDiv.innerHTML = `<div style="padding:40px; text-align:center;"><div class="loading-spinner"></div><p style="margin-top:15px; font-weight:bold;">Stitching...</p></div>`;
+    
+    // RESTORED DOT SPINNER STYLE
+    resultDiv.innerHTML = `
+        <div style="padding:40px; text-align:center;">
+            <div class="dot-spinner">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p style="margin-top:15px; font-weight:bold; letter-spacing:1px; color:var(--text-main);">STITCHING YOUR LOOK...</p>
+        </div>`;
     
     try {
         const res = await fetch(`images/${selectedCloth.img}`);
         const blob = await res.blob();
-        const clothB64 = await new Promise(r => { const reader = new FileReader(); reader.onloadend = () => r(reader.result); reader.readAsDataURL(blob); });
+        const clothB64 = await new Promise(r => { 
+            const reader = new FileReader(); 
+            reader.onloadend = () => r(reader.result); 
+            reader.readAsDataURL(blob); 
+        });
         const processedCloth = await resizeImage(clothB64);
         
-        const response = await fetch('/api/process-vto', { method: 'POST', body: JSON.stringify({ userImage: userPhotoRaw, clothImage: processedCloth, category: selectedCloth.cat }) });
+        const response = await fetch('/api/process-vto', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: processedCloth, category: selectedCloth.cat }) 
+        });
+        
         const result = await response.json();
         
         if (result.success) {
@@ -142,11 +164,32 @@ window.startTryOn = async () => {
                     <span onclick="window.closeFittingRoom()" style="color:var(--accent); font-weight:bold; cursor:pointer; font-size:0.85rem;">try another look</span>
                 </div>
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; margin-bottom:15px; border: 1px solid var(--border);">
-                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${selectedCloth.name}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold;">add to cart 🛍️</button>`;
-        } else { throw new Error(result.error); }
-    } catch (e) { alert("Error: " + e.message); window.closeFittingRoom(); }
+                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Hi%20Kingsley,%20I%20want%20to%20order%20the%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">add to cart 🛍️</button>`;
+        } else { 
+            throw new Error(result.error || "Failed to process image"); 
+        }
+    } catch (e) { 
+        console.error(e);
+        alert("Error: " + e.message); 
+        window.closeFittingRoom(); 
+    }
 };
 
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
-window.clearProfileData = () => { localStorage.removeItem('kingsley_profile_locked'); userPhotoRaw = ""; location.reload(); };
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+window.closeFittingRoom = () => { 
+    const modal = document.getElementById('fitting-room-modal');
+    if (modal) modal.style.display = 'none'; 
+};
+
+window.clearProfileData = () => { 
+    localStorage.removeItem('kingsley_profile_locked'); 
+    userPhotoRaw = ""; 
+    location.reload(); 
+};
+
+window.quickSearch = (q) => { 
+    const input = document.getElementById('ai-input');
+    if (input) {
+        input.value = q; 
+        window.executeSearch(); 
+    }
+};
