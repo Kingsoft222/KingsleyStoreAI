@@ -23,10 +23,15 @@ export default async function handler(req, res) {
                 personImage: { image: { bytesBase64Encoded: userImage } },
                 productImages: [{ 
                     image: { bytesBase64Encoded: clothImage },
-                    category: "DRESS" // CRITICAL: Ensures full-length render
+                    category: "DRESS" // CRITICAL: Tells AI to look for a full-length silhouette
                 }]
             }],
-            parameters: { sampleCount: 1, addWatermark: false, enableImageRefinement: true }
+            parameters: { 
+                sampleCount: 1, 
+                addWatermark: false,
+                enableImageRefinement: true, // DEEP FIX: Maintains the train and extra fabric
+                guidanceScale: 2.5 // Encourages the AI to stick to the dress shape
+            }
         }, {
             headers: { 
                 Authorization: `Bearer ${token.token}`,
@@ -35,7 +40,7 @@ export default async function handler(req, res) {
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed to render.");
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed to render gown details.");
 
         return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
