@@ -5,10 +5,25 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     try {
-        // --- THE MEDICINE: FIXED JSON PARSING ---
-        // This checks if the data is a string or already an object to prevent the [object Object] error
-        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        const { userImage, clothImage, category } = body;
+        // --- ULTIMATE JSON SAFETY CHECK ---
+        let data;
+        if (typeof req.body === 'string') {
+            try {
+                data = JSON.parse(req.body);
+            } catch (e) {
+                // If it fails to parse, it might already be an object masquerading as a string
+                data = req.body; 
+            }
+        } else {
+            data = req.body;
+        }
+
+        const { userImage, clothImage, category } = data;
+
+        // Check if data actually exists before moving on
+        if (!userImage || !clothImage) {
+            return res.status(400).json({ success: false, error: "Missing image data from frontend." });
+        }
 
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
@@ -22,7 +37,6 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Map your store categories to Google's 3 supported types
         let vtoCategory = "DRESS";
         if (category === "Corporate") vtoCategory = "TOP";
         if (category === "Casual") vtoCategory = "BOTTOM";
@@ -40,7 +54,6 @@ export default async function handler(req, res) {
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // Higher guidance for complex Native/Bridal textures
                 guidanceScale: (category === "Bridal" || category === "Native") ? 5.0 : 2.5 
             }
         }, {
@@ -57,11 +70,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
     } catch (error) {
-        // Logs the exact error in Vercel so we can see it
-        console.error("VTO Backend Error Detail:", error.message);
+        // This will now show up even if the error is weird
+        console.error("VTO ERROR:", error.response?.data || error.message);
         return res.status(500).json({ 
             success: false, 
-            error: "AI Processing Failed. Please ensure the photo shows your full body clearly." 
+            error: "AI error. Please ensure the photo shows your full body." 
         });
     }
 }
