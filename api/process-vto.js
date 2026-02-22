@@ -18,8 +18,8 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Determine the garment type for the AI
-        let vtoCategory = "DRESS"; // Default
+        // CATEGORY LOGIC: Helps AI place the garment correctly
+        let vtoCategory = "DRESS";
         if (category === "Corporate") vtoCategory = "TOP";
         if (category === "Casual") vtoCategory = "BOTTOM";
 
@@ -35,22 +35,24 @@ export default async function handler(req, res) {
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                guidanceScale: 2.5 
+                // Higher guidance for bridal, standard for casual
+                guidanceScale: category === "Bridal" ? 15.0 : 2.5 
             }
         }, {
             headers: { 
                 Authorization: `Bearer ${token.token}`,
                 'Content-Type': 'application/json'
-            }
+            },
+            timeout: 55000 
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed.");
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed to render.");
 
         return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
     } catch (error) {
-        const msg = error.response?.data?.error?.message || error.message;
-        return res.status(500).json({ success: false, error: msg });
+        console.error("VTO Error:", error.message);
+        return res.status(500).json({ success: false, error: "AI Engine is busy. Please try again." });
     }
 }
