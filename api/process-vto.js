@@ -32,10 +32,8 @@ export default async function handler(req, res) {
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // THE FINAL SILHOUETTE FIX:
-                // We use a specific guidance scale that balances the gown's shape
-                // while completely ignoring the original leg-line of the user photo.
-                guidanceScale: isBridal ? 8.5 : 2.5 
+                // THE NUCLEAR OPTION: Scale 15.0 forces the AI to obey the gown length
+                guidanceScale: isBridal ? 15.0 : 2.5 
             }
         }, {
             headers: { 
@@ -45,7 +43,7 @@ export default async function handler(req, res) {
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed to render.");
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed.");
 
         return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
