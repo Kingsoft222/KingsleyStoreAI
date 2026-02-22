@@ -22,10 +22,11 @@
                 </div>
                 <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
             </div>
+            
             <input type="file" id="profile-input" hidden accept="image/*" onchange="window.handleProfileUpload(event)" />
             
             <h1 class="store-name">Kingsley Store</h1>
-            <p id="dynamic-greeting" class="greeting">Nne, what are you looking for today?</p>
+            <p id="dynamic-greeting" class="greeting">Loading greetings...</p>
         </div>
 
         <div id="ai-results" class="results-grid"></div>
@@ -33,8 +34,9 @@
 
     <div id="fitting-room-modal" class="voice-overlay">
         <div class="voice-modal">
-            <span onclick="window.closeFittingRoom()" class="modal-close-x">×</span>
-            <div id="ai-fitting-result"></div>
+            <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:30px; font-weight:800; color:var(--text-main);">×</span>
+            <div id="ai-fitting-result" style="width: 100%;">
+                </div>
         </div>
     </div>
 
@@ -50,10 +52,13 @@
         
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." />
-            <div class="input-icons">
+            <div class="input-icons" style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
+                
                 <button class="send-circle" onclick="window.executeSearch()">
-                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white" /></svg>
+                    <svg viewBox="0 0 24 24" style="width:20px;">
+                        <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="white" />
+                    </svg>
                 </button>
             </div>
         </div>
