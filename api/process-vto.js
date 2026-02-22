@@ -20,6 +20,8 @@ export default async function handler(req, res) {
 
         const isBridal = category === "Bridal";
         
+        // --- THE DEEP FIX: VIRTUAL MASKING ---
+        // We send the request with 'DRESS' and high guidance to override the leg detection
         const response = await axios.post(url, {
             instances: [{
                 personImage: { image: { bytesBase64Encoded: userImage } },
@@ -32,9 +34,9 @@ export default async function handler(req, res) {
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // THE BRIDAL FIX: We boost the guidance scale even higher 
-                // and use "DRESS" category to force the model to look at the floor.
-                guidanceScale: isBridal ? 5.0 : 2.5 
+                // For Bridal, we push guidanceScale to the absolute limit (10.0) 
+                // to force it to ignore the person's original leg position
+                guidanceScale: isBridal ? 10.0 : 2.5 
             }
         }, {
             headers: { 
