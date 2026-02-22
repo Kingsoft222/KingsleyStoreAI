@@ -12,7 +12,8 @@ let selectedCloth = null;
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", img: "senator_red.jpg", price: "₦25k" },
-    { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" }
+    { id: 2, name: "Blue Ankara Suite", img: "ankara_blue.jpg", price: "₦22k" },
+    { id: 3, name: "Elegant White Wedding Gown", img: "wedding_gown.jpg", price: "₦150k" } // ADD THIS LINE
 ];
 
 // NEW: Helper to resize ANY image (user or cloth) to ensure Google can read it
