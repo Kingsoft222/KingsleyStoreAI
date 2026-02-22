@@ -18,22 +18,24 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        const isBridal = category === "Bridal";
-        
+        // Determine the garment type for the AI
+        let vtoCategory = "DRESS"; // Default
+        if (category === "Corporate") vtoCategory = "TOP";
+        if (category === "Casual") vtoCategory = "BOTTOM";
+
         const response = await axios.post(url, {
             instances: [{
                 personImage: { image: { bytesBase64Encoded: userImage } },
                 productImages: [{ 
                     image: { bytesBase64Encoded: clothImage },
-                    category: "DRESS" 
+                    category: vtoCategory 
                 }]
             }],
             parameters: { 
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // THE NUCLEAR OPTION: Scale 15.0 forces the AI to obey the gown length
-                guidanceScale: isBridal ? 15.0 : 2.5 
+                guidanceScale: 2.5 
             }
         }, {
             headers: { 
