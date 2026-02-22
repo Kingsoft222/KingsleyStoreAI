@@ -7,7 +7,7 @@ const firebaseConfig = {
 };
 initializeApp(firebaseConfig);
 
-let userPhotoRaw = "";
+let userPhotoRaw = ""; 
 let selectedCloth = null;
 const ADMIN_PHONE = "2348000000000"; 
 
@@ -18,13 +18,7 @@ const clothesCatalog = [
     { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
 ];
 
-const greetings = [
-    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Babe, what are you looking for today?", "Boss, what are you looking for today?",
-    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
-    "Baddie, let's find your style!"
-];
-
+const greetings = ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Boss, what are you looking for today?", "Chief, looking for premium native?"];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,36 +28,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2500);
 
     const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved) {
+    if (saved && saved.length > 100) {
         document.getElementById('owner-img').src = saved;
-        // Restoring the clean resize for the saved image
         resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
 });
 
-// WORKING RESIZE LOGIC
 async function resizeImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
-        img.crossOrigin = "anonymous";
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const MAX_SIDE = 1024;
-            let width = img.width;
-            let height = img.height;
-            if (width > height) {
-                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
-            } else {
-                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
-            }
-            canvas.width = width;
-            canvas.height = height;
+            let width = img.width, height = img.height;
+            if (width > height) { if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; } }
+            else { if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; } }
+            canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            // This .split(',')[1] is the magic that stops the AI error
-            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]); 
         };
-        img.src = base64Str;
+        img.src = base64Str.startsWith('data:') ? base64Str : `data:image/jpeg;base64,${base64Str}`;
     });
 }
 
@@ -95,13 +80,18 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
-    if (!userPhotoRaw) {
+    
+    // STRICT CHECK: If userPhotoRaw is empty or too short, FORCE upload
+    if (!userPhotoRaw || userPhotoRaw.length < 100) {
         resultDiv.innerHTML = `
             <div style="padding:20px; text-align:center;">
                 <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
-                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload Standing Image</button>
+                <p>Upload a standing photo to see how this fits.</p>
+                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
             </div>`;
-    } else { window.startTryOn(); }
+    } else {
+        window.startTryOn();
+    }
 };
 
 window.startTryOn = async () => {
@@ -116,18 +106,13 @@ window.startTryOn = async () => {
         </div>`;
     
     try {
-        const clothUrl = `images/${selectedCloth.img}`;
-        const rawClothData = await getBase64FromUrl(clothUrl);
+        const rawClothData = await getBase64FromUrl(`images/${selectedCloth.img}`);
         const clothB64 = await resizeImage(rawClothData);
 
         const response = await fetch('/api/process-vto', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                userImage: userPhotoRaw, 
-                clothImage: clothB64, 
-                category: selectedCloth.cat 
-            }) 
+            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64, category: selectedCloth.cat }) 
         });
         const result = await response.json();
         if (result.success) {
@@ -138,7 +123,11 @@ window.startTryOn = async () => {
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">Add to Cart 🛍️</button>`;
         } else { throw new Error(result.error); }
-    } catch (e) { alert("AI error. Please ensure the photo shows your full body."); window.closeFittingRoom(); }
+    } catch (e) { 
+        alert("AI error. Please ensure the photo shows your full body."); 
+        userPhotoRaw = ""; // Clear broken data so they can re-upload
+        window.closeFittingRoom(); 
+    }
 };
 
 window.handleProfileUpload = (e) => {
@@ -154,5 +143,5 @@ window.handleProfileUpload = (e) => {
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
-window.clearProfileData = () => { localStorage.removeItem('kingsley_profile_locked'); location.reload(); };
+window.clearProfileData = () => { localStorage.removeItem('kingsley_profile_locked'); userPhotoRaw = ""; location.reload(); };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
