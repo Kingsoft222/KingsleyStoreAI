@@ -1,69 +1,120 @@
+/* 1. COLOR THEME DEFINITIONS */
 :root {
+    /* Standard Brand Accents */
     --accent: #e60023;
-    --dark: #1a1a1a;
-    --gray: #f2f2f2;
-    --pure-dark: #000000;
+    
+    /* Default: LIGHT MODE COLORS */
+    --bg-main: #ffffff;
+    --bg-header: #ffffff;
+    --bg-card: #1a1a1a; /* We keep cards dark for premium contrast */
+    --text-main: #1a1a1a;
+    --text-muted: #666666;
+    --input-bg: #f2f2f2;
+    --border-color: #e0e0e0;
+    --shadow: rgba(0,0,0,0.05);
 }
 
+/* 2. AUTOMATIC DARK MODE OVERRIDE */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-main: #000000;
+        --bg-header: #000000;
+        --bg-card: #1a1a1a;
+        --text-main: #ffffff;
+        --text-muted: #aaaaaa;
+        --input-bg: #1a1a1a;
+        --border-color: #333333;
+        --shadow: rgba(0,0,0,0.4);
+    }
+}
+
+/* 3. CORE STYLING */
 body, html {
-    margin: 0; padding: 0; font-family: 'Inter', sans-serif;
-    background: #fff; height: 100%; width: 100%; overflow-x: hidden;
+    margin: 0; padding: 0; 
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    height: 100%; width: 100%; 
+    overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Header & Profile */
-.app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
+.app-header { 
+    display: flex; justify-content: space-between; 
+    padding: 15px 20px; align-items: center; 
+    background: var(--bg-header);
+}
 .store-profile { text-align: center; padding-top: 20px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
+.profile-pic { 
+    width: 110px; height: 110px; border-radius: 50%; 
+    border: 3px solid var(--accent); overflow: hidden; 
+    background: #eee; cursor: pointer; 
+}
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.mini-remove-btn { position: absolute; right: -10px; top: 0; background: #eee; border: 1px solid #ccc; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
+.mini-remove-btn { 
+    position: absolute; right: -10px; top: 0; 
+    background: var(--input-bg); color: var(--text-main);
+    border: 1px solid var(--border-color); border-radius: 50%; 
+    width: 25px; height: 25px; cursor: pointer; font-weight: bold; 
+}
 .store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
-.greeting { font-size: 1.1rem; transition: opacity 0.1s; height: 1.5em; margin: 10px 0; }
+.greeting { font-size: 1.1rem; height: 1.5em; margin: 10px 0; color: var(--text-main); }
 
-/* Grid Results - DARK UI */
+/* Results Grid */
 .results-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 12px; 
-    padding: 15px; 
-    margin-bottom: 220px; 
+    display: grid; grid-template-columns: 1fr 1fr; 
+    gap: 12px; padding: 15px; margin-bottom: 220px; 
 }
 .result-card { 
-    background: var(--dark); 
-    color: white; 
-    border-radius: 12px; 
-    padding: 10px; 
-    text-align: center; 
-    transition: transform 0.2s;
+    background: var(--bg-card); color: white; 
+    border-radius: 12px; padding: 10px; text-align: center; 
+    transition: transform 0.2s; 
 }
-.result-card:active { transform: scale(0.95); }
 .result-card img { width: 100%; height: 160px; object-fit: cover; border-radius: 8px; background: #333; }
 
-/* Modal Window (The Dark Result Stage) */
-.modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-    display: none; align-items: center; justify-content: center; z-index: 1000;
+/* Bottom Navigation & Search Bar */
+.bottom-controls { 
+    position: fixed; bottom: 0; width: 100%; 
+    background: var(--bg-main); padding-bottom: 25px; 
+    z-index: 100; box-shadow: 0 -5px 20px var(--shadow); 
+    border-top: 1px solid var(--border-color);
 }
-.modal-content {
-    width: 90%; max-width: 450px; background: #111; border-radius: 24px;
-    padding: 20px; color: white; border: 1px solid #333;
-}
-
-/* Bottom Controls */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: #fff; padding-bottom: 25px; z-index: 100; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); }
 .split-cards { display: flex; justify-content: space-between; width: 100%; padding: 0 15px; box-sizing: border-box; margin-bottom: 15px; }
 .spaced-card { 
     width: 47% !important; border-radius: 15px !important; 
-    background: var(--dark); color: white; padding: 18px; 
-    border: none; font-weight: bold; cursor: pointer;
+    background: var(--bg-card); color: white; padding: 18px; 
+    border: none; font-weight: bold; cursor: pointer; 
+    display: flex; flex-direction: column; align-items: center; justify-content: center; 
 }
-.search-bar {
-    background: var(--gray); border-radius: 50px; padding: 6px 20px;
-    display: flex; align-items: center; margin: 0 15px; border: 1px solid #e0e0e0;
+
+.search-bar { 
+    background: var(--input-bg); border-radius: 50px; 
+    padding: 6px 20px; display: flex; align-items: center; 
+    margin: 0 15px; border: 1px solid var(--border-color); 
 }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--dark); }
+.search-bar input { 
+    border: none; background: transparent; flex: 1; 
+    outline: none; font-size: 16px; color: var(--text-main); 
+}
+.send-circle { 
+    background: var(--accent); border: none; 
+    width: 48px; height: 48px; border-radius: 50%; 
+    display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; color: white; 
+}
 
-.send-circle { background: var(--dark); border: none; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
+/* Modal Styling */
+.voice-modal {
+    background: var(--bg-main) !important;
+    color: var(--text-main) !important;
+}
 
-/* Spinner for VTO */
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* MIC ICON SIZE */
+.mic-icon { 
+    font-size: 1.6rem !important; 
+    padding: 10px; 
+    color: var(--text-muted); 
+    cursor: pointer; 
+}
