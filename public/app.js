@@ -9,7 +9,7 @@ initializeApp(firebaseConfig);
 
 let userPhotoRaw = "";
 let selectedCloth = null;
-const ADMIN_PHONE = "2348000000000"; // REPLACE WITH YOUR PHONE
+const ADMIN_PHONE = "2348000000000"; // REPLACE WITH YOUR NUMBER
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
@@ -101,9 +101,14 @@ async function startVertexModeling() {
     try {
         const rawClothData = await getBase64FromUrl(`/images/${selectedCloth.img}`);
         const clothB64 = await resizeImage(rawClothData);
+        
         const response = await fetch('/api/process-vto', {
             method: 'POST',
-            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: clothB64 })
+            body: JSON.stringify({ 
+                userImage: userPhotoRaw, 
+                clothImage: clothB64,
+                category: selectedCloth.cat 
+            })
         });
         const result = await response.json();
         clearInterval(timer);
@@ -121,7 +126,7 @@ function displayFinalResult(src) {
     container.style.display = "flex";
     container.style.flexDirection = "column";
 
-    const msg = encodeURIComponent(`Hello Kingsley Store! I want to order:\n\n*Item:* ${selectedCloth.name}\n*Price:* ${selectedCloth.price}\n\nI just tried it on with your AI!`);
+    const msg = encodeURIComponent(`Hello Kingsley! I want to order:\n\n*Item:* ${selectedCloth.name}\n*Price:* ${selectedCloth.price}`);
 
     container.innerHTML = `
         <div style="width:100%; display:flex; justify-content:flex-end; padding:15px;">
@@ -129,9 +134,8 @@ function displayFinalResult(src) {
                 ✕ try another look
             </a>
         </div>
-        <div style="text-align:center; flex-grow:1; display:flex; align-items:center; justify-content:center; padding: 5px; position:relative;">
-            <img src="${src}" style="width:100%; height:auto; max-height:70vh; object-fit:contain; border-radius:12px; border:1px solid #e60023; user-select:none; pointer-events:none;">
-            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-45deg); color:rgba(255,255,255,0.1); font-weight:900; font-size:1.4rem; pointer-events:none; white-space:nowrap;">KINGSLEY STORE PROPERTY</div>
+        <div style="text-align:center; flex-grow:1; display:flex; align-items:center; justify-content:center; padding: 5px;">
+            <img src="${src}" style="width:100%; height:auto; max-height:70vh; object-fit:contain; border-radius:12px; border:1px solid #e60023;">
         </div>
         <div style="padding: 20px; width:100%; text-align:center;">
             <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=${msg}')" style="background:#e60023; color:white; border:none; padding:18px; border-radius:40px; width:90%; font-weight:bold; font-size:1.1rem; cursor:pointer;">
