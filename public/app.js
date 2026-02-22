@@ -38,9 +38,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
         document.getElementById('owner-img').src = saved;
-        userPhotoRaw = saved;
+        // Pre-process saved image so it's ready for AI
+        resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
 });
+
+// --- RESTORED WORKING IMAGE LOGIC FROM FILE 1 ---
+async function resizeImage(base64Str) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_SIDE = 1024;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
+            } else {
+                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+        };
+        img.src = base64Str;
+    });
+}
+
+async function getBase64FromUrl(url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+    });
+}
 
 // --- FIXED STRICT SEARCH ---
 window.executeSearch = () => {
@@ -69,7 +104,6 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
     
-    // STOP FLOW: Force upload if photo is missing
     if (!userPhotoRaw || userPhotoRaw === "") {
         resultDiv.innerHTML = `
             <div style="padding:20px; text-align:center;">
@@ -78,7 +112,6 @@ window.promptShowroomChoice = (id) => {
                 <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
             </div>`;
     } else {
-        // Photo exists, proceed to stitching
         window.startTryOn();
     }
 };
@@ -95,10 +128,17 @@ window.startTryOn = async () => {
         </div>`;
     
     try {
+        const rawClothData = await getBase64FromUrl(`images/${selectedCloth.img}`);
+        const clothB64 = await resizeImage(rawClothData);
+
         const response = await fetch('/api/process-vto', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: userPhotoRaw, clothImage: `images/${selectedCloth.img}`, category: selectedCloth.cat }) 
+            body: JSON.stringify({ 
+                userImage: userPhotoRaw, 
+                clothImage: clothB64, 
+                category: selectedCloth.cat 
+            }) 
         });
         const result = await response.json();
         if (result.success) {
@@ -114,10 +154,13 @@ window.startTryOn = async () => {
 
 window.handleProfileUpload = (e) => {
     const reader = new FileReader();
-    reader.onload = (event) => {
-        userPhotoRaw = event.target.result;
-        localStorage.setItem('kingsley_profile_locked', userPhotoRaw);
-        document.getElementById('owner-img').src = userPhotoRaw;
+    reader.onload = async (event) => {
+        const originalData = event.target.result;
+        localStorage.setItem('kingsley_profile_locked', originalData);
+        document.getElementById('owner-img').src = originalData;
+        
+        // Use the working resize logic
+        userPhotoRaw = await resizeImage(originalData);
         window.startTryOn();
     };
     if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
