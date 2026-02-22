@@ -21,13 +21,12 @@ export default async function handler(req, res) {
         const response = await axios.post(url, {
             instances: [{
                 personImage: { image: { bytesBase64Encoded: userImage } },
-                productImages: [{ image: { bytesBase64Encoded: clothImage } }]
+                productImages: [{ 
+                    image: { bytesBase64Encoded: clothImage },
+                    category: "DRESS" // CRITICAL: Ensures full-length render
+                }]
             }],
-            parameters: { 
-                sampleCount: 1, 
-                addWatermark: false,
-                enableImageRefinement: true // Helps keep long gowns full-length
-            }
+            parameters: { sampleCount: 1, addWatermark: false, enableImageRefinement: true }
         }, {
             headers: { 
                 Authorization: `Bearer ${token.token}`,
@@ -36,12 +35,9 @@ export default async function handler(req, res) {
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction?.bytesBase64Encoded) throw new Error("AI engine failed to respond.");
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI failed to render.");
 
-        return res.status(200).json({
-            success: true,
-            image: prediction.bytesBase64Encoded
-        });
+        return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
     } catch (error) {
         const msg = error.response?.data?.error?.message || error.message;
