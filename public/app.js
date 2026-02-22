@@ -7,21 +7,26 @@ const firebaseConfig = {
 };
 initializeApp(firebaseConfig);
 
-let userPhotoRaw = "";
+let userPhotoRaw = ""; 
 let selectedCloth = null;
 const ADMIN_PHONE = "2348000000000"; 
 
 const clothesCatalog = [
-    { id: 1, name: "Premium Red Luxury Native", tags: "native senator red", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
-    { id: 2, name: "Classic White Polo", tags: "polo white corporate", img: "white_polo.jpg", price: "₦10,000", cat: "Corporate" },
-    { id: 3, name: "Urban Baggy Jeans", tags: "jeans denim baggy", img: "baggy_jeans.jpg", price: "₦28,000", cat: "Casual" },
-    { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
+    { id: 1, name: "Premium Red Luxury Native", tags: "native senator red ankara", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
+    { id: 2, name: "Classic White Polo", tags: "polo white corporate shirt", img: "white_polo.jpg", price: "₦10,000", cat: "Corporate" },
+    { id: 3, name: "Urban Baggy Jeans", tags: "jeans denim baggy trousers", img: "baggy_jeans.jpg", price: "₦28,000", cat: "Casual" },
+    { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal dress", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
 ];
 
+// --- FULL BOUTIQUE GREETINGS ---
 const greetings = [
-    "Nne, what are you looking for today?", "My guy, what are you looking for today?",
-    "Classic Man, what are you looking for today?", "Chief, looking for premium native?",
-    "Boss, let's find your style!"
+    "Nne, what are you looking for today?", 
+    "My guy, what are you looking for today?", 
+    "Classic Man, what are you looking for today?",
+    "Chief, looking for premium native?",
+    "Boss, let's find your style!",
+    "Classic Babe, what are you looking for today?",
+    "Baddie, let's find your style!"
 ];
 let gIndex = 0;
 
@@ -29,37 +34,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. GREETINGS CYCLE
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
+        if (el) { 
+            el.innerText = greetings[gIndex % greetings.length]; 
+            gIndex++; 
+        }
     }, 2500);
 
-    // 2. PROFILE SYNC (Locks photo from storage)
+    // 2. PROFILE DATA SYNC
     const saved = localStorage.getItem('kingsley_profile_locked');
     if (saved) {
         document.getElementById('owner-img').src = saved;
-        // Pre-clean the saved image using your working resize logic
+        // Clean the saved image immediately so it's ready for AI
         resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
+
+    // 3. INITIAL LOAD: Show all clothes on startup
+    window.executeSearch();
 });
 
-// --- YOUR WORKING IMAGE PROCESSING LOGIC ---
+// --- STABLE AI IMAGE PROCESSING ---
 async function resizeImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const MAX_SIDE = 1024;
-            let width = img.width;
-            let height = img.height;
-            if (width > height) {
-                if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; }
-            } else {
-                if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; }
-            }
-            canvas.width = width;
-            canvas.height = height;
+            let width = img.width, height = img.height;
+            if (width > height) { if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; } }
+            else { if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; } }
+            canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            // The split ensures the AI gets the pure data string
+            // Returns clean string (splits the data header)
             resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
         };
         img.src = base64Str;
@@ -76,18 +82,19 @@ async function getBase64FromUrl(url) {
     });
 }
 
-// --- FIXED SEARCH: SHOWS ALL MATCHES ---
+// --- BROAD SEARCH: NO RESTRICTIONS ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     
-    // If query is empty, show nothing, otherwise filter across whole catalog
-    if (!query) { results.innerHTML = ""; return; }
-
-    const filtered = clothesCatalog.filter(c => 
-        c.name.toLowerCase().includes(query) || 
-        c.tags.toLowerCase().includes(query)
-    );
+    // If search is empty, show everything. If typing, filter across catalog.
+    const filtered = !query 
+        ? clothesCatalog 
+        : clothesCatalog.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            c.tags.toLowerCase().includes(query) ||
+            c.cat.toLowerCase().includes(query)
+        );
 
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
@@ -98,18 +105,17 @@ window.executeSearch = () => {
         </div>`).join('');
 };
 
-// --- SHOWROOM LOGIC GATE ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = clothesCatalog.find(c => c.id === id);
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
     
-    // If no photo exists, force the upload button
     if (!userPhotoRaw) {
         resultDiv.innerHTML = `
             <div style="padding:20px; text-align:center;">
                 <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
-                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload Standing Image</button>
+                <p>Upload a standing photo to see how this fits.</p>
+                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
             </div>`;
     } else {
         window.startTryOn();
@@ -118,7 +124,6 @@ window.promptShowroomChoice = (id) => {
 
 window.startTryOn = async () => {
     const resultDiv = document.getElementById('ai-fitting-result');
-    // ROTATING DOTTED SPINNER
     resultDiv.innerHTML = `
         <div class="loader-container">
             <div class="rotating-dots">
@@ -132,6 +137,7 @@ window.startTryOn = async () => {
         const rawClothData = await getBase64FromUrl(`images/${selectedCloth.img}`);
         const clothB64 = await resizeImage(rawClothData);
 
+        // JSON.stringify fix for the [object Object] error
         const response = await fetch('/api/process-vto', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
@@ -145,10 +151,10 @@ window.startTryOn = async () => {
         if (result.success) {
             resultDiv.innerHTML = `
                 <div style="width:100%; text-align:right; margin-bottom:10px;">
-                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ try another look</span>
+                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another Look</span>
                 </div>
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; border:1px solid #e60023;">
-                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px; cursor:pointer;">add to cart 🛍️</button>`;
+                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { throw new Error(result.error); }
     } catch (e) { 
         alert("AI error. Please ensure the photo shows your full body."); 
@@ -162,7 +168,6 @@ window.handleProfileUpload = (e) => {
         const originalData = event.target.result;
         localStorage.setItem('kingsley_profile_locked', originalData);
         document.getElementById('owner-img').src = originalData;
-        // Use working resize logic
         userPhotoRaw = await resizeImage(originalData);
         window.startTryOn();
     };
