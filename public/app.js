@@ -18,22 +18,34 @@ const clothesCatalog = [
     { id: 4, name: "Royal Bridal Gown", tags: "wedding gown bridal", img: "wedding_gown.jpg", price: "₦150,000", cat: "Bridal" }
 ];
 
-const greetings = ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Boss, what are you looking for today?", "Chief, looking for premium native?"];
+const greetings = [
+    "Nne, what are you looking for today?", 
+    "My guy, what are you looking for today?", 
+    "Classic Man, what are you looking for today?",
+    "Chief, looking for premium native?",
+    "Boss, let's find your style!"
+];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. GREETINGS
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el) { el.innerText = greetings[gIndex % greetings.length]; gIndex++; }
+        if (el) { 
+            el.innerText = greetings[gIndex % greetings.length]; 
+            gIndex++; 
+        }
     }, 2500);
 
+    // 2. PROFILE DATA
     const saved = localStorage.getItem('kingsley_profile_locked');
-    if (saved && saved.length > 100) {
+    if (saved) {
         document.getElementById('owner-img').src = saved;
         resizeImage(saved).then(resized => { userPhotoRaw = resized; });
     }
 });
 
+// --- STABLE AI PROCESSING LOGIC ---
 async function resizeImage(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -46,9 +58,9 @@ async function resizeImage(base64Str) {
             canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]); 
+            resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
         };
-        img.src = base64Str.startsWith('data:') ? base64Str : `data:image/jpeg;base64,${base64Str}`;
+        img.src = base64Str;
     });
 }
 
@@ -62,11 +74,20 @@ async function getBase64FromUrl(url) {
     });
 }
 
+// --- UPDATED SEARCH: SHOWS ALL MATCHING CLOTHES ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
-    if (!query) { results.innerHTML = ""; return; }
-    const filtered = clothesCatalog.filter(c => c.name.toLowerCase().includes(query) || c.tags.toLowerCase().includes(query));
+    
+    // If search is empty, show everything. If typing, filter properly.
+    const filtered = !query 
+        ? clothesCatalog 
+        : clothesCatalog.filter(c => 
+            c.name.toLowerCase().includes(query) || 
+            c.tags.toLowerCase().includes(query) ||
+            c.cat.toLowerCase().includes(query)
+        );
+
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice(${item.id})">
@@ -81,13 +102,11 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
     
-    // STRICT CHECK: If userPhotoRaw is empty or too short, FORCE upload
-    if (!userPhotoRaw || userPhotoRaw.length < 100) {
+    if (!userPhotoRaw) {
         resultDiv.innerHTML = `
             <div style="padding:20px; text-align:center;">
                 <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
-                <p>Upload a standing photo to see how this fits.</p>
-                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload from Gallery</button>
+                <button onclick="document.getElementById('profile-input').click()" style="width:100%; padding:15px; background:#e60023; color:white; border:none; border-radius:10px; font-weight:bold; cursor:pointer;">Upload Standing Image</button>
             </div>`;
     } else {
         window.startTryOn();
@@ -118,14 +137,13 @@ window.startTryOn = async () => {
         if (result.success) {
             resultDiv.innerHTML = `
                 <div style="width:100%; text-align:right; margin-bottom:10px;">
-                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another</span>
+                    <span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another Look</span>
                 </div>
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
-                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px;">Add to Cart 🛍️</button>`;
+                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; border:1px solid #e60023;">
+                <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=Order%20${encodeURIComponent(selectedCloth.name)}')" style="width:100%; padding:18px; background:#28a745; color:white; border:none; border-radius:12px; font-weight:bold; margin-top:15px; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { throw new Error(result.error); }
     } catch (e) { 
         alert("AI error. Please ensure the photo shows your full body."); 
-        userPhotoRaw = ""; // Clear broken data so they can re-upload
         window.closeFittingRoom(); 
     }
 };
