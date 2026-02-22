@@ -9,7 +9,7 @@ initializeApp(firebaseConfig);
 
 let userPhotoRaw = "";
 let selectedCloth = null;
-const ADMIN_PHONE = "2348000000000"; // SET YOUR NUMBER HERE
+const ADMIN_PHONE = "2348000000000"; // REPLACE WITH YOUR NUMBER
 
 const clothesCatalog = [
     { id: 1, name: "Premium Red Luxury Native", img: "senator_red.jpg", price: "₦25,000", cat: "Native" },
@@ -22,14 +22,14 @@ async function resizeImage(base64Str) {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_SIDE = 1024;
+            const MAX_SIDE = 1024; // Ensure high res for gowns
             let width = img.width; let height = img.height;
             if (width > height) { if (width > MAX_SIDE) { height *= MAX_SIDE / width; width = MAX_SIDE; } }
             else { if (height > MAX_SIDE) { width *= MAX_SIDE / height; height = MAX_SIDE; } }
             canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+            resolve(canvas.toDataURL('image/jpeg', 0.9).split(',')[1]); // High quality
         };
         img.src = base64Str;
     });
@@ -83,12 +83,12 @@ async function startVertexModeling() {
     
     let timeLeft = 35;
     container.innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:#111;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; background:#111; padding:20px;">
             <div style="position:relative; width:130px; height:130px;">
                 <div class="spinner-ring" style="width:100%; height:100%; border: 9px solid rgba(255,255,255,0.05); border-top: 9px solid #e60023; border-radius: 50%; animation: spin 1s linear infinite;"></div>
                 <div id="timer-count" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:white; font-size:1.8rem; font-weight:900;">${timeLeft}s</div>
             </div>
-            <p style="color:white; margin-top:20px; font-weight:bold;">Tailoring your look...</p>
+            <p style="color:white; margin-top:20px; font-weight:bold; text-align:center; line-height:1.4;">Kingsley AI is tailoring<br>your royal gown...</p>
         </div>
         <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>`;
 
@@ -134,7 +134,7 @@ function displayFinalResult(src) {
             </a>
         </div>
         <div style="text-align:center; flex-grow:1; display:flex; align-items:center; justify-content:center; padding: 5px;">
-            <img src="${src}" style="width:100%; height:auto; max-height:70vh; object-fit:contain; border-radius:12px; border:1px solid #e60023;">
+            <img src="${src}" style="width:100%; height:auto; max-height:75vh; object-fit:contain; border-radius:12px; border:1px solid #e60023;">
         </div>
         <div style="padding: 20px; width:100%; text-align:center;">
             <button onclick="window.open('https://wa.me/${ADMIN_PHONE}?text=${msg}')" style="background:#e60023; color:white; border:none; padding:18px; border-radius:40px; width:90%; font-weight:bold; font-size:1.1rem; cursor:pointer;">
