@@ -18,10 +18,15 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Map categories to the 3 types Google understands
-        let vtoCategory = "DRESS";
+        /**
+         * CATEGORY MAPPING FIX:
+         * Google VTO-001 strictly accepts: "TOP", "BOTTOM", or "DRESS".
+         * Native/Senator wear should usually be "DRESS" or "TOP" depending on length.
+         */
+        let vtoCategory = "DRESS"; 
         if (category === "Corporate") vtoCategory = "TOP";
         if (category === "Casual") vtoCategory = "BOTTOM";
+        if (category === "Native") vtoCategory = "DRESS"; // Native wear usually covers top and mid-body
 
         const response = await axios.post(url, {
             instances: [{
@@ -35,8 +40,8 @@ export default async function handler(req, res) {
                 sampleCount: 1, 
                 addWatermark: false,
                 enableImageRefinement: true,
-                // Stable guidance prevents the "original image return" error
-                guidanceScale: category === "Bridal" ? 5.0 : 2.5 
+                // Higher guidance for complex fabrics like Native/Bridal
+                guidanceScale: (category === "Bridal" || category === "Native") ? 5.0 : 2.5 
             }
         }, {
             headers: { 
@@ -47,11 +52,17 @@ export default async function handler(req, res) {
         });
 
         const prediction = response.data.predictions[0];
-        if (!prediction?.bytesBase64Encoded) throw new Error("AI returned no data.");
+        if (!prediction?.bytesBase64Encoded) {
+            throw new Error("AI returned no data.");
+        }
 
         return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
 
     } catch (error) {
-        return res.status(500).json({ success: false, error: "AI Processing Failed. Please try a clearer photo." });
+        console.error("VTO Backend Error:", error.response?.data || error.message);
+        return res.status(500).json({ 
+            success: false, 
+            error: "AI Processing Failed. Please ensure the photo shows your full body clearly." 
+        });
     }
 }

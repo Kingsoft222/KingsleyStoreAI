@@ -26,8 +26,24 @@ body, html {
 .app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
 .store-profile { text-align: center; padding-top: 20px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #eee; cursor: pointer; }
+
+/* Cleaned up profile pic to handle empty state better */
+.profile-pic { 
+    width: 110px; 
+    height: 110px; 
+    border-radius: 50%; 
+    border: 3px solid var(--accent); 
+    overflow: hidden; 
+    background: #ccc; /* Shows as a clean circle if no image exists */
+    cursor: pointer; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+/* Hide image tag if src is empty so it doesn't show a broken icon */
+.profile-pic img[src=""], .profile-pic img:not([src]) { display: none; }
+
 .mini-remove-btn { position: absolute; right: -10px; top: 0; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border); border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-weight: bold; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 2rem; margin: 10px 0; }
 .greeting { font-size: 1.1rem; height: 1.5em; margin: 10px 0; }
@@ -42,7 +58,10 @@ body, html {
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
+
+/* MIC ICON: UNTOUCHED */
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
+
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
 .voice-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: none; align-items: center; justify-content: center; }

@@ -18,7 +18,7 @@
         <div class="store-profile">
             <div class="profile-pic-container">
                 <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                    <img src="images/kingsley.jpg" id="owner-img" alt="Profile" />
+                    <img src="" id="owner-img" alt="Upload Photo" />
                 </div>
                 <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
             </div>
@@ -42,8 +42,8 @@
 
     <footer class="bottom-controls">
         <div class="split-cards">
-            <div class="chip spaced-card" onclick="window.quickSearch('Dinner outfit')">
-                <strong>Dinner outfit</strong>
+            <div class="chip spaced-card" onclick="window.quickSearch('Native')">
+                <strong>Native Wear</strong>
             </div>
             <div class="chip spaced-card" onclick="window.quickSearch('jeans')">
                 <strong>Jeans</strong>
@@ -51,7 +51,7 @@
         </div>
         
         <div class="search-bar">
-            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." />
+            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." onkeyup="if(event.key === 'Enter') window.executeSearch()" />
             <div class="input-icons" style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 
@@ -65,5 +65,15 @@
     </footer>
 
     <script src="./app.js" type="module"></script>
+    
+    <script type="module">
+        import { executeSearch } from './app.js';
+        document.addEventListener('DOMContentLoaded', () => {
+            // Short delay ensures app.js is fully loaded before initial search
+            setTimeout(() => { 
+                if (window.executeSearch) window.executeSearch(); 
+            }, 500); 
+        });
+    </script>
 </body>
 </html>
