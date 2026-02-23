@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Kingsley Store | AI Virtual Try-On</title>
+    <title>AI Virtual Try-On Boutique</title>
     <link rel="stylesheet" href="./style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
@@ -11,21 +11,20 @@
 <body>
     <header class="app-header">
         <button class="menu-btn">☰</button>
-        <div class="cart-icon">🛒<span id="cart-count">0</span></div>
+        <div class="cart-icon" onclick="window.openCart()" style="position:relative; cursor:pointer;">
+            🛒<span id="cart-count">0</span>
+        </div>
     </header>
 
     <main class="home-container">
         <div class="store-profile">
             <div class="profile-pic-container">
-                <div class="profile-pic" onclick="document.getElementById('profile-input').click()">
-                    <img src="" id="owner-img" alt="Upload Photo" />
+                <div class="profile-pic">
+                    <img src="" id="owner-img" alt="Store Profile" />
                 </div>
-                <button class="mini-remove-btn" onclick="window.clearProfileData()">-</button>
             </div>
             
-            <input type="file" id="profile-input" hidden accept="image/*" onchange="window.handleProfileUpload(event)" />
-            
-            <h1 class="store-name">Kingsley Store</h1>
+            <h1 class="store-name" id="store-name-display">Loading Store...</h1>
             <p id="dynamic-greeting" class="greeting">Loading greetings...</p>
         </div>
 
@@ -35,8 +34,7 @@
     <div id="fitting-room-modal" class="voice-overlay">
         <div class="voice-modal">
             <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:30px; font-weight:800; color:var(--text-main);">×</span>
-            <div id="ai-fitting-result" style="width: 100%;">
-                </div>
+            <div id="ai-fitting-result" style="width: 100%;"></div>
         </div>
     </div>
 
@@ -65,15 +63,5 @@
     </footer>
 
     <script src="./app.js" type="module"></script>
-    
-    <script type="module">
-        import { executeSearch } from './app.js';
-        document.addEventListener('DOMContentLoaded', () => {
-            // Short delay ensures app.js is fully loaded before initial search
-            setTimeout(() => { 
-                if (window.executeSearch) window.executeSearch(); 
-            }, 500); 
-        });
-    </script>
 </body>
 </html>
