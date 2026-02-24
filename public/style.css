@@ -52,28 +52,27 @@ body, html {
 
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main); padding-bottom: 25px; z-index: 100; border-top: 1px solid var(--border); }
 
-/* 🎯 UPDATED: SMART SCROLLABLE CARD CONTAINER */
+/* 🎯 FIXED: Original Position with 15px GAP */
 .split-cards { 
     display: flex; 
-    gap: 12px; 
+    justify-content: center; /* Centers the two cards */
+    gap: 15px;               /* 👈 THE 15PX SPACE */
     padding: 0 15px; 
     margin-bottom: 15px; 
-    overflow-x: auto; 
-    scrollbar-width: none; /* Hide scrollbar Firefox */
-    -ms-overflow-style: none; /* Hide scrollbar IE/Edge */
+    width: 100%;
+    box-sizing: border-box;
 }
-.split-cards::-webkit-scrollbar { display: none; } /* Hide scrollbar Chrome/Safari */
 
-/* 🎯 UPDATED: INDIVIDUAL CARD (PILL STYLE) */
+/* 🎯 FIXED: Original Boxy Shape Restored */
 .search-card { 
-    flex: 0 0 auto; /* Prevents cards from squishing */
+    flex: 0 1 47%;           /* Back to original 47% width */
     background: var(--card-bg); 
     color: white; 
-    padding: 12px 20px; 
-    border-radius: 50px; 
+    padding: 18px; 
+    border-radius: 12px;     /* Original boxy shape */
     border: none; 
     font-weight: bold; 
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     cursor: pointer; 
     text-align: center;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);

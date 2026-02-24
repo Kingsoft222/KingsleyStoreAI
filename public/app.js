@@ -40,14 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
             
+            // --- SYNC LIVE QUICK SEARCH CARDS ---
             const qsContainer = document.getElementById('quick-search-container');
             if (qsContainer) {
                 const tags = data.quickSearches || ["Native Wear", "Jeans", "Corporate", "Bridal"];
                 qsContainer.innerHTML = ""; 
                 tags.forEach(tag => {
                     const card = document.createElement('div');
-                    card.className = 'search-card'; 
-                    card.innerText = tag;
+                    card.className = 'search-card'; // This class matches your style.css
+                    card.innerHTML = `<strong>${tag}</strong>`;
                     card.onclick = () => window.quickSearch(tag);
                     qsContainer.appendChild(card);
                 });
