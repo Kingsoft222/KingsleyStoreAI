@@ -1,5 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// 👇 Added 'push' here for the Interceptor
 import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -40,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
-            
             if (data.profileImage) {
                 const ownerImg = document.getElementById('owner-img');
                 if(ownerImg) {
@@ -48,11 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     ownerImg.style.display = 'block'; 
                 }
             }
-
             if (data.phone) storePhone = data.phone;
-            
             const greetingEl = document.getElementById('dynamic-greeting');
-            
             if (data.greetingsEnabled === false) {
                 window.activeGreetings = []; 
                 if (greetingEl) {
@@ -60,53 +55,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     greetingEl.innerText = '';
                 }
             } else {
-                if (greetingEl) {
-                    greetingEl.style.display = 'block';
-                }
+                if (greetingEl) greetingEl.style.display = 'block';
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) 
                     ? data.customGreetings 
-                    : ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?", "Chief, looking for premium native?", "Boss, let's find your style!", "Classic Babe, what are you looking for today?", "Baddie, let's find your style!"];
+                    : ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?", "Chief, looking for premium native?", "Boss, let's find your style!"];
             }
-
-            setTimeout(() => {
-                const qsArray = (data.quickSearches && data.quickSearches.length > 0) 
-                    ? data.quickSearches 
-                    : ["Native Wear", "Jeans", "Corporate", "Bridal"];
-                
-                const existingBtn = document.querySelector('[onclick^="window.quickSearch"]');
-                if (existingBtn && existingBtn.parentElement) {
-                    const container = existingBtn.parentElement;
-                    const btnClass = existingBtn.className || ''; 
-                    
-                    container.style.display = 'flex';
-                    container.style.gap = '10px';
-                    container.style.overflowX = 'auto'; 
-                    container.style.scrollbarWidth = 'none'; 
-                    
-                    container.innerHTML = qsArray.map(tag => 
-                        `<button class="${btnClass}" onclick="window.quickSearch('${tag}')" style="white-space:nowrap; margin:0;">${tag}</button>`
-                    ).join('');
-                }
-            }, 150);
 
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => {
-                    return {
-                        id: key, 
-                        name: data.catalog[key].name,
-                        price: data.catalog[key].price,
-                        tags: data.catalog[key].tags,
-                        cat: data.catalog[key].cat,
-                        imgUrl: data.catalog[key].imgUrl 
-                    };
+                    return { id: key, name: data.catalog[key].name, price: data.catalog[key].price, tags: data.catalog[key].tags, cat: data.catalog[key].cat, imgUrl: data.catalog[key].imgUrl };
                 });
             } else {
                 storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
             }
-
-        } else {
-            document.getElementById('store-name-display').innerText = currentStoreId.toUpperCase() + " STORE";
-            storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
         }
     });
 
@@ -116,8 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.style.display = 'block';
             el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
             gIndex++; 
-        } else if (el) {
-            el.style.display = 'none'; 
         }
     }, 2500);
 
@@ -128,10 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempCustomerPhoto = ""; 
-    
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
-    
     resultDiv.innerHTML = `
         <div style="padding:20px; text-align:center;">
             <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
@@ -159,7 +116,6 @@ window.startTryOn = async () => {
     try {
         const imageSource = selectedCloth.imgUrl ? selectedCloth.imgUrl : `images/${selectedCloth.img}`;
         const rawClothData = await getBase64FromUrl(imageSource);
-        
         const clothB64 = await resizeImage(rawClothData);
         const response = await fetch('/api/process-vto', { 
             method: 'POST', 
@@ -169,34 +125,40 @@ window.startTryOn = async () => {
         const result = await response.json();
         
         if (result.success) {
-            // 👇 Added 'Check another one' button logic here
             resultDiv.innerHTML = `
-                <div style="width:100%; text-align:right; margin-bottom:10px;"><span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Check another one</span></div>
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; border:1px solid #e60023;">
+                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; border:1px solid #e60023; margin-top:20px;">
                 <div style="margin-top:15px; display:flex; flex-direction:column; gap:10px;">
-                    <button onclick="window.addToCart()" style="width:100%; padding:18px; background:var(--accent); color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Add to Cart 🛍️</button>
-                    <button onclick="window.closeFittingRoom()" style="width:100%; padding:15px; background:#eee; color:#333; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Check another one</button>
+                    <button id="add-to-cart-dynamic" onclick="window.addToCart()" style="width:100%; padding:18px; background:var(--accent); color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">
+                        Add to Cart 🛍️
+                    </button>
                     <div id="proceed-btn-container" style="${cart.length > 0 ? 'display:block' : 'display:none'}">
                         <button onclick="window.openCart()" style="width:100%; padding:15px; background:transparent; color:var(--text-main); border:1px solid var(--border); border-radius:12px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer;">
                             Proceed to Cart <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
                 </div>`;
-        } else { 
-            throw new Error(result.error || "AI Engine failed to process image."); 
-        }
-    } catch (e) { 
-        console.error("VTO Error:", e);
-        alert("System Error: " + e.message + "\n\n(If it says Failed to Fetch, it is a network error. Try again.)"); 
-        window.closeFittingRoom(); 
-    }
+        } else { throw new Error(result.error || "AI Engine failed."); }
+    } catch (e) { alert("System Error: " + e.message); window.closeFittingRoom(); }
 };
 
 window.addToCart = () => {
-    cart.push(selectedCloth);
-    updateCartUI();
-    showToast(`${selectedCloth.name} added!`);
-    const p = document.getElementById('proceed-btn-container'); if(p) p.style.display = 'block';
+    const btn = document.getElementById('add-to-cart-dynamic');
+    if (btn.innerText.includes("Add to Cart")) {
+        cart.push(selectedCloth);
+        updateCartUI();
+        showToast(`✅ ${selectedCloth.name} added to cart!`);
+        
+        // Loop switch: Change button to "Check another one"
+        btn.innerText = "Check another one";
+        btn.style.background = "#eee";
+        btn.style.color = "#333";
+        
+        const p = document.getElementById('proceed-btn-container'); 
+        if(p) p.style.display = 'block';
+    } else {
+        // "Check another one" clicked: Close modal and reset state
+        window.closeFittingRoom();
+    }
 };
 
 window.openCart = () => {
@@ -213,77 +175,52 @@ window.openCart = () => {
             <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
         </div>`).join('');
         
-    // 👇 Added an ID to the checkout button so the interceptor can show "Processing..."
     resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button id="checkout-btn" onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
 };
 
-window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); window.openCart(); };
-
-// 👇 Rewrote this function to act as the Interceptor
 window.checkoutWhatsApp = async () => {
-    if (!cart || cart.length === 0) return alert("Your cart is empty!");
-
-    // 1. Format the WhatsApp Message with Individual Prices
+    if (cart.length === 0) return alert("Cart is empty!");
     let waMessage = `Hello! I want to buy these items from your VirtualMall AI Store:\n\n`;
     let grandTotal = 0;
     let orderSummaryText = ""; 
 
     cart.forEach(item => {
-        let itemTotal = item.price * (item.qty || 1);
-        grandTotal += itemTotal;
-        waMessage += `▪ ${(item.qty || 1)}x ${item.name} - ₦${item.price.toLocaleString()}\n`;
-        orderSummaryText += `${(item.qty || 1)}x ${item.name}, `;
+        grandTotal += item.price;
+        waMessage += `▪ 1x ${item.name} - ₦${item.price.toLocaleString()}\n`;
+        orderSummaryText += `1x ${item.name}, `;
     });
-
     waMessage += `\n*GRAND TOTAL: ₦${grandTotal.toLocaleString()}*`;
 
-    // 2. THE INTERCEPTOR: Create the Digital Receipt
-    const orderData = {
-        item: orderSummaryText.replace(/,\s*$/, ""), // Removes the last comma
-        price: grandTotal,
-        timestamp: new Date().toISOString(),
-        status: "Pending"
-    };
-
+    const orderData = { item: orderSummaryText.replace(/,\s*$/, ""), price: grandTotal, timestamp: new Date().toISOString(), status: "Pending" };
     const checkoutBtn = document.getElementById('checkout-btn'); 
     if(checkoutBtn) checkoutBtn.innerText = "Processing...";
 
     try {
-        // Drop a copy in the Vendor's dashboard
         await push(ref(db, `stores/${currentStoreId}/orders`), orderData);
-        
-        // Drop a copy in YOUR Super-Admin master ledger
-        await push(ref(db, `global_orders`), { 
-            ...orderData, 
-            storeId: currentStoreId 
-        });
-    } catch (error) {
-        console.error("Order logging failed, but still sending to WhatsApp", error);
-    }
+        await push(ref(db, `global_orders`), { ...orderData, storeId: currentStoreId });
+    } catch (error) { console.error("Order logging failed", error); }
 
-    // 3. Instantly redirect the customer to WhatsApp 
+    window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(waMessage)}`, '_blank');
     if(checkoutBtn) checkoutBtn.innerHTML = `<i class="fab fa-whatsapp"></i> Checkout via WhatsApp`;
-    const waLink = `https://wa.me/${storePhone}?text=${encodeURIComponent(waMessage)}`;
-    window.open(waLink, '_blank');
 };
 
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || c.tags.toLowerCase().includes(query) || c.cat.toLowerCase().includes(query));
     results.style.display = 'grid';
-    
     if (filtered.length > 0) {
         results.innerHTML = filtered.map(item => {
-            const imageSource = item.imgUrl ? item.imgUrl : `images/${item.img}`;
-            return `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${imageSource}"><h4 style="margin:8px 0; color:white;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`;
+            const img = item.imgUrl ? item.imgUrl : `images/${item.img}`;
+            return `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${img}"><h4 style="margin:8px 0; color:white;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`;
         }).join('');
-    } else {
-        results.style.display = 'block';
-        results.innerHTML = `<p style="text-align:center; padding:20px;">No items found in this store for "${query}".</p>`;
-    }
+    } else { results.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:20px;">No items found.</p>`; }
+};
+
+window.closeFittingRoom = () => { 
+    tempCustomerPhoto = ""; 
+    document.getElementById('fitting-room-modal').style.display = 'none'; 
 };
 
 function initVoiceSearch() {
@@ -294,30 +231,24 @@ function initVoiceSearch() {
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
     micBtn.addEventListener('click', () => { micBtn.style.color = "#e60023"; recognition.start(); });
-    recognition.onresult = (e) => { searchInput.value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
+    recognition.onresult = (e) => { searchInput.value = e.results[0][0].transcript; window.executeSearch(); micBtn.style.color = "#5f6368"; };
 }
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
 async function getBase64FromUrl(url) { 
     if (!url.startsWith('http')) {
-        const r = await fetch(url); 
-        const b = await r.blob(); 
+        const r = await fetch(url); const b = await r.blob(); 
         return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
     }
     try {
         let r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-        if (!r.ok) r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        if (!r.ok) throw new Error("Image security block could not be bypassed.");
         const b = await r.blob(); 
         return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
-    } catch (err) { throw new Error("Security Block or Network Failure: " + err.message); }
+    } catch (err) { throw new Error("Security Block: " + err.message); }
 }
 
-window.closeFittingRoom = () => { 
-    tempCustomerPhoto = ""; 
-    document.getElementById('fitting-room-modal').style.display = 'none'; 
-};
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 500); }, 2500); }
+window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); window.openCart(); };
