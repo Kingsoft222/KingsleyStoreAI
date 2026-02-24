@@ -20,6 +20,9 @@ const provider = new GoogleAuthProvider();
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
 const storage = getStorage(app);
 
+// 👉 MASTER KEY: Your specific email
+const MASTER_EMAIL = "kman39980@gmail.com";
+
 let currentGoogleUser = null;
 let activeStoreId = ""; 
 let pendingBase64Image = null; 
@@ -39,6 +42,12 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
         document.getElementById('login-section').style.display = 'none';
+
+        // 🔓 SECRET DOOR: Reveal Vault button only for you
+        if (user.email === MASTER_EMAIL) {
+            const masterBtn = document.getElementById('master-btn');
+            if(masterBtn) masterBtn.style.display = 'flex';
+        }
         
         const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
         if (userMapSnapshot.exists()) {
@@ -59,14 +68,38 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-window.loginWithGoogle = async () => {
-    try { 
-        await signInWithPopup(auth, provider); 
-    } 
-    catch (error) { 
-        console.error("Login Error:", error);
-        alert("Login Failed: " + error.message + "\n\n(Make sure you are using a normal browser, NOT a WhatsApp or Facebook link)"); 
+// --- MASTER VAULT LOGIC ---
+window.toggleMasterVault = async () => {
+    const section = document.getElementById('master-vault-section');
+    if (section.style.display === 'block') {
+        section.style.display = 'none';
+        return;
     }
+
+    section.style.display = 'block';
+    const snapshot = await get(dbRef(db, 'global_orders'));
+    const orders = snapshot.val() || {};
+    const tbody = document.getElementById('vault-body');
+    
+    let totalOrders = 0;
+    let totalGmv = 0;
+    tbody.innerHTML = "";
+
+    Object.keys(orders).reverse().forEach(key => {
+        const o = orders[key];
+        totalOrders++;
+        totalGmv += Number(o.price);
+        tbody.innerHTML += `<tr><td>@${o.storeId || 'N/A'}</td><td>${o.item}</td><td>₦${o.price.toLocaleString()}</td></tr>`;
+    });
+
+    document.getElementById('v-orders').innerText = totalOrders;
+    document.getElementById('v-gmv').innerText = "₦" + totalGmv.toLocaleString();
+};
+
+// --- VENDOR CORE LOGIC ---
+window.loginWithGoogle = async () => {
+    try { await signInWithPopup(auth, provider); } 
+    catch (error) { alert("Login Failed: " + error.message); }
 };
 
 window.logoutAdmin = () => signOut(auth);
@@ -86,9 +119,8 @@ window.completeStoreSetup = async () => {
         if (storeCheck.exists()) {
             btn.innerText = "Create Store";
             btn.disabled = false;
-            return alert("That username is already taken. Try another.");
+            return alert("Username taken.");
         }
-        btn.innerText = "Building your store...";
         await set(dbRef(db, `users/${currentGoogleUser.uid}`), { storeId: usernameInput });
         await set(dbRef(db, `stores/${usernameInput}`), {
             storeName: bizName,
@@ -97,38 +129,23 @@ window.completeStoreSetup = async () => {
             customGreetings: defaultGreetings,
             ownerEmail: currentGoogleUser.email
         });
-
         activeStoreId = usernameInput;
         document.getElementById('onboarding-section').style.display = 'none';
         document.getElementById('dashboard-section').style.display = 'block';
         loadDashboardData();
-    } catch (error) {
-        alert("Failed to create store.");
-        btn.innerText = "Create Store";
-        btn.disabled = false;
-    }
-};
-
-window.toggleGreetingsBox = () => {
-    const isChecked = document.getElementById('admin-greetings-toggle').checked;
-    document.getElementById('custom-greetings-container').style.display = isChecked ? 'block' : 'none';
+    } catch (error) { alert("Failed to create store."); }
 };
 
 async function loadDashboardData() {
     try {
         const snapshot = await get(dbRef(db, `stores/${activeStoreId}`));
         const data = snapshot.val();
-
         if (data) {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
-            
-            const isEnabled = data.greetingsEnabled !== false;
-            document.getElementById('admin-greetings-toggle').checked = isEnabled;
-            
+            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
             const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
             document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
-            
             window.toggleGreetingsBox(); 
             
             const imgPreview = document.getElementById('admin-img-preview');
@@ -137,50 +154,43 @@ async function loadDashboardData() {
                 imgPreview.src = data.profileImage;
                 imgPreview.style.display = "block";
                 removeBtn.style.display = "inline-block";
-            } else {
-                imgPreview.style.display = "none";
-                removeBtn.style.display = "none";
             }
-
-            const currentDomain = window.location.origin;
-            const storeLink = `${currentDomain}/?store=${activeStoreId}`;
+            
+            const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
             const linkEl = document.getElementById('my-store-link');
-            if(linkEl) {
-                linkEl.href = storeLink;
-                linkEl.innerText = storeLink;
-            }
+            if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
 
             renderInventoryList(data.catalog || {});
-
-            // 👇 NEW: RENDER ORDER HISTORY 👇
-            const orders = data.orders || {};
-            const orderListDiv = document.getElementById('order-history-list');
-            const orderKeys = Object.keys(orders).reverse(); // Show newest first
-
-            if (orderKeys.length === 0) {
-                orderListDiv.innerHTML = `<p style="text-align:center; color:#666;">Waiting for your first AI sale...</p>`;
-            } else {
-                orderListDiv.innerHTML = "";
-                orderKeys.forEach(key => {
-                    const order = orders[key];
-                    const dateObj = new Date(order.timestamp);
-                    const niceDate = dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    
-                    orderListDiv.innerHTML += `
-                        <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                            <h4 style="margin: 0; color: #333; font-size: 0.95rem;">${order.item}</h4>
-                            <div style="display: flex; justify-content: space-between; margin-top: 5px; align-items: center;">
-                                <span style="color: #e60023; font-weight: bold;">₦${order.price.toLocaleString()}</span>
-                                <span style="font-size: 0.8rem; color: #888;">${niceDate}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
+            renderOrderHistory(data.orders || {});
         }
-    } catch (error) { console.error("Error loading dashboard:", error); }
+    } catch (e) { console.error(e); }
 }
+
+function renderOrderHistory(orders) {
+    const listDiv = document.getElementById('order-history-list');
+    const keys = Object.keys(orders).reverse();
+    if (keys.length === 0) {
+        listDiv.innerHTML = `<p style="text-align:center; color:#666;">Waiting for your first AI sale...</p>`;
+        return;
+    }
+    listDiv.innerHTML = keys.map(key => {
+        const o = orders[key];
+        const date = new Date(o.timestamp).toLocaleDateString() + " " + new Date(o.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        return `<div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+            <h4 style="margin: 0; color: #333; font-size: 0.95rem;">${o.item}</h4>
+            <div style="display: flex; justify-content: space-between; margin-top: 5px; align-items: center;">
+                <span style="color: #e60023; font-weight: bold;">₦${o.price.toLocaleString()}</span>
+                <span style="font-size: 0.8rem; color: #888;">${date}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.toggleGreetingsBox = () => {
+    const isChecked = document.getElementById('admin-greetings-toggle').checked;
+    const box = document.getElementById('custom-greetings-container');
+    if(box) box.style.display = isChecked ? 'block' : 'none';
+};
 
 window.handleAdminImage = (e) => {
     const file = e.target.files[0];
@@ -194,19 +204,6 @@ window.handleAdminImage = (e) => {
         document.getElementById('remove-pic-btn').style.display = "inline-block";
     };
     reader.readAsDataURL(file);
-};
-
-window.removeAdminImage = async () => {
-    if (!activeStoreId) return;
-    if(confirm("Are you sure you want to remove your profile picture?")) {
-        try {
-            await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-            document.getElementById('admin-img-preview').style.display = "none";
-            document.getElementById('remove-pic-btn').style.display = "none";
-            pendingBase64Image = null;
-            showToast("Photo removed!");
-        } catch (e) { alert("Failed to remove photo."); }
-    }
 };
 
 window.saveStoreSettings = async () => {
@@ -242,6 +239,39 @@ window.saveStoreSettings = async () => {
     saveBtn.disabled = false;
 };
 
+window.uploadNewProduct = async () => {
+    if (!activeStoreId) return;
+    const name = document.getElementById('prod-name').value.trim();
+    const brand = document.getElementById('prod-brand').value;
+    const price = document.getElementById('prod-price').value;
+    const tags = document.getElementById('prod-tags').value.toLowerCase().trim();
+    const btn = document.getElementById('upload-prod-btn');
+
+    if (!name || !price || !pendingProductBase64) return alert("All fields required!");
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
+    btn.disabled = true;
+
+    try {
+        const fileId = Date.now();
+        const imagePath = `inventory/${activeStoreId}/${fileId}.jpg`;
+        const imageRef = storageRef(storage, imagePath);
+        await uploadString(imageRef, pendingProductBase64, 'data_url');
+        const imageUrl = await getDownloadURL(imageRef);
+
+        const productData = { name, cat: brand, price: Number(price), tags, imgUrl: imageUrl, storagePath: imagePath };
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), productData);
+
+        document.getElementById('prod-name').value = "";
+        document.getElementById('prod-price').value = "";
+        document.getElementById('prod-img-preview').style.display = "none";
+        pendingProductBase64 = null;
+        showToast("Item added!");
+        loadDashboardData(); 
+    } catch (e) { alert("Upload failed."); }
+    btn.innerHTML = `<i class="fas fa-plus"></i> Add Item to Store`;
+    btn.disabled = false;
+};
+
 window.handleProductImagePreview = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -255,97 +285,38 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(file);
 };
 
-window.uploadNewProduct = async () => {
-    if (!activeStoreId) return;
-    
-    const name = document.getElementById('prod-name').value.trim();
-    const brand = document.getElementById('prod-brand').value;
-    const price = document.getElementById('prod-price').value;
-    const tags = document.getElementById('prod-tags').value.toLowerCase().trim();
-    const btn = document.getElementById('upload-prod-btn');
-
-    if (!name || !price || !pendingProductBase64) return alert("Name, Price, and Photo are required!");
-
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
-    btn.disabled = true;
-
-    try {
-        const fileId = Date.now();
-        const imagePath = `inventory/${activeStoreId}/${fileId}.jpg`;
-        const imageRef = storageRef(storage, imagePath);
-        await uploadString(imageRef, pendingProductBase64, 'data_url');
-        const imageUrl = await getDownloadURL(imageRef);
-
-        const productData = {
-            name: name,
-            cat: brand, 
-            price: Number(price),
-            tags: tags,
-            imgUrl: imageUrl, 
-            storagePath: imagePath 
-        };
-
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), productData);
-
-        document.getElementById('prod-name').value = "";
-        document.getElementById('prod-price').value = "";
-        document.getElementById('prod-tags').value = "";
-        document.getElementById('prod-pic-upload').value = "";
-        document.getElementById('prod-img-preview').style.display = "none";
-        pendingProductBase64 = null;
-        
-        showToast("Item added successfully!");
-        loadDashboardData(); 
-
-    } catch (error) {
-        console.error(error);
-        alert("Failed to upload item.");
-    }
-
-    btn.innerHTML = `<i class="fas fa-plus"></i> Add Item to Store`;
-    btn.disabled = false;
-};
-
 function renderInventoryList(catalog) {
     const listDiv = document.getElementById('inventory-list');
-    listDiv.innerHTML = ""; 
-
-    const itemKeys = Object.keys(catalog);
-    if (itemKeys.length === 0) {
-        listDiv.innerHTML = `<p style="text-align:center; color:#666;">Your store is empty. Upload an item above!</p>`;
-        return;
-    }
-
-    itemKeys.forEach(key => {
+    const keys = Object.keys(catalog);
+    if (keys.length === 0) { listDiv.innerHTML = `<p style="text-align:center;">Empty Store.</p>`; return; }
+    listDiv.innerHTML = keys.map(key => {
         const item = catalog[key];
-        listDiv.innerHTML += `
-            <div class="inventory-item">
-                <img src="${item.imgUrl}" alt="${item.name}">
-                <div class="inventory-item-details">
-                    <h4>${item.name}</h4>
-                    <p>₦${item.price.toLocaleString()} &bull; <span style="color:#666; font-weight:normal;">${item.cat}</span></p>
-                </div>
-                <button onclick="window.deleteProduct('${key}', '${item.storagePath}')" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+        return `<div class="inventory-item">
+            <img src="${item.imgUrl}">
+            <div class="inventory-item-details">
+                <h4>${item.name}</h4>
+                <p>₦${item.price.toLocaleString()} &bull; ${item.cat}</p>
             </div>
-        `;
-    });
+            <button onclick="window.deleteProduct('${key}', '${item.storagePath}')" style="background:none; border:none; color:#ff4444; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+        </div>`;
+    }).join('');
 }
 
 window.deleteProduct = async (dbKey, storagePath) => {
-    if (!confirm("Delete this item from your store permanently?")) return;
-    
+    if (!confirm("Delete?")) return;
     try {
         await remove(dbRef(db, `stores/${activeStoreId}/catalog/${dbKey}`));
         try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
-        
-        showToast("Item deleted");
+        showToast("Deleted");
         loadDashboardData(); 
-    } catch (error) { alert("Failed to delete item."); }
+    } catch (e) { alert("Failed."); }
 };
 
 function showToast(msg) {
     const toast = document.getElementById('status-toast');
-    toast.innerText = msg;
-    toast.style.display = 'block';
-    setTimeout(() => toast.style.display = 'none', 3000);
+    if(toast) {
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+    }
 }

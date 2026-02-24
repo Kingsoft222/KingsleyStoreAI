@@ -19,19 +19,25 @@
         .btn:hover { background: #c2001d; }
         .btn-secondary { background: #333; }
         .btn-google { background: white; color: #333; border: 1px solid #ccc; }
-        .btn-google:hover { background: #f9f9f9; }
+        
+        /* Vault Styles */
+        #master-btn { background: #000; color: #00ffcc; border: 1px solid #00ffcc; margin-bottom: 20px; display: none; }
+        #master-vault-section { display: none; background: #111; color: #fff; padding: 20px; border-radius: 12px; margin-top: 20px; border: 2px solid #00ffcc; }
+        .vault-stats { display: flex; gap: 10px; margin-bottom: 15px; }
+        .v-box { flex: 1; background: #222; padding: 10px; border-radius: 8px; text-align: center; }
+        .v-box small { color: #00ffcc; font-size: 0.7rem; }
+        .v-box p { margin: 5px 0 0; font-weight: 800; font-size: 1.2rem; }
+        .vault-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .vault-table th { text-align: left; color: #00ffcc; border-bottom: 1px solid #333; padding: 5px; }
+        .vault-table td { padding: 8px 5px; border-bottom: 1px solid #222; }
+
         .profile-preview { width: 100px; height: 100px; border-radius: 50%; background: #eee; margin: 10px auto; display: block; object-fit: cover; border: 3px solid #e60023; }
         .toast { display: none; background: #28a745; color: white; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
-        
         .product-preview { width: 100%; height: 150px; border-radius: 8px; background: #eee; margin-top: 10px; object-fit: cover; display: none; border: 1px dashed #ccc; }
         .inventory-list { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         .inventory-item { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
         .inventory-item img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
-        .inventory-item-details { flex-grow: 1; margin-left: 15px; }
-        .inventory-item-details h4 { margin: 0; font-size: 1rem; color: #333; }
-        .inventory-item-details p { margin: 3px 0 0; font-size: 0.8rem; color: #e60023; font-weight: bold; }
         .store-link-box { background: #f0f8ff; border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; text-align: center; margin-top: 30px; }
-        .store-link-box a { color: #0056b3; font-weight: bold; word-break: break-all; text-decoration: none; }
         
         #login-section, #onboarding-section, #dashboard-section { display: none; }
     </style>
@@ -52,118 +58,65 @@
 
         <div id="onboarding-section">
             <h1>Set Up Your Store</h1>
-            <p class="subtitle">Just a few details to get your shop live.</p>
-            <div class="form-group"><label>Store Username (No spaces)</label><input type="text" id="setup-username" placeholder="e.g. emeka" /></div>
-            <div class="form-group"><label>Display Business Name</label><input type="text" id="setup-bizname" placeholder="Emeka Luxury Fits" /></div>
-            <div class="form-group"><label>WhatsApp Number (Country code, no +)</label><input type="tel" id="setup-phone" placeholder="2348000000000" /></div>
-            <button onclick="window.completeStoreSetup()" class="btn" id="setup-btn">Create Store</button>
+            <div class="form-group"><label>Store Username</label><input type="text" id="setup-username" placeholder="e.g. emeka" /></div>
+            <div class="form-group"><label>Business Name</label><input type="text" id="setup-bizname" placeholder="Emeka Luxury Fits" /></div>
+            <div class="form-group"><label>WhatsApp Number</label><input type="tel" id="setup-phone" placeholder="2348000000000" /></div>
+            <button onclick="window.completeStoreSetup()" class="btn">Create Store</button>
         </div>
 
         <div id="dashboard-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1 style="margin:0;">Store Panel</h1>
-                <button onclick="window.logoutAdmin()" style="background:none; border:none; color:#e60023; font-weight:bold; cursor:pointer;">Logout</button>
-            </div>
+            <button id="master-btn" class="btn" onclick="window.toggleMasterVault()">
+                <i class="fas fa-user-shield"></i> MASTER COMMAND CENTER
+            </button>
 
-            <div class="form-group">
-                <label>Display Business Name</label>
-                <input type="text" id="admin-store-name" />
-            </div>
-            <div class="form-group">
-                <label>WhatsApp Phone Number</label>
-                <input type="tel" id="admin-phone" />
-            </div>
-
-            <div class="form-group" style="text-align: center;">
-                <label>Store Profile Picture</label>
-                <img src="" id="admin-img-preview" class="profile-preview" alt="Preview" style="display:none;" />
-                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                    <input type="file" id="admin-pic-upload" accept="image/*" style="display:none;" onchange="window.handleAdminImage(event)" />
-                    <button onclick="document.getElementById('admin-pic-upload').click()" class="btn btn-secondary" style="width: auto; padding: 8px 15px; font-size:0.9rem;">Change Photo</button>
-                    <button onclick="window.removeAdminImage()" id="remove-pic-btn" style="display:none; background:none; border:1px solid #ff4444; color:#ff4444; padding: 8px 15px; border-radius: 8px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Remove</button>
+            <div id="master-vault-section">
+                <h3 style="margin:0 0 15px 0; color:#00ffcc;">PLATFORM LEDGER</h3>
+                <div class="vault-stats">
+                    <div class="v-box"><small>TOTAL SALES</small><p id="v-orders">0</p></div>
+                    <div class="v-box"><small>TOTAL GMV</small><p id="v-gmv">₦0</p></div>
+                </div>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table class="vault-table">
+                        <thead><tr><th>Store</th><th>Item</th><th>Price</th></tr></thead>
+                        <tbody id="vault-body"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" onchange="window.toggleGreetingsBox()" />
-                <label style="margin: 0;">Enable Auto-Greetings</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; margin-top:20px;">
+                <h2 style="margin:0;">Store Panel</h2>
+                <button onclick="window.logoutAdmin()" style="background:none; border:none; color:#e60023; font-weight:bold; cursor:pointer;">Logout</button>
             </div>
 
-            <div class="form-group" id="custom-greetings-container">
-                <label>Custom Greetings (One per line)</label>
-                <textarea id="admin-custom-greetings" rows="5" placeholder="Welcome to my store!&#10;What are you looking for today?"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Quick Search Cards (Comma separated)</label>
-                <input type="text" id="admin-quick-searches" placeholder="e.g. Native Wear, Jeans, Corporate, Bridal" />
-                <small style="color:#666; font-size:0.8rem;">These are the clickable filter tags under your storefront search bar.</small>
+            <div class="form-group"><label>Business Name</label><input type="text" id="admin-store-name" /></div>
+            <div class="form-group"><label>WhatsApp Phone</label><input type="tel" id="admin-phone" /></div>
+            
+            <div class="form-group" style="text-align: center;">
+                <label>Store Photo</label>
+                <img src="" id="admin-img-preview" class="profile-preview" style="display:none;" />
+                <input type="file" id="admin-pic-upload" accept="image/*" style="display:none;" onchange="window.handleAdminImage(event)" />
+                <button onclick="document.getElementById('admin-pic-upload').click()" class="btn btn-secondary" style="width: auto; padding: 8px 15px; font-size:0.8rem;">Change Photo</button>
             </div>
 
             <button onclick="window.saveStoreSettings()" class="btn" id="save-btn" style="margin-bottom: 30px;">Save Profile Settings</button>
 
-            <h2>Upload New Item</h2>
+            <h2>Upload Item</h2>
             <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 10px;">
-                <div class="form-group">
-                    <label>Item Name</label>
-                    <input type="text" id="prod-name" placeholder="e.g. Premium Baggy Jeans" />
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label>Category/Brand</label>
-                        <select id="prod-brand">
-                            <option value="Casual">Casual</option>
-                            <option value="Corporate">Corporate</option>
-                            <option value="Native">Native</option>
-                            <option value="Bridal">Bridal</option>
-                            <option value="Streetwear">Streetwear</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Price (₦)</label>
-                        <input type="number" id="prod-price" placeholder="25000" />
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>AI Search Tags (Comma separated)</label>
-                    <input type="text" id="prod-tags" placeholder="e.g. baggy, jeans, blue, denim, trouser" />
-                    <small style="color:#666; font-size:0.8rem;">These words help the voice search find your item!</small>
-                </div>
-                <div class="form-group">
-                    <label>Item Photo</label>
-                    <input type="file" id="prod-pic-upload" accept="image/*" onchange="window.handleProductImagePreview(event)" style="padding: 5px; border:none;" />
-                    <img src="" id="prod-img-preview" class="product-preview" alt="Product Preview" />
-                </div>
-                <button onclick="window.uploadNewProduct()" class="btn" id="upload-prod-btn"><i class="fas fa-plus"></i> Add Item to Store</button>
-            </div>
-
-            <h2>Recent Orders</h2>
-            <div id="order-history-list" class="inventory-list" style="background: #fff; border: 1px solid #eee; padding: 15px; border-radius: 8px;">
-                <p style="text-align:center; color:#666;">Waiting for your first AI sale...</p>
+                <input type="text" id="prod-name" placeholder="Item Name" class="form-group" />
+                <input type="number" id="prod-price" placeholder="Price (₦)" class="form-group" />
+                <input type="file" id="prod-pic-upload" accept="image/*" onchange="window.handleProductImagePreview(event)" />
+                <img src="" id="prod-img-preview" class="product-preview" />
+                <button onclick="window.uploadNewProduct()" class="btn" style="margin-top:10px;">Add Item</button>
             </div>
 
             <h2>Live Inventory</h2>
-            <div id="inventory-list" class="inventory-list">
-                <p style="text-align:center; color:#666;">Loading items...</p>
-            </div>
+            <div id="inventory-list" class="inventory-list"></div>
 
             <div class="store-link-box">
-                <p style="margin-top:0; font-size:0.9rem; color:#666;">Your permanent storefront link:</p>
                 <a href="#" id="my-store-link" target="_blank">Loading link...</a>
             </div>
-
         </div>
     </div>
-
-    <script>
-        window.addEventListener('error', function(e) {
-            document.body.innerHTML = '<div style="background: #ffebee; color: #c62828; padding: 20px; border-radius: 8px; margin: 20px; font-family: sans-serif;">' +
-                '<h3>🚨 SYSTEM CRASH 🚨</h3>' +
-                '<p><b>Error:</b> ' + e.message + '</p>' +
-                '<p><b>File:</b> ' + e.filename + ' (Line ' + e.lineno + ')</p>' +
-                '</div>';
-        });
-    </script>
 
     <script src="./admin.js" type="module"></script>
 </body>
