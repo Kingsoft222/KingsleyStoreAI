@@ -39,14 +39,8 @@
     </div>
 
     <footer class="bottom-controls">
-        <div class="split-cards">
-            <div class="chip spaced-card" onclick="window.quickSearch('Native')">
-                <strong>Native Wear</strong>
+        <div class="split-cards" id="quick-search-container">
             </div>
-            <div class="chip spaced-card" onclick="window.quickSearch('jeans')">
-                <strong>Jeans</strong>
-            </div>
-        </div>
         
         <div class="search-bar">
             <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." onkeyup="if(event.key === 'Enter') window.executeSearch()" />
