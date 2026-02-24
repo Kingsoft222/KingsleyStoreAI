@@ -127,7 +127,8 @@ window.completeStoreSetup = async () => {
             phone: phone,
             greetingsEnabled: true,
             customGreetings: defaultGreetings,
-            ownerEmail: currentGoogleUser.email
+            ownerEmail: currentGoogleUser.email,
+            quickSearches: ["Native Wear", "Jeans", "Corporate", "Bridal"]
         });
         activeStoreId = usernameInput;
         document.getElementById('onboarding-section').style.display = 'none';
@@ -144,8 +145,14 @@ async function loadDashboardData() {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
             document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
+            
             const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
             document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
+            
+            // Load Quick Searches
+            const qs = data.quickSearches ? data.quickSearches.join(', ') : "Native Wear, Jeans, Corporate, Bridal";
+            document.getElementById('admin-quick-searches').value = qs;
+
             window.toggleGreetingsBox(); 
             
             const imgPreview = document.getElementById('admin-img-preview');
@@ -154,6 +161,9 @@ async function loadDashboardData() {
                 imgPreview.src = data.profileImage;
                 imgPreview.style.display = "block";
                 removeBtn.style.display = "inline-block";
+            } else {
+                imgPreview.style.display = "none";
+                removeBtn.style.display = "none";
             }
             
             const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
@@ -206,6 +216,19 @@ window.handleAdminImage = (e) => {
     reader.readAsDataURL(file);
 };
 
+window.removeAdminImage = async () => {
+    if (!activeStoreId) return;
+    if(confirm("Remove profile photo?")) {
+        try {
+            await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
+            document.getElementById('admin-img-preview').style.display = "none";
+            document.getElementById('remove-pic-btn').style.display = "none";
+            pendingBase64Image = null;
+            showToast("Photo removed!");
+        } catch (e) { alert("Error removing photo."); }
+    }
+};
+
 window.saveStoreSettings = async () => {
     if (!activeStoreId) return;
     const saveBtn = document.getElementById('save-btn');
@@ -216,12 +239,17 @@ window.saveStoreSettings = async () => {
         const greetingsEnabled = document.getElementById('admin-greetings-toggle').checked;
         const rawGreetings = document.getElementById('admin-custom-greetings').value;
         const customGreetingsArray = rawGreetings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        
+        // Handle Quick Searches
+        const qsInput = document.getElementById('admin-quick-searches').value;
+        const qsArray = qsInput.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
 
         let updateData = { 
             storeName: document.getElementById('admin-store-name').value, 
             phone: document.getElementById('admin-phone').value,
             greetingsEnabled: greetingsEnabled,
-            customGreetings: customGreetingsArray 
+            customGreetings: customGreetingsArray,
+            quickSearches: qsArray
         };
 
         if (pendingBase64Image) {
@@ -263,6 +291,8 @@ window.uploadNewProduct = async () => {
 
         document.getElementById('prod-name').value = "";
         document.getElementById('prod-price').value = "";
+        document.getElementById('prod-tags').value = "";
+        document.getElementById('prod-pic-upload').value = "";
         document.getElementById('prod-img-preview').style.display = "none";
         pendingProductBase64 = null;
         showToast("Item added!");
@@ -288,7 +318,7 @@ window.handleProductImagePreview = (e) => {
 function renderInventoryList(catalog) {
     const listDiv = document.getElementById('inventory-list');
     const keys = Object.keys(catalog);
-    if (keys.length === 0) { listDiv.innerHTML = `<p style="text-align:center;">Empty Store.</p>`; return; }
+    if (keys.length === 0) { listDiv.innerHTML = `<p style="text-align:center; color:#666;">Empty Store.</p>`; return; }
     listDiv.innerHTML = keys.map(key => {
         const item = catalog[key];
         return `<div class="inventory-item">
@@ -303,10 +333,12 @@ function renderInventoryList(catalog) {
 }
 
 window.deleteProduct = async (dbKey, storagePath) => {
-    if (!confirm("Delete?")) return;
+    if (!confirm("Delete this item permanently?")) return;
     try {
         await remove(dbRef(db, `stores/${activeStoreId}/catalog/${dbKey}`));
-        try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
+        if(storagePath) {
+             try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
+        }
         showToast("Deleted");
         loadDashboardData(); 
     } catch (e) { alert("Failed."); }
