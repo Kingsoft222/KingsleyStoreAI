@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+// 👇 Added 'push' here for the Interceptor
+import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -40,12 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
             
-            // Ensures the profile photo always loads perfectly!
             if (data.profileImage) {
                 const ownerImg = document.getElementById('owner-img');
                 if(ownerImg) {
                     ownerImg.src = data.profileImage;
-                    ownerImg.style.display = 'block'; // Force visibility
+                    ownerImg.style.display = 'block'; 
                 }
             }
 
@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const greetingEl = document.getElementById('dynamic-greeting');
             
-            // THE FIX: Strictly hide the text ONLY, do NOT hide the parent container that holds the photo!
             if (data.greetingsEnabled === false) {
                 window.activeGreetings = []; 
                 if (greetingEl) {
@@ -170,11 +169,13 @@ window.startTryOn = async () => {
         const result = await response.json();
         
         if (result.success) {
+            // 👇 Added 'Check another one' button logic here
             resultDiv.innerHTML = `
-                <div style="width:100%; text-align:right; margin-bottom:10px;"><span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Try Another Look</span></div>
+                <div style="width:100%; text-align:right; margin-bottom:10px;"><span onclick="window.closeFittingRoom()" style="color:#e60023; font-weight:bold; cursor:pointer;">✕ Check another one</span></div>
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; border:1px solid #e60023;">
                 <div style="margin-top:15px; display:flex; flex-direction:column; gap:10px;">
                     <button onclick="window.addToCart()" style="width:100%; padding:18px; background:var(--accent); color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Add to Cart 🛍️</button>
+                    <button onclick="window.closeFittingRoom()" style="width:100%; padding:15px; background:#eee; color:#333; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Check another one</button>
                     <div id="proceed-btn-container" style="${cart.length > 0 ? 'display:block' : 'display:none'}">
                         <button onclick="window.openCart()" style="width:100%; padding:15px; background:transparent; color:var(--text-main); border:1px solid var(--border); border-radius:12px; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer;">
                             Proceed to Cart <i class="fas fa-arrow-right"></i>
@@ -212,15 +213,58 @@ window.openCart = () => {
             <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
         </div>`).join('');
         
-    resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
+    // 👇 Added an ID to the checkout button so the interceptor can show "Processing..."
+    resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button id="checkout-btn" onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
 };
 
 window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); window.openCart(); };
 
-window.checkoutWhatsApp = () => {
-    let list = cart.map(i => `- ${i.name}`).join('%0A');
-    let total = cart.reduce((s, i) => s + i.price, 0);
-    window.open(`https://wa.me/${storePhone}?text=Hello%20${currentStoreId},%20I%20want%20to%20pay%20for:%0A${list}%0A%0ATotal:%20₦${total.toLocaleString()}`);
+// 👇 Rewrote this function to act as the Interceptor
+window.checkoutWhatsApp = async () => {
+    if (!cart || cart.length === 0) return alert("Your cart is empty!");
+
+    // 1. Format the WhatsApp Message with Individual Prices
+    let waMessage = `Hello! I want to buy these items from your VirtualMall AI Store:\n\n`;
+    let grandTotal = 0;
+    let orderSummaryText = ""; 
+
+    cart.forEach(item => {
+        let itemTotal = item.price * (item.qty || 1);
+        grandTotal += itemTotal;
+        waMessage += `▪ ${(item.qty || 1)}x ${item.name} - ₦${item.price.toLocaleString()}\n`;
+        orderSummaryText += `${(item.qty || 1)}x ${item.name}, `;
+    });
+
+    waMessage += `\n*GRAND TOTAL: ₦${grandTotal.toLocaleString()}*`;
+
+    // 2. THE INTERCEPTOR: Create the Digital Receipt
+    const orderData = {
+        item: orderSummaryText.replace(/,\s*$/, ""), // Removes the last comma
+        price: grandTotal,
+        timestamp: new Date().toISOString(),
+        status: "Pending"
+    };
+
+    const checkoutBtn = document.getElementById('checkout-btn'); 
+    if(checkoutBtn) checkoutBtn.innerText = "Processing...";
+
+    try {
+        // Drop a copy in the Vendor's dashboard
+        await push(ref(db, `stores/${currentStoreId}/orders`), orderData);
+        
+        // Drop a copy in YOUR Super-Admin master ledger
+        await push(ref(db, `global_orders`), { 
+            ...orderData, 
+            storeId: currentStoreId 
+        });
+    } catch (error) {
+        console.error("Order logging failed, but still sending to WhatsApp", error);
+    }
+
+    // 3. Instantly redirect the customer to WhatsApp 
+    if(checkoutBtn) checkoutBtn.innerHTML = `<i class="fab fa-whatsapp"></i> Checkout via WhatsApp`;
+    const waLink = `https://wa.me/${storePhone}?text=${encodeURIComponent(waMessage)}`;
+    window.open(waLink, '_blank');
 };
 
 window.executeSearch = () => {

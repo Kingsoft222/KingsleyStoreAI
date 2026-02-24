@@ -1,5 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// 👇 Swapped back to signInWithPopup 👇
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -60,7 +59,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 👇 THE POPUP IS BACK (This bypasses browser tracking blocks) 👇
 window.loginWithGoogle = async () => {
     try { 
         await signInWithPopup(auth, provider); 
@@ -153,6 +151,33 @@ async function loadDashboardData() {
             }
 
             renderInventoryList(data.catalog || {});
+
+            // 👇 NEW: RENDER ORDER HISTORY 👇
+            const orders = data.orders || {};
+            const orderListDiv = document.getElementById('order-history-list');
+            const orderKeys = Object.keys(orders).reverse(); // Show newest first
+
+            if (orderKeys.length === 0) {
+                orderListDiv.innerHTML = `<p style="text-align:center; color:#666;">Waiting for your first AI sale...</p>`;
+            } else {
+                orderListDiv.innerHTML = "";
+                orderKeys.forEach(key => {
+                    const order = orders[key];
+                    const dateObj = new Date(order.timestamp);
+                    const niceDate = dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    
+                    orderListDiv.innerHTML += `
+                        <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+                            <h4 style="margin: 0; color: #333; font-size: 0.95rem;">${order.item}</h4>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px; align-items: center;">
+                                <span style="color: #e60023; font-weight: bold;">₦${order.price.toLocaleString()}</span>
+                                <span style="font-size: 0.8rem; color: #888;">${niceDate}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
         }
     } catch (error) { console.error("Error loading dashboard:", error); }
 }
