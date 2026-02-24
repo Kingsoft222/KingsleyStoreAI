@@ -21,7 +21,6 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempCustomerPhoto = ""; 
 let selectedCloth = null;
 
-// 🎯 PERSISTENT CART: Loads from browser memory so refresh doesn't delete it
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
 let storePhone = "2348000000000"; 
@@ -76,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 });
 
-// 🎯 SAVE CART FUNCTION
 function saveCart() {
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
     updateCartUI();
@@ -92,7 +90,7 @@ window.promptShowroomChoice = (id) => {
             <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
             <p>Try on <strong>${selectedCloth.name}</strong>.</p>
             <input type="file" id="temp-tryon-input" hidden accept="image/*" onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">Upload Photo</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Upload Photo</button>
         </div>`;
 };
 
@@ -181,7 +179,6 @@ function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-NG';
-    // 🎯 RED HIGHLIGHT RESTORED
     micBtn.addEventListener('click', () => { micBtn.style.color = "#e60023"; recognition.start(); });
     recognition.onresult = (e) => { 
         document.getElementById('ai-input').value = e.results[0][0].transcript; 
@@ -193,29 +190,38 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
-// 🎯 SECURITY BLOCK FIX: Direct Handshake + Proxy Backup
+// 🎯 PERMANENT SECURITY FIX: Proxy Tunnel + Unique Identifier per Request
 async function getBase64FromUrl(url) { 
     return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous"; 
-        img.onload = () => {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width; canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
-        };
-        img.onerror = () => {
-            fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
-                .then(r => r.blob())
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(blob);
-                })
-                .catch(e => reject(new Error("Security Block: Failed to load image.")));
-        };
-        img.src = url + (url.includes('?') ? '&' : '?') + 'cache=' + Date.now();
+        // Create a unique cache buster for every single request
+        const freshParam = 'vmall_' + Math.random().toString(36).substring(7);
+        const freshUrl = url + (url.includes('?') ? '&' : '?') + 'fresh=' + freshParam;
+        
+        // Primary method: Proxy to bypass all origin restrictions
+        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(freshUrl)}`)
+            .then(r => {
+                if (!r.ok) throw new Error("Proxy link failed");
+                return r.blob();
+            })
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            })
+            .catch(() => {
+                // Secondary method: Direct handshake with anonymous flag
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext("2d");
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
+                };
+                img.onerror = () => reject(new Error("Image blocked by security. Try a fresh upload."));
+                img.src = freshUrl;
+            });
     });
 }
 
