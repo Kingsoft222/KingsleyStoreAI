@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-// Notice I added 'push' and 'remove' to this import!
 import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -23,8 +22,8 @@ const storage = getStorage(app);
 
 let currentGoogleUser = null;
 let activeStoreId = ""; 
-let pendingBase64Image = null; // For Profile
-let pendingProductBase64 = null; // For Inventory Items
+let pendingBase64Image = null; 
+let pendingProductBase64 = null; 
 
 // --- 1. AUTH STATE OBSERVER ---
 onAuthStateChanged(auth, async (user) => {
@@ -117,6 +116,15 @@ async function loadDashboardData() {
                 removeBtn.style.display = "none";
             }
 
+            // RESTORED: Generate Permanent Link properly
+            const currentDomain = window.location.origin;
+            const storeLink = `${currentDomain}/?store=${activeStoreId}`;
+            const linkEl = document.getElementById('my-store-link');
+            if(linkEl) {
+                linkEl.href = storeLink;
+                linkEl.innerText = storeLink;
+            }
+
             // Render Inventory
             renderInventoryList(data.catalog || {});
         }
@@ -207,27 +215,23 @@ window.uploadNewProduct = async () => {
     btn.disabled = true;
 
     try {
-        // 1. Upload Image to Storage
         const fileId = Date.now();
         const imagePath = `inventory/${activeStoreId}/${fileId}.jpg`;
         const imageRef = storageRef(storage, imagePath);
         await uploadString(imageRef, pendingProductBase64, 'data_url');
         const imageUrl = await getDownloadURL(imageRef);
 
-        // 2. Save Data to Database
         const productData = {
             name: name,
-            cat: brand, // Using 'cat' to match your app.js logic
+            cat: brand, 
             price: Number(price),
             tags: tags,
-            imgUrl: imageUrl, // Storing the full URL so it loads immediately
-            storagePath: imagePath // Keeping this in case they delete it later
+            imgUrl: imageUrl, 
+            storagePath: imagePath 
         };
 
-        // Firebase 'push' creates a unique ID for every item automatically
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), productData);
 
-        // 3. Reset Form & Refresh List
         document.getElementById('prod-name').value = "";
         document.getElementById('prod-price').value = "";
         document.getElementById('prod-tags').value = "";
@@ -236,7 +240,7 @@ window.uploadNewProduct = async () => {
         pendingProductBase64 = null;
         
         showToast("Item added successfully!");
-        loadDashboardData(); // Refresh list
+        loadDashboardData(); 
 
     } catch (error) {
         console.error(error);
@@ -250,7 +254,7 @@ window.uploadNewProduct = async () => {
 // --- 7. RENDER & DELETE INVENTORY ---
 function renderInventoryList(catalog) {
     const listDiv = document.getElementById('inventory-list');
-    listDiv.innerHTML = ""; // clear loading text
+    listDiv.innerHTML = ""; 
 
     const itemKeys = Object.keys(catalog);
     if (itemKeys.length === 0) {
@@ -277,19 +281,14 @@ window.deleteProduct = async (dbKey, storagePath) => {
     if (!confirm("Delete this item from your store permanently?")) return;
     
     try {
-        // Delete from Database
         await remove(dbRef(db, `stores/${activeStoreId}/catalog/${dbKey}`));
-        // Attempt to delete image from Storage (Don't let it crash if image is already gone)
         try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
         
         showToast("Item deleted");
-        loadDashboardData(); // Refresh list
-    } catch (error) {
-        alert("Failed to delete item.");
-    }
+        loadDashboardData(); 
+    } catch (error) { alert("Failed to delete item."); }
 };
 
-// --- UTILS ---
 function showToast(msg) {
     const toast = document.getElementById('status-toast');
     toast.innerText = msg;
