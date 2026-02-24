@@ -20,10 +20,12 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 
 let tempCustomerPhoto = ""; 
 let selectedCloth = null;
-let cart = []; 
+
+// 🎯 FIX: LOAD CART FROM LOCAL STORAGE (Persistent on refresh)
+let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
+
 let storePhone = "2348000000000"; 
 let storeCatalog = []; 
-
 window.activeGreetings = []; 
 let gIndex = 0;
 
@@ -40,16 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.phone) storePhone = data.phone;
             
             const greetingEl = document.getElementById('dynamic-greeting');
-            // 🎯 FIXED GREETING LOGIC: Hide immediately if disabled
             if (data.greetingsEnabled === true) {
                 if (greetingEl) greetingEl.style.display = 'block';
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Chief, looking for premium native?"];
             } else {
                 window.activeGreetings = []; 
-                if (greetingEl) {
-                    greetingEl.style.display = 'none';
-                    greetingEl.innerText = ''; 
-                }
+                if (greetingEl) { greetingEl.style.display = 'none'; greetingEl.innerText = ''; }
             }
 
             setTimeout(() => {
@@ -78,6 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 });
 
+// 🎯 SAVES CART TO BROWSER MEMORY
+function saveCart() {
+    localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
+    updateCartUI();
+}
+
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempCustomerPhoto = ""; 
@@ -88,7 +92,7 @@ window.promptShowroomChoice = (id) => {
             <h2 style="font-weight:800; color:#e60023;">AI Showroom</h2>
             <p>Try on <strong>${selectedCloth.name}</strong>.</p>
             <input type="file" id="temp-tryon-input" hidden accept="image/*" onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; cursor:pointer;">Upload Photo</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">Upload Photo</button>
         </div>`;
 };
 
@@ -131,7 +135,7 @@ window.addToCart = () => {
     const btn = document.getElementById('add-to-cart-dynamic');
     if (btn && btn.innerText.includes("Add to Cart")) {
         cart.push(selectedCloth);
-        updateCartUI();
+        saveCart(); // 🎯 PERMANENT SAVE
         showToast(`✅ Added!`);
         btn.innerText = "Check another one";
         btn.style.background = "#eee"; btn.style.color = "#333";
@@ -144,17 +148,19 @@ window.openCart = () => {
     const modal = document.getElementById('fitting-room-modal');
     const resultDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
-    if (cart.length === 0) { resultDiv.innerHTML = `<div style="padding:40px; text-align:center;"><h3 style="color:var(--accent);">Empty Cart</h3></div>`; return; }
+    if (cart.length === 0) { resultDiv.innerHTML = `<div style="padding:40px; text-align:center;"><h3>Empty Cart</h3></div>`; return; }
     
     let total = cart.reduce((sum, item) => sum + item.price, 0);
     let itemsHTML = cart.map((item, idx) => `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
-            <div style="text-align:left;"><p style="margin:0; font-weight:bold; color:var(--text-main);">${item.name}</p><p style="margin:0; color:var(--accent);">₦${item.price.toLocaleString()}</p></div>
+            <div style="text-align:left;"><p style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:var(--accent);">₦${item.price.toLocaleString()}</p></div>
             <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>`).join('');
         
-    resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
+    resultDiv.innerHTML = `<div style="padding:10px;"><h2>YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
 };
+
+window.removeFromCart = (idx) => { cart.splice(idx, 1); saveCart(); window.openCart(); };
 
 window.checkoutWhatsApp = () => {
     let list = cart.map(i => `▪ 1x ${i.name} - ₦${i.price.toLocaleString()}`).join('%0A');
@@ -180,20 +186,24 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
+// 🎯 THE FINAL SECURITY HANDSHAKE (No Proxy needed)
 async function getBase64FromUrl(url) { 
-    try {
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) { throw new Error("Security Block: Image load failed."); }
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous"; 
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
+        };
+        img.onerror = () => reject(new Error("Security Block. Try a different image."));
+        img.src = url + (url.includes('?') ? '&' : '?') + 'cache=' + Date.now();
+    });
 }
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
-window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); window.openCart(); };
