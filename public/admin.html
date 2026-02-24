@@ -23,7 +23,6 @@
         .profile-preview { width: 100px; height: 100px; border-radius: 50%; background: #eee; margin: 10px auto; display: block; object-fit: cover; border: 3px solid #e60023; }
         .toast { display: none; background: #28a745; color: white; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; }
         
-        /* Product Inventory Styles */
         .product-preview { width: 100%; height: 150px; border-radius: 8px; background: #eee; margin-top: 10px; object-fit: cover; display: none; border: 1px dashed #ccc; }
         .inventory-list { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
         .inventory-item { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
@@ -77,12 +76,17 @@
 
             <div class="form-group" style="text-align: center;">
                 <label>Store Profile Picture</label>
-                <img src="" id="admin-img-preview" class="profile-preview" alt="Preview" />
+                <img src="" id="admin-img-preview" class="profile-preview" alt="Preview" style="display:none;" />
                 <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                    <input type="file" id="admin-pic-upload" accept="image/*" hidden onchange="window.handleAdminImage(event)" />
+                    <input type="file" id="admin-pic-upload" accept="image/*" style="display:none;" onchange="window.handleAdminImage(event)" />
                     <button onclick="document.getElementById('admin-pic-upload').click()" class="btn btn-secondary" style="width: auto; padding: 8px 15px; font-size:0.9rem;">Change Photo</button>
                     <button onclick="window.removeAdminImage()" id="remove-pic-btn" style="display:none; background:none; border:1px solid #ff4444; color:#ff4444; padding: 8px 15px; border-radius: 8px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Remove</button>
                 </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" />
+                <label style="margin: 0;">Enable Auto-Greetings</label>
             </div>
 
             <button onclick="window.saveStoreSettings()" class="btn" id="save-btn" style="margin-bottom: 30px;">Save Profile Settings</button>

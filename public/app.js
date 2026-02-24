@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
     authDomain: "kingsleystoreai.firebaseapp.com",
@@ -10,10 +9,8 @@ const firebaseConfig = {
     messagingSenderId: "31402654971",
     appId: "1:31402654971:web:26f75b0f913bcaf9f6445e",
     measurementId: "G-PJZD5D3NF6",
-    databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com" // <-- I added this back for you!
+    databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com"
 };
-
-
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
@@ -29,7 +26,7 @@ let cart = [];
 let storePhone = "2348000000000"; 
 let storeCatalog = []; 
 
-// Mock Global Database
+// Mock Global Database (Fallback)
 const globalCatalog = [
     { id: 1, vendor: "kingsley", name: "Premium Red Luxury Native", tags: "native senator red ankara", img: "senator_red.jpg", price: 25000, cat: "Native" },
     { id: 2, vendor: "kingsley", name: "Classic White Polo", tags: "polo white corporate", img: "white_polo.jpg", price: 10000, cat: "Corporate" },
@@ -50,9 +47,6 @@ window.activeGreetings = [
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Isolate the catalog
-    storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
-
     // Sync Store Identity from Firebase
     const storeRef = ref(db, `stores/${currentStoreId}`);
     onValue(storeRef, (snapshot) => {
@@ -72,9 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.activeGreetings = data.customGreetings;
                 }
             }
+
+            // CRITICAL ADDITION: MAP LIVE FIREBASE INVENTORY TO STORE CATALOG
+            if (data.catalog) {
+                storeCatalog = Object.keys(data.catalog).map(key => {
+                    return {
+                        id: key, // Firebase unique ID
+                        name: data.catalog[key].name,
+                        price: data.catalog[key].price,
+                        tags: data.catalog[key].tags,
+                        cat: data.catalog[key].cat,
+                        imgUrl: data.catalog[key].imgUrl // Live cloud image
+                    };
+                });
+            } else {
+                // If they have no live catalog, fallback to the mock database
+                storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
+            }
+
         } else {
             // Default store name if no DB entry exists yet
             document.getElementById('store-name-display').innerText = currentStoreId.toUpperCase() + " STORE";
+            storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
         }
     });
 
@@ -93,7 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- STRICT PRIVACY TRY-ON LOGIC ---
 window.promptShowroomChoice = (id) => {
-    selectedCloth = storeCatalog.find(c => c.id === id);
+    // Safe lookup comparing as strings to handle both Firebase keys and mock IDs
+    selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempCustomerPhoto = ""; // Wipe previous photo
     
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -124,7 +138,10 @@ window.startTryOn = async () => {
     resultDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800;">STITCHING YOUR LOOK...</p></div>`;
     
     try {
-        const rawClothData = await getBase64FromUrl(`images/${selectedCloth.img}`);
+        // Automatically choose between Live Firebase Image or local mock image
+        const imageSource = selectedCloth.imgUrl ? selectedCloth.imgUrl : `images/${selectedCloth.img}`;
+        const rawClothData = await getBase64FromUrl(imageSource);
+        
         const clothB64 = await resizeImage(rawClothData);
         const response = await fetch('/api/process-vto', { 
             method: 'POST', 
@@ -182,7 +199,7 @@ window.checkoutWhatsApp = () => {
     window.open(`https://wa.me/${storePhone}?text=Hello%20${currentStoreId},%20I%20want%20to%20pay%20for:%0A${list}%0A%0ATotal:%20₦${total.toLocaleString()}`);
 };
 
-// --- SEARCH ENGINE ---
+// --- CRITICAL FIX: SEARCH ENGINE UPDATED ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
@@ -193,7 +210,12 @@ window.executeSearch = () => {
     results.style.display = 'grid';
     
     if (filtered.length > 0) {
-        results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice(${item.id})"><img src="images/${item.img}"><h4 style="margin:8px 0; color:white;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
+        results.innerHTML = filtered.map(item => {
+            // Pick Live URL or Mock Image
+            const imageSource = item.imgUrl ? item.imgUrl : `images/${item.img}`;
+            // Added quotes around item.id so it can handle Firebase string keys safely
+            return `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${imageSource}"><h4 style="margin:8px 0; color:white;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`;
+        }).join('');
     } else {
         results.style.display = 'block';
         results.innerHTML = `<p style="text-align:center; padding:20px;">No items found in this store for "${query}".</p>`;

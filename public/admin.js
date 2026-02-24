@@ -25,7 +25,6 @@ let activeStoreId = "";
 let pendingBase64Image = null; 
 let pendingProductBase64 = null; 
 
-// --- 1. AUTH STATE OBSERVER ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
@@ -57,7 +56,6 @@ window.loginWithGoogle = async () => {
 
 window.logoutAdmin = () => signOut(auth);
 
-// --- 3. ONBOARDING SETUP ---
 window.completeStoreSetup = async () => {
     const usernameInput = document.getElementById('setup-username').value.toLowerCase().trim().replace(/\s+/g, '');
     const bizName = document.getElementById('setup-bizname').value.trim();
@@ -95,7 +93,6 @@ window.completeStoreSetup = async () => {
     }
 };
 
-// --- 4. LOAD PROFILE & INVENTORY ---
 async function loadDashboardData() {
     try {
         const snapshot = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -104,6 +101,9 @@ async function loadDashboardData() {
         if (data) {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
+            
+            // RESTORED: Greetings Toggle
+            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
             
             const imgPreview = document.getElementById('admin-img-preview');
             const removeBtn = document.getElementById('remove-pic-btn');
@@ -116,7 +116,6 @@ async function loadDashboardData() {
                 removeBtn.style.display = "none";
             }
 
-            // RESTORED: Generate Permanent Link properly
             const currentDomain = window.location.origin;
             const storeLink = `${currentDomain}/?store=${activeStoreId}`;
             const linkEl = document.getElementById('my-store-link');
@@ -125,13 +124,11 @@ async function loadDashboardData() {
                 linkEl.innerText = storeLink;
             }
 
-            // Render Inventory
             renderInventoryList(data.catalog || {});
         }
     } catch (error) { console.error("Error loading dashboard:", error); }
 }
 
-// --- 5. PROFILE IMAGE LOGIC ---
 window.handleAdminImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -166,9 +163,12 @@ window.saveStoreSettings = async () => {
     saveBtn.disabled = true;
 
     try {
+        // RESTORED: Included greetingsEnabled in the save payload
+        const greetingsEnabled = document.getElementById('admin-greetings-toggle').checked;
         let updateData = { 
             storeName: document.getElementById('admin-store-name').value, 
-            phone: document.getElementById('admin-phone').value 
+            phone: document.getElementById('admin-phone').value,
+            greetingsEnabled: greetingsEnabled 
         };
 
         if (pendingBase64Image) {
@@ -186,7 +186,6 @@ window.saveStoreSettings = async () => {
     saveBtn.disabled = false;
 };
 
-// --- 6. INVENTORY UPLOAD LOGIC ---
 window.handleProductImagePreview = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -251,7 +250,6 @@ window.uploadNewProduct = async () => {
     btn.disabled = false;
 };
 
-// --- 7. RENDER & DELETE INVENTORY ---
 function renderInventoryList(catalog) {
     const listDiv = document.getElementById('inventory-list');
     listDiv.innerHTML = ""; 
