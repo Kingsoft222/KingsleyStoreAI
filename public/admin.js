@@ -11,7 +11,7 @@ const firebaseConfig = {
     messagingSenderId: "31402654971",
     appId: "1:31402654971:web:26f75b0f913bcaf9f6445e",
     measurementId: "G-PJZD5D3NF6",
-    databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com" // <-- I added this back for you!
+    databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com" 
 };
 
 const app = initializeApp(firebaseConfig);
@@ -53,14 +53,15 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 2. GOOGLE LOGIN ---
+// --- 2. GOOGLE LOGIN (NOW WITH DIAGNOSTICS) ---
 window.loginWithGoogle = async () => {
     try {
         await signInWithPopup(auth, provider);
         // Observer handles the rest
     } catch (error) {
         console.error("Login Error:", error);
-        alert("Authentication failed.");
+        // THIS IS THE MAGIC LINE: It will tell us exactly why Firebase is blocking it
+        alert("Firebase Error: " + error.message); 
     }
 };
 
