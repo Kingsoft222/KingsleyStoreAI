@@ -152,7 +152,6 @@ window.startTryOn = async () => {
             throw new Error(result.error || "AI Engine failed to process image."); 
         }
     } catch (e) { 
-        // CRITICAL FIX: Exposed the true error instead of the generic "full body" warning
         console.error("VTO Error:", e);
         alert("System Error: " + e.message + "\n\n(If it says Failed to Fetch, it is a network error. Try again.)"); 
         window.closeFittingRoom(); 
@@ -223,16 +222,30 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
-// CRITICAL FIX: Bypass browser CORS blocks for Firebase Images using a reliable proxy
+// --- THE CRITICAL CORS BYPASS FIX ---
 async function getBase64FromUrl(url) { 
+    // 1. If it's a local mock image, fetch normally
+    if (!url.startsWith('http')) {
+        const r = await fetch(url); 
+        const b = await r.blob(); 
+        return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
+    }
+
+    // 2. If it's a Firebase image, use the double-proxy system to bypass CORS
     try {
-        const fetchUrl = url.includes('firebasestorage') ? `https://corsproxy.io/?${encodeURIComponent(url)}` : url;
-        const r = await fetch(fetchUrl); 
-        if(!r.ok) throw new Error("Could not download the clothing image for AI processing.");
+        let r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        
+        // If the first proxy fails, fallback to the second proxy
+        if (!r.ok) {
+            r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+        }
+        
+        if (!r.ok) throw new Error("Image security block could not be bypassed.");
+        
         const b = await r.blob(); 
         return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
     } catch (err) {
-        throw new Error("CORS Block or Network Failure: " + err.message);
+        throw new Error("Security Block or Network Failure: " + err.message);
     }
 }
 
