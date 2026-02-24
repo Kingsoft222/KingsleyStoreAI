@@ -25,6 +25,17 @@ let activeStoreId = "";
 let pendingBase64Image = null; 
 let pendingProductBase64 = null; 
 
+// Default Greetings to guide the vendor
+const defaultGreetings = [
+    "Nne, what are you looking for today?", 
+    "My guy, what are you looking for today?", 
+    "Classic Man, what are you looking for today?", 
+    "Chief, looking for premium native?", 
+    "Boss, let's find your style!", 
+    "Classic Babe, what are you looking for today?", 
+    "Baddie, let's find your style!"
+];
+
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
@@ -79,6 +90,7 @@ window.completeStoreSetup = async () => {
             storeName: bizName,
             phone: phone,
             greetingsEnabled: true,
+            customGreetings: defaultGreetings, // Save defaults on creation
             ownerEmail: currentGoogleUser.email
         });
 
@@ -93,6 +105,12 @@ window.completeStoreSetup = async () => {
     }
 };
 
+// UI Toggle for Greetings Box
+window.toggleGreetingsBox = () => {
+    const isChecked = document.getElementById('admin-greetings-toggle').checked;
+    document.getElementById('custom-greetings-container').style.display = isChecked ? 'block' : 'none';
+};
+
 async function loadDashboardData() {
     try {
         const snapshot = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -102,8 +120,15 @@ async function loadDashboardData() {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
             
-            // RESTORED: Greetings Toggle
-            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
+            // Handle Greetings
+            const isEnabled = data.greetingsEnabled !== false;
+            document.getElementById('admin-greetings-toggle').checked = isEnabled;
+            
+            // Load custom greetings or fallback to default
+            const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
+            document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
+            
+            window.toggleGreetingsBox(); // Show/hide based on checkbox state
             
             const imgPreview = document.getElementById('admin-img-preview');
             const removeBtn = document.getElementById('remove-pic-btn');
@@ -163,12 +188,17 @@ window.saveStoreSettings = async () => {
     saveBtn.disabled = true;
 
     try {
-        // RESTORED: Included greetingsEnabled in the save payload
         const greetingsEnabled = document.getElementById('admin-greetings-toggle').checked;
+        
+        // Convert textarea back to a clean Array
+        const rawGreetings = document.getElementById('admin-custom-greetings').value;
+        const customGreetingsArray = rawGreetings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
         let updateData = { 
             storeName: document.getElementById('admin-store-name').value, 
             phone: document.getElementById('admin-phone').value,
-            greetingsEnabled: greetingsEnabled 
+            greetingsEnabled: greetingsEnabled,
+            customGreetings: customGreetingsArray 
         };
 
         if (pendingBase64Image) {

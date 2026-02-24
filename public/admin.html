@@ -14,7 +14,7 @@
         p.subtitle { text-align: center; color: #666; margin-bottom: 25px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
-        input[type="text"], input[type="tel"], input[type="number"], select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: 'Inter'; }
+        input[type="text"], input[type="tel"], input[type="number"], select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: 'Inter'; }
         .btn { width: 100%; padding: 15px; background: #e60023; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .btn:hover { background: #c2001d; }
         .btn-secondary { background: #333; }
@@ -85,8 +85,14 @@
             </div>
 
             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" />
-                <label style="margin: 0;">Enable Auto-Greetings</label>
+                <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" onchange="window.toggleGreetingsBox()" />
+                <label style="margin: 0;">Enable Auto-Greetings on Storefront</label>
+            </div>
+
+            <div class="form-group" id="custom-greetings-container">
+                <label>Custom Greetings (One per line)</label>
+                <textarea id="admin-custom-greetings" rows="6" placeholder="Welcome to my store!&#10;What are you looking for today?"></textarea>
+                <small style="color:#666; font-size:0.8rem;">These lines will cycle on your live storefront. Edit them or add your own!</small>
             </div>
 
             <button onclick="window.saveStoreSettings()" class="btn" id="save-btn" style="margin-bottom: 30px;">Save Profile Settings</button>
