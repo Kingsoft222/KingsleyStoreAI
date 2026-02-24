@@ -30,7 +30,7 @@ const globalCatalog = [
     { id: 3, vendor: "emeka", name: "Emeka's Baggy Jeans", tags: "jeans denim baggy trousers casual", img: "baggy_jeans.jpg", price: 28000, cat: "Casual" }
 ];
 
-window.activeGreetings = []; // Will be populated dynamically
+window.activeGreetings = []; 
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,48 +39,51 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
-            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
+            
+            // Ensures the profile photo always loads perfectly!
+            if (data.profileImage) {
+                const ownerImg = document.getElementById('owner-img');
+                if(ownerImg) {
+                    ownerImg.src = data.profileImage;
+                    ownerImg.style.display = 'block'; // Force visibility
+                }
+            }
+
             if (data.phone) storePhone = data.phone;
             
             const greetingEl = document.getElementById('dynamic-greeting');
             
-            // STRICTLY DISABLE GREETINGS
+            // THE FIX: Strictly hide the text ONLY, do NOT hide the parent container that holds the photo!
             if (data.greetingsEnabled === false) {
-                window.activeGreetings = []; // Wipes the array so loop prints nothing
+                window.activeGreetings = []; 
                 if (greetingEl) {
                     greetingEl.style.display = 'none';
                     greetingEl.innerText = '';
-                    if(greetingEl.parentElement) greetingEl.parentElement.style.display = 'none'; // Hides the bubble if there is one
                 }
             } else {
                 if (greetingEl) {
                     greetingEl.style.display = 'block';
-                    if(greetingEl.parentElement) greetingEl.parentElement.style.display = 'block';
                 }
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) 
                     ? data.customGreetings 
-                    : ["Nne, what are you looking for today?", "My guy, what are you looking for today?"];
+                    : ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?", "Chief, looking for premium native?", "Boss, let's find your style!", "Classic Babe, what are you looking for today?", "Baddie, let's find your style!"];
             }
 
-            // DYNAMIC QUICK SEARCH BUTTONS + SPACING
             setTimeout(() => {
                 const qsArray = (data.quickSearches && data.quickSearches.length > 0) 
                     ? data.quickSearches 
                     : ["Native Wear", "Jeans", "Corporate", "Bridal"];
                 
-                // Smart DOM trick: Finds the old buttons, gets their parent container, and spaces them out!
                 const existingBtn = document.querySelector('[onclick^="window.quickSearch"]');
                 if (existingBtn && existingBtn.parentElement) {
                     const container = existingBtn.parentElement;
-                    const btnClass = existingBtn.className || ''; // Steals your original button CSS
+                    const btnClass = existingBtn.className || ''; 
                     
-                    // Add the missing gap
                     container.style.display = 'flex';
                     container.style.gap = '10px';
-                    container.style.overflowX = 'auto'; // Lets them slide nicely on mobile
-                    container.style.scrollbarWidth = 'none'; // Hides ugly scrollbar
+                    container.style.overflowX = 'auto'; 
+                    container.style.scrollbarWidth = 'none'; 
                     
-                    // Overwrite with dynamic buttons
                     container.innerHTML = qsArray.map(tag => 
                         `<button class="${btnClass}" onclick="window.quickSearch('${tag}')" style="white-space:nowrap; margin:0;">${tag}</button>`
                     ).join('');
@@ -115,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
             gIndex++; 
         } else if (el) {
-            el.style.display = 'none'; // Failsafe killswitch
+            el.style.display = 'none'; 
         }
     }, 2500);
 
