@@ -21,7 +21,7 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempCustomerPhoto = ""; 
 let selectedCloth = null;
 
-// 🎯 FIX: LOAD CART FROM LOCAL STORAGE (Persistent on refresh)
+// 🎯 PERSISTENT CART: Loads from browser memory so refresh doesn't delete it
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
 let storePhone = "2348000000000"; 
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 });
 
-// 🎯 SAVES CART TO BROWSER MEMORY
+// 🎯 SAVE CART FUNCTION
 function saveCart() {
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
     updateCartUI();
@@ -135,7 +135,7 @@ window.addToCart = () => {
     const btn = document.getElementById('add-to-cart-dynamic');
     if (btn && btn.innerText.includes("Add to Cart")) {
         cart.push(selectedCloth);
-        saveCart(); // 🎯 PERMANENT SAVE
+        saveCart();
         showToast(`✅ Added!`);
         btn.innerText = "Check another one";
         btn.style.background = "#eee"; btn.style.color = "#333";
@@ -180,13 +180,20 @@ window.executeSearch = () => {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    micBtn.addEventListener('click', () => { recognition.start(); });
-    recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); };
+    recognition.lang = 'en-NG';
+    // 🎯 RED HIGHLIGHT RESTORED
+    micBtn.addEventListener('click', () => { micBtn.style.color = "#e60023"; recognition.start(); });
+    recognition.onresult = (e) => { 
+        document.getElementById('ai-input').value = e.results[0][0].transcript; 
+        micBtn.style.color = "#5f6368"; 
+        window.executeSearch(); 
+    };
+    recognition.onend = () => { micBtn.style.color = "#5f6368"; };
 }
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
-// 🎯 THE FINAL SECURITY HANDSHAKE (No Proxy needed)
+// 🎯 SECURITY BLOCK FIX: Direct Handshake + Proxy Backup
 async function getBase64FromUrl(url) { 
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -198,7 +205,16 @@ async function getBase64FromUrl(url) {
             ctx.drawImage(img, 0, 0);
             resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
         };
-        img.onerror = () => reject(new Error("Security Block. Try a different image."));
+        img.onerror = () => {
+            fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+                .then(r => r.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(blob);
+                })
+                .catch(e => reject(new Error("Security Block: Failed to load image.")));
+        };
         img.src = url + (url.includes('?') ? '&' : '?') + 'cache=' + Date.now();
     });
 }
