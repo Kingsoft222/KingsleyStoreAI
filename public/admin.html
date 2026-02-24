@@ -86,13 +86,18 @@
 
             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" onchange="window.toggleGreetingsBox()" />
-                <label style="margin: 0;">Enable Auto-Greetings on Storefront</label>
+                <label style="margin: 0;">Enable Auto-Greetings</label>
             </div>
 
             <div class="form-group" id="custom-greetings-container">
                 <label>Custom Greetings (One per line)</label>
-                <textarea id="admin-custom-greetings" rows="6" placeholder="Welcome to my store!&#10;What are you looking for today?"></textarea>
-                <small style="color:#666; font-size:0.8rem;">These lines will cycle on your live storefront. Edit them or add your own!</small>
+                <textarea id="admin-custom-greetings" rows="5" placeholder="Welcome to my store!&#10;What are you looking for today?"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Quick Search Cards (Comma separated)</label>
+                <input type="text" id="admin-quick-searches" placeholder="e.g. Native Wear, Jeans, Corporate, Bridal" />
+                <small style="color:#666; font-size:0.8rem;">These are the clickable filter tags under your storefront search bar.</small>
             </div>
 
             <button onclick="window.saveStoreSettings()" class="btn" id="save-btn" style="margin-bottom: 30px;">Save Profile Settings</button>

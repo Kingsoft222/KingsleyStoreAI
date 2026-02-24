@@ -30,15 +30,7 @@ const globalCatalog = [
     { id: 3, vendor: "emeka", name: "Emeka's Baggy Jeans", tags: "jeans denim baggy trousers casual", img: "baggy_jeans.jpg", price: 28000, cat: "Casual" }
 ];
 
-window.activeGreetings = [
-    "Nne, what are you looking for today?", 
-    "My guy, what are you looking for today?", 
-    "Classic Man, what are you looking for today?", 
-    "Chief, looking for premium native?", 
-    "Boss, let's find your style!", 
-    "Classic Babe, what are you looking for today?", 
-    "Baddie, let's find your style!"
-];
+window.activeGreetings = []; // Will be populated dynamically
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,14 +43,49 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.phone) storePhone = data.phone;
             
             const greetingEl = document.getElementById('dynamic-greeting');
+            
+            // STRICTLY DISABLE GREETINGS
             if (data.greetingsEnabled === false) {
-                greetingEl.style.display = 'none';
-            } else {
-                greetingEl.style.display = 'block';
-                if (data.customGreetings && data.customGreetings.length > 0) {
-                    window.activeGreetings = data.customGreetings;
+                window.activeGreetings = []; // Wipes the array so loop prints nothing
+                if (greetingEl) {
+                    greetingEl.style.display = 'none';
+                    greetingEl.innerText = '';
+                    if(greetingEl.parentElement) greetingEl.parentElement.style.display = 'none'; // Hides the bubble if there is one
                 }
+            } else {
+                if (greetingEl) {
+                    greetingEl.style.display = 'block';
+                    if(greetingEl.parentElement) greetingEl.parentElement.style.display = 'block';
+                }
+                window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) 
+                    ? data.customGreetings 
+                    : ["Nne, what are you looking for today?", "My guy, what are you looking for today?"];
             }
+
+            // DYNAMIC QUICK SEARCH BUTTONS + SPACING
+            setTimeout(() => {
+                const qsArray = (data.quickSearches && data.quickSearches.length > 0) 
+                    ? data.quickSearches 
+                    : ["Native Wear", "Jeans", "Corporate", "Bridal"];
+                
+                // Smart DOM trick: Finds the old buttons, gets their parent container, and spaces them out!
+                const existingBtn = document.querySelector('[onclick^="window.quickSearch"]');
+                if (existingBtn && existingBtn.parentElement) {
+                    const container = existingBtn.parentElement;
+                    const btnClass = existingBtn.className || ''; // Steals your original button CSS
+                    
+                    // Add the missing gap
+                    container.style.display = 'flex';
+                    container.style.gap = '10px';
+                    container.style.overflowX = 'auto'; // Lets them slide nicely on mobile
+                    container.style.scrollbarWidth = 'none'; // Hides ugly scrollbar
+                    
+                    // Overwrite with dynamic buttons
+                    container.innerHTML = qsArray.map(tag => 
+                        `<button class="${btnClass}" onclick="window.quickSearch('${tag}')" style="white-space:nowrap; margin:0;">${tag}</button>`
+                    ).join('');
+                }
+            }, 150);
 
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => {
@@ -83,9 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && el.style.display !== 'none') { 
+        if (el && window.activeGreetings.length > 0) { 
+            el.style.display = 'block';
             el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
             gIndex++; 
+        } else if (el) {
+            el.style.display = 'none'; // Failsafe killswitch
         }
     }, 2500);
 
@@ -222,31 +252,19 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
-// --- THE CRITICAL CORS BYPASS FIX ---
 async function getBase64FromUrl(url) { 
-    // 1. If it's a local mock image, fetch normally
     if (!url.startsWith('http')) {
         const r = await fetch(url); 
         const b = await r.blob(); 
         return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
     }
-
-    // 2. If it's a Firebase image, use the double-proxy system to bypass CORS
     try {
         let r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-        
-        // If the first proxy fails, fallback to the second proxy
-        if (!r.ok) {
-            r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        }
-        
+        if (!r.ok) r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
         if (!r.ok) throw new Error("Image security block could not be bypassed.");
-        
         const b = await r.blob(); 
         return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
-    } catch (err) {
-        throw new Error("Security Block or Network Failure: " + err.message);
-    }
+    } catch (err) { throw new Error("Security Block or Network Failure: " + err.message); }
 }
 
 window.closeFittingRoom = () => { 
