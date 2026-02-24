@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref as dbRef, get, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+// Notice I added 'push' and 'remove' to this import!
+import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -17,15 +18,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-
-// 👇 THE MAGIC HARD-WIRED LINK IS RIGHT HERE 👇
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
-
 const storage = getStorage(app);
 
 let currentGoogleUser = null;
-let activeStoreId = ""; // e.g., 'emeka'
-let pendingBase64Image = null;
+let activeStoreId = ""; 
+let pendingBase64Image = null; // For Profile
+let pendingProductBase64 = null; // For Inventory Items
 
 // --- 1. AUTH STATE OBSERVER ---
 onAuthStateChanged(auth, async (user) => {
@@ -33,21 +32,17 @@ onAuthStateChanged(auth, async (user) => {
         currentGoogleUser = user;
         document.getElementById('login-section').style.display = 'none';
         
-        // Check if this Google user has created a store yet
         const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
         if (userMapSnapshot.exists()) {
-            // User exists! Load their dashboard
             activeStoreId = userMapSnapshot.val().storeId;
             document.getElementById('onboarding-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
         } else {
-            // Brand new Google user! Show Onboarding
             document.getElementById('onboarding-section').style.display = 'block';
             document.getElementById('dashboard-section').style.display = 'none';
         }
     } else {
-        // Not logged in
         document.getElementById('login-section').style.display = 'block';
         document.getElementById('onboarding-section').style.display = 'none';
         document.getElementById('dashboard-section').style.display = 'none';
@@ -56,21 +51,14 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 2. GOOGLE LOGIN (NOW WITH DIAGNOSTICS) ---
 window.loginWithGoogle = async () => {
-    try {
-        await signInWithPopup(auth, provider);
-        // Observer handles the rest
-    } catch (error) {
-        console.error("Login Error:", error);
-        // THIS IS THE MAGIC LINE: It will tell us exactly why Firebase is blocking it
-        alert("Firebase Error: " + error.message); 
-    }
+    try { await signInWithPopup(auth, provider); } 
+    catch (error) { alert("Firebase Error: " + error.message); }
 };
 
 window.logoutAdmin = () => signOut(auth);
 
-// --- 3. ONBOARDING SETUP (Captured Once) ---
+// --- 3. ONBOARDING SETUP ---
 window.completeStoreSetup = async () => {
     const usernameInput = document.getElementById('setup-username').value.toLowerCase().trim().replace(/\s+/g, '');
     const bizName = document.getElementById('setup-bizname').value.trim();
@@ -78,25 +66,18 @@ window.completeStoreSetup = async () => {
     const btn = document.getElementById('setup-btn');
 
     if (!usernameInput || !bizName || !phone) return alert("Please fill all fields.");
-
     btn.innerText = "Checking availability...";
     btn.disabled = true;
 
     try {
-        // Ensure username isn't taken by someone else
         const storeCheck = await get(dbRef(db, `stores/${usernameInput}`));
         if (storeCheck.exists()) {
             btn.innerText = "Create Store";
             btn.disabled = false;
             return alert("That username is already taken. Try another.");
         }
-
         btn.innerText = "Building your store...";
-
-        // Step A: Map the Google UID to this Store Username
         await set(dbRef(db, `users/${currentGoogleUser.uid}`), { storeId: usernameInput });
-
-        // Step B: Create the actual store profile with the captured WhatsApp number
         await set(dbRef(db, `stores/${usernameInput}`), {
             storeName: bizName,
             phone: phone,
@@ -104,21 +85,18 @@ window.completeStoreSetup = async () => {
             ownerEmail: currentGoogleUser.email
         });
 
-        // Trigger UI update
         activeStoreId = usernameInput;
         document.getElementById('onboarding-section').style.display = 'none';
         document.getElementById('dashboard-section').style.display = 'block';
         loadDashboardData();
-
     } catch (error) {
-        console.error("Setup Error:", error);
         alert("Failed to create store.");
         btn.innerText = "Create Store";
         btn.disabled = false;
     }
 };
 
-// --- 4. LOAD DASHBOARD DATA ---
+// --- 4. LOAD PROFILE & INVENTORY ---
 async function loadDashboardData() {
     try {
         const snapshot = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -127,23 +105,25 @@ async function loadDashboardData() {
         if (data) {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
-            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
             
             const imgPreview = document.getElementById('admin-img-preview');
-            imgPreview.src = data.profileImage || "";
-            imgPreview.style.display = data.profileImage ? "block" : "none";
+            const removeBtn = document.getElementById('remove-pic-btn');
+            if (data.profileImage) {
+                imgPreview.src = data.profileImage;
+                imgPreview.style.display = "block";
+                removeBtn.style.display = "inline-block";
+            } else {
+                imgPreview.style.display = "none";
+                removeBtn.style.display = "none";
+            }
 
-            // Generate link
-            const currentDomain = window.location.origin;
-            const storeLink = `${currentDomain}/?store=${activeStoreId}`;
-            const linkEl = document.getElementById('my-store-link');
-            linkEl.href = storeLink;
-            linkEl.innerText = storeLink;
+            // Render Inventory
+            renderInventoryList(data.catalog || {});
         }
     } catch (error) { console.error("Error loading dashboard:", error); }
 }
 
-// --- 5. IMAGE & SAVING ---
+// --- 5. PROFILE IMAGE LOGIC ---
 window.handleAdminImage = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -153,44 +133,166 @@ window.handleAdminImage = (e) => {
         const imgPreview = document.getElementById('admin-img-preview');
         imgPreview.src = pendingBase64Image;
         imgPreview.style.display = "block";
+        document.getElementById('remove-pic-btn').style.display = "inline-block";
     };
     reader.readAsDataURL(file);
 };
 
+window.removeAdminImage = async () => {
+    if (!activeStoreId) return;
+    if(confirm("Are you sure you want to remove your profile picture?")) {
+        try {
+            await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
+            document.getElementById('admin-img-preview').style.display = "none";
+            document.getElementById('remove-pic-btn').style.display = "none";
+            pendingBase64Image = null;
+            showToast("Photo removed!");
+        } catch (e) { alert("Failed to remove photo."); }
+    }
+};
+
 window.saveStoreSettings = async () => {
     if (!activeStoreId) return;
-    
-    const storeName = document.getElementById('admin-store-name').value;
-    const phone = document.getElementById('admin-phone').value;
-    const greetingsEnabled = document.getElementById('admin-greetings-toggle').checked;
     const saveBtn = document.getElementById('save-btn');
-    
-    saveBtn.innerText = "Saving to Cloud...";
+    saveBtn.innerText = "Saving...";
     saveBtn.disabled = true;
 
     try {
-        let updateData = { storeName: storeName, phone: phone, greetingsEnabled: greetingsEnabled };
+        let updateData = { 
+            storeName: document.getElementById('admin-store-name').value, 
+            phone: document.getElementById('admin-phone').value 
+        };
 
         if (pendingBase64Image) {
-            saveBtn.innerText = "Uploading Image...";
             const imageRef = storageRef(storage, `profiles/${activeStoreId}_profile.jpg`);
             await uploadString(imageRef, pendingBase64Image, 'data_url');
             updateData.profileImage = await getDownloadURL(imageRef);
             pendingBase64Image = null; 
         }
 
-        saveBtn.innerText = "Saving Database...";
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
+        showToast("Profile Saved!");
+    } catch (error) { alert("Failed to save."); }
 
-        const toast = document.getElementById('status-toast');
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-
-    } catch (error) {
-        console.error("Save Error:", error);
-        alert("Failed to save settings.");
-    }
-
-    saveBtn.innerText = "Save Settings";
+    saveBtn.innerText = "Save Profile Settings";
     saveBtn.disabled = false;
 };
+
+// --- 6. INVENTORY UPLOAD LOGIC ---
+window.handleProductImagePreview = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        pendingProductBase64 = event.target.result;
+        const imgPreview = document.getElementById('prod-img-preview');
+        imgPreview.src = pendingProductBase64;
+        imgPreview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+};
+
+window.uploadNewProduct = async () => {
+    if (!activeStoreId) return;
+    
+    const name = document.getElementById('prod-name').value.trim();
+    const brand = document.getElementById('prod-brand').value;
+    const price = document.getElementById('prod-price').value;
+    const tags = document.getElementById('prod-tags').value.toLowerCase().trim();
+    const btn = document.getElementById('upload-prod-btn');
+
+    if (!name || !price || !pendingProductBase64) return alert("Name, Price, and Photo are required!");
+
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
+    btn.disabled = true;
+
+    try {
+        // 1. Upload Image to Storage
+        const fileId = Date.now();
+        const imagePath = `inventory/${activeStoreId}/${fileId}.jpg`;
+        const imageRef = storageRef(storage, imagePath);
+        await uploadString(imageRef, pendingProductBase64, 'data_url');
+        const imageUrl = await getDownloadURL(imageRef);
+
+        // 2. Save Data to Database
+        const productData = {
+            name: name,
+            cat: brand, // Using 'cat' to match your app.js logic
+            price: Number(price),
+            tags: tags,
+            imgUrl: imageUrl, // Storing the full URL so it loads immediately
+            storagePath: imagePath // Keeping this in case they delete it later
+        };
+
+        // Firebase 'push' creates a unique ID for every item automatically
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), productData);
+
+        // 3. Reset Form & Refresh List
+        document.getElementById('prod-name').value = "";
+        document.getElementById('prod-price').value = "";
+        document.getElementById('prod-tags').value = "";
+        document.getElementById('prod-pic-upload').value = "";
+        document.getElementById('prod-img-preview').style.display = "none";
+        pendingProductBase64 = null;
+        
+        showToast("Item added successfully!");
+        loadDashboardData(); // Refresh list
+
+    } catch (error) {
+        console.error(error);
+        alert("Failed to upload item.");
+    }
+
+    btn.innerHTML = `<i class="fas fa-plus"></i> Add Item to Store`;
+    btn.disabled = false;
+};
+
+// --- 7. RENDER & DELETE INVENTORY ---
+function renderInventoryList(catalog) {
+    const listDiv = document.getElementById('inventory-list');
+    listDiv.innerHTML = ""; // clear loading text
+
+    const itemKeys = Object.keys(catalog);
+    if (itemKeys.length === 0) {
+        listDiv.innerHTML = `<p style="text-align:center; color:#666;">Your store is empty. Upload an item above!</p>`;
+        return;
+    }
+
+    itemKeys.forEach(key => {
+        const item = catalog[key];
+        listDiv.innerHTML += `
+            <div class="inventory-item">
+                <img src="${item.imgUrl}" alt="${item.name}">
+                <div class="inventory-item-details">
+                    <h4>${item.name}</h4>
+                    <p>₦${item.price.toLocaleString()} &bull; <span style="color:#666; font-weight:normal;">${item.cat}</span></p>
+                </div>
+                <button onclick="window.deleteProduct('${key}', '${item.storagePath}')" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        `;
+    });
+}
+
+window.deleteProduct = async (dbKey, storagePath) => {
+    if (!confirm("Delete this item from your store permanently?")) return;
+    
+    try {
+        // Delete from Database
+        await remove(dbRef(db, `stores/${activeStoreId}/catalog/${dbKey}`));
+        // Attempt to delete image from Storage (Don't let it crash if image is already gone)
+        try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
+        
+        showToast("Item deleted");
+        loadDashboardData(); // Refresh list
+    } catch (error) {
+        alert("Failed to delete item.");
+    }
+};
+
+// --- UTILS ---
+function showToast(msg) {
+    const toast = document.getElementById('status-toast');
+    toast.innerText = msg;
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+}
