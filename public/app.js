@@ -39,6 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
+            
+            const qsContainer = document.getElementById('quick-search-container');
+            if (qsContainer) {
+                const tags = data.quickSearches || ["Native Wear", "Jeans", "Corporate", "Bridal"];
+                qsContainer.innerHTML = ""; 
+                tags.forEach(tag => {
+                    const card = document.createElement('div');
+                    card.className = 'search-card'; 
+                    card.innerText = tag;
+                    card.onclick = () => window.quickSearch(tag);
+                    qsContainer.appendChild(card);
+                });
+            }
+
             if (data.profileImage) {
                 const ownerImg = document.getElementById('owner-img');
                 if(ownerImg) {
@@ -147,18 +161,11 @@ window.addToCart = () => {
         cart.push(selectedCloth);
         updateCartUI();
         showToast(`✅ ${selectedCloth.name} added to cart!`);
-        
-        // Loop switch: Change button to "Check another one"
         btn.innerText = "Check another one";
-        btn.style.background = "#eee";
-        btn.style.color = "#333";
-        
+        btn.style.background = "#eee"; btn.style.color = "#333";
         const p = document.getElementById('proceed-btn-container'); 
         if(p) p.style.display = 'block';
-    } else {
-        // "Check another one" clicked: Close modal and reset state
-        window.closeFittingRoom();
-    }
+    } else { window.closeFittingRoom(); }
 };
 
 window.openCart = () => {
@@ -218,10 +225,7 @@ window.executeSearch = () => {
     } else { results.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:20px;">No items found.</p>`; }
 };
 
-window.closeFittingRoom = () => { 
-    tempCustomerPhoto = ""; 
-    document.getElementById('fitting-room-modal').style.display = 'none'; 
-};
+window.closeFittingRoom = () => { tempCustomerPhoto = ""; document.getElementById('fitting-room-modal').style.display = 'none'; };
 
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
