@@ -17,7 +17,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const db = getDatabase(app);
+
+// 👇 THE MAGIC HARD-WIRED LINK IS RIGHT HERE 👇
+const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
+
 const storage = getStorage(app);
 
 let currentGoogleUser = null;
