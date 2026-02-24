@@ -13,28 +13,23 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com");
 
-// --- MULTI-TENANT (SAAS) ROUTING ---
 const urlParams = new URLSearchParams(window.location.search);
 const currentStoreId = urlParams.get('store') || 'kingsley'; 
 
-// --- APP STATE ---
 let tempCustomerPhoto = ""; 
 let selectedCloth = null;
 let cart = []; 
 let storePhone = "2348000000000"; 
 let storeCatalog = []; 
 
-// Mock Global Database (Fallback)
 const globalCatalog = [
     { id: 1, vendor: "kingsley", name: "Premium Red Luxury Native", tags: "native senator red ankara", img: "senator_red.jpg", price: 25000, cat: "Native" },
     { id: 2, vendor: "kingsley", name: "Classic White Polo", tags: "polo white corporate", img: "white_polo.jpg", price: 10000, cat: "Corporate" },
-    { id: 3, vendor: "emeka", name: "Emeka's Baggy Jeans", tags: "jeans denim baggy trousers casual", img: "baggy_jeans.jpg", price: 28000, cat: "Casual" },
-    { id: 4, vendor: "ade", name: "Ade's Bridal Gown", tags: "wedding gown bridal dress", img: "wedding_gown.jpg", price: 150000, cat: "Bridal" }
+    { id: 3, vendor: "emeka", name: "Emeka's Baggy Jeans", tags: "jeans denim baggy trousers casual", img: "baggy_jeans.jpg", price: 28000, cat: "Casual" }
 ];
 
-// ORIGINAL GREETINGS RESTORED
 window.activeGreetings = [
     "Nne, what are you looking for today?", 
     "My guy, what are you looking for today?", 
@@ -47,7 +42,6 @@ window.activeGreetings = [
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Sync Store Identity from Firebase
     const storeRef = ref(db, `stores/${currentStoreId}`);
     onValue(storeRef, (snapshot) => {
         const data = snapshot.val();
@@ -61,37 +55,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 greetingEl.style.display = 'none';
             } else {
                 greetingEl.style.display = 'block';
-                // Only override if admin actually provided custom greetings
                 if (data.customGreetings && data.customGreetings.length > 0) {
                     window.activeGreetings = data.customGreetings;
                 }
             }
 
-            // CRITICAL ADDITION: MAP LIVE FIREBASE INVENTORY TO STORE CATALOG
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => {
                     return {
-                        id: key, // Firebase unique ID
+                        id: key, 
                         name: data.catalog[key].name,
                         price: data.catalog[key].price,
                         tags: data.catalog[key].tags,
                         cat: data.catalog[key].cat,
-                        imgUrl: data.catalog[key].imgUrl // Live cloud image
+                        imgUrl: data.catalog[key].imgUrl 
                     };
                 });
             } else {
-                // If they have no live catalog, fallback to the mock database
                 storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
             }
 
         } else {
-            // Default store name if no DB entry exists yet
             document.getElementById('store-name-display').innerText = currentStoreId.toUpperCase() + " STORE";
             storeCatalog = globalCatalog.filter(c => c.vendor === currentStoreId);
         }
     });
 
-    // Fire the greetings loop
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el && el.style.display !== 'none') { 
@@ -104,11 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 });
 
-// --- STRICT PRIVACY TRY-ON LOGIC ---
 window.promptShowroomChoice = (id) => {
-    // Safe lookup comparing as strings to handle both Firebase keys and mock IDs
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
-    tempCustomerPhoto = ""; // Wipe previous photo
+    tempCustomerPhoto = ""; 
     
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resultDiv = document.getElementById('ai-fitting-result');
@@ -138,7 +125,6 @@ window.startTryOn = async () => {
     resultDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800;">STITCHING YOUR LOOK...</p></div>`;
     
     try {
-        // Automatically choose between Live Firebase Image or local mock image
         const imageSource = selectedCloth.imgUrl ? selectedCloth.imgUrl : `images/${selectedCloth.img}`;
         const rawClothData = await getBase64FromUrl(imageSource);
         
@@ -162,11 +148,17 @@ window.startTryOn = async () => {
                         </button>
                     </div>
                 </div>`;
-        } else { throw new Error(result.error); }
-    } catch (e) { alert("AI error. Ensure photo shows full body."); window.closeFittingRoom(); }
+        } else { 
+            throw new Error(result.error || "AI Engine failed to process image."); 
+        }
+    } catch (e) { 
+        // CRITICAL FIX: Exposed the true error instead of the generic "full body" warning
+        console.error("VTO Error:", e);
+        alert("System Error: " + e.message + "\n\n(If it says Failed to Fetch, it is a network error. Try again.)"); 
+        window.closeFittingRoom(); 
+    }
 };
 
-// --- CART & CHECKOUT ---
 window.addToCart = () => {
     cart.push(selectedCloth);
     updateCartUI();
@@ -199,21 +191,17 @@ window.checkoutWhatsApp = () => {
     window.open(`https://wa.me/${storePhone}?text=Hello%20${currentStoreId},%20I%20want%20to%20pay%20for:%0A${list}%0A%0ATotal:%20₦${total.toLocaleString()}`);
 };
 
-// --- CRITICAL FIX: SEARCH ENGINE UPDATED ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     
-    // Searches ONLY within the isolated storeCatalog
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || c.tags.toLowerCase().includes(query) || c.cat.toLowerCase().includes(query));
     results.style.display = 'grid';
     
     if (filtered.length > 0) {
         results.innerHTML = filtered.map(item => {
-            // Pick Live URL or Mock Image
             const imageSource = item.imgUrl ? item.imgUrl : `images/${item.img}`;
-            // Added quotes around item.id so it can handle Firebase string keys safely
             return `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${imageSource}"><h4 style="margin:8px 0; color:white;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`;
         }).join('');
     } else {
@@ -222,7 +210,6 @@ window.executeSearch = () => {
     }
 };
 
-// --- VOICE, UTILS, CLEANUP ---
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     const searchInput = document.getElementById('ai-input');
@@ -235,9 +222,20 @@ function initVoiceSearch() {
 }
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
-async function getBase64FromUrl(url) { const r = await fetch(url); const b = await r.blob(); return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); }
 
-// Critical: Wipes photo when modal closes
+// CRITICAL FIX: Bypass browser CORS blocks for Firebase Images using a reliable proxy
+async function getBase64FromUrl(url) { 
+    try {
+        const fetchUrl = url.includes('firebasestorage') ? `https://corsproxy.io/?${encodeURIComponent(url)}` : url;
+        const r = await fetch(fetchUrl); 
+        if(!r.ok) throw new Error("Could not download the clothing image for AI processing.");
+        const b = await r.blob(); 
+        return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
+    } catch (err) {
+        throw new Error("CORS Block or Network Failure: " + err.message);
+    }
+}
+
 window.closeFittingRoom = () => { 
     tempCustomerPhoto = ""; 
     document.getElementById('fitting-room-modal').style.display = 'none'; 
