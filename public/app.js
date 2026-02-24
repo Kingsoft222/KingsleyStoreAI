@@ -64,15 +64,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     : ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?", "Chief, looking for premium native?", "Boss, let's find your style!"];
             }
 
-            // Sync Quick Search Cards with 150ms buffer for stability
             setTimeout(() => {
                 const qsArray = (data.quickSearches && data.quickSearches.length > 0) 
                     ? data.quickSearches 
                     : ["Native Wear", "Jeans", "Corporate", "Bridal"];
                 
-                const existingBtn = document.querySelector('[onclick^="window.quickSearch"]');
                 const container = document.getElementById('quick-search-container');
-                
                 if (container) {
                     container.style.display = 'flex';
                     container.style.gap = '15px';
@@ -181,7 +178,7 @@ window.openCart = () => {
             <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
         </div>`).join('');
         
-    resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
+    resultDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:var(--accent); font-weight:800;">YOUR CART</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid var(--accent); padding-top:15px;"><span>Total:</span> <span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
 };
 
 window.removeFromCart = (idx) => { cart.splice(idx, 1); updateCartUI(); window.openCart(); };
@@ -221,17 +218,32 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
+// 🎯 UPDATED: THE PROVEN HANDSHAKE METHOD (No proxies to fail)
 async function getBase64FromUrl(url) { 
-    if (!url.startsWith('http')) {
-        const r = await fetch(url); const b = await r.blob(); 
-        return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
-    }
-    try {
-        let r = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-        if (!r.ok) r = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        const b = await r.blob(); 
-        return new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); 
-    } catch (err) { throw new Error("Security Block: " + err.message); }
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous"; 
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width; canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL("image/jpeg"));
+        };
+        img.onerror = () => {
+            // Fallback for strict browser blocks
+            fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+                .then(r => r.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                })
+                .catch(e => reject(new Error("Security Block: Failed to fetch image.")));
+        };
+        // Add cache buster to force fresh request
+        img.src = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+    });
 }
 
 window.closeFittingRoom = () => { tempCustomerPhoto = ""; document.getElementById('fitting-room-modal').style.display = 'none'; };
