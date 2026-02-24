@@ -20,7 +20,6 @@ const provider = new GoogleAuthProvider();
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
 const storage = getStorage(app);
 
-// 👉 MASTER KEY: Your specific email
 const MASTER_EMAIL = "kman39980@gmail.com";
 
 let currentGoogleUser = null;
@@ -43,7 +42,6 @@ onAuthStateChanged(auth, async (user) => {
         currentGoogleUser = user;
         document.getElementById('login-section').style.display = 'none';
 
-        // 🔓 SECRET DOOR: Reveal Vault button only for you
         if (user.email === MASTER_EMAIL) {
             const masterBtn = document.getElementById('master-btn');
             if(masterBtn) masterBtn.style.display = 'flex';
@@ -149,9 +147,11 @@ async function loadDashboardData() {
             const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
             document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
             
-            // Load Quick Searches
-            const qs = data.quickSearches ? data.quickSearches.join(', ') : "Native Wear, Jeans, Corporate, Bridal";
-            document.getElementById('admin-quick-searches').value = qs;
+            // Load Quick Searches with proper spacing
+            const qsInput = document.getElementById('admin-quick-searches');
+            if (qsInput && data.quickSearches) {
+                qsInput.value = data.quickSearches.join(', ');
+            }
 
             window.toggleGreetingsBox(); 
             
@@ -240,9 +240,26 @@ window.saveStoreSettings = async () => {
         const rawGreetings = document.getElementById('admin-custom-greetings').value;
         const customGreetingsArray = rawGreetings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
         
-        // Handle Quick Searches
-        const qsInput = document.getElementById('admin-quick-searches').value;
-        const qsArray = qsInput.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+        // --- SMART QUICK SEARCH LOGIC (Max 3 words + Protect Gender) ---
+        const qsInputRaw = document.getElementById('admin-quick-searches').value;
+        const genderKeywords = ["men", "ladies", "women", "man", "woman", "girls", "boys"];
+        
+        const qsArray = qsInputRaw.split(',').map(tag => {
+            const words = tag.trim().split(/\s+/);
+            // If already short, return it
+            if (words.length <= 3) return tag.trim();
+
+            // If long, check for gender keywords
+            const genderWord = words.find(w => genderKeywords.includes(w.toLowerCase()));
+            
+            if (genderWord) {
+                // Keep first 2 words plus the important gender word
+                return `${words[0]} ${words[1]} ${genderWord}`;
+            } else {
+                // Otherwise, just take the first 3 words
+                return words.slice(0, 3).join(' ');
+            }
+        }).filter(tag => tag.length > 0);
 
         let updateData = { 
             storeName: document.getElementById('admin-store-name').value, 
@@ -260,6 +277,9 @@ window.saveStoreSettings = async () => {
         }
 
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
+        
+        // Refresh display to show the clean, trimmed tags
+        document.getElementById('admin-quick-searches').value = qsArray.join(', ');
         showToast("Profile Saved!");
     } catch (error) { alert("Failed to save."); }
 
