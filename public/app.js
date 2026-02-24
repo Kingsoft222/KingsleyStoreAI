@@ -40,9 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.phone) storePhone = data.phone;
             
             const greetingEl = document.getElementById('dynamic-greeting');
-            if (data.greetingsEnabled !== false) {
+            // 🎯 FIXED GREETING LOGIC: Hide immediately if disabled
+            if (data.greetingsEnabled === true) {
                 if (greetingEl) greetingEl.style.display = 'block';
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Chief, looking for premium native?"];
+            } else {
+                window.activeGreetings = []; 
+                if (greetingEl) {
+                    greetingEl.style.display = 'none';
+                    greetingEl.innerText = ''; 
+                }
             }
 
             setTimeout(() => {
