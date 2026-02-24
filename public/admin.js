@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// 👇 Added getRedirectResult here 👇
-import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// 👇 Swapped back to signInWithPopup 👇
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -20,12 +20,6 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
 const storage = getStorage(app);
-
-// 👇 THE MEMORY CATCHER: This forces the browser to process the redirect! 👇
-getRedirectResult(auth).catch((error) => {
-    console.error("Redirect Error:", error);
-    alert("Login Error: " + error.message + "\n\n(Ensure you are not in Incognito mode)");
-});
 
 let currentGoogleUser = null;
 let activeStoreId = ""; 
@@ -66,9 +60,15 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// 👇 THE POPUP IS BACK (This bypasses browser tracking blocks) 👇
 window.loginWithGoogle = async () => {
-    try { await signInWithRedirect(auth, provider); } 
-    catch (error) { alert("Firebase Error: " + error.message); }
+    try { 
+        await signInWithPopup(auth, provider); 
+    } 
+    catch (error) { 
+        console.error("Login Error:", error);
+        alert("Login Failed: " + error.message + "\n\n(Make sure you are using a normal browser, NOT a WhatsApp or Facebook link)"); 
+    }
 };
 
 window.logoutAdmin = () => signOut(auth);
