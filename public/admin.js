@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-// Notice the change here to signInWithRedirect 👇
-import { getAuth, signInWithRedirect, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// 👇 Added getRedirectResult here 👇
+import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -21,12 +21,17 @@ const provider = new GoogleAuthProvider();
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
 const storage = getStorage(app);
 
+// 👇 THE MEMORY CATCHER: This forces the browser to process the redirect! 👇
+getRedirectResult(auth).catch((error) => {
+    console.error("Redirect Error:", error);
+    alert("Login Error: " + error.message + "\n\n(Ensure you are not in Incognito mode)");
+});
+
 let currentGoogleUser = null;
 let activeStoreId = ""; 
 let pendingBase64Image = null; 
 let pendingProductBase64 = null; 
 
-// Default Greetings to guide the vendor
 const defaultGreetings = [
     "Nne, what are you looking for today?", 
     "My guy, what are you looking for today?", 
@@ -61,15 +66,9 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// 👇 This is the magic bulletproof login update 👇
 window.loginWithGoogle = async () => {
-    try { 
-        await signInWithRedirect(auth, provider); 
-    } 
-    catch (error) { 
-        console.error("Login Error:", error);
-        alert("Firebase Error: " + error.message); 
-    }
+    try { await signInWithRedirect(auth, provider); } 
+    catch (error) { alert("Firebase Error: " + error.message); }
 };
 
 window.logoutAdmin = () => signOut(auth);
@@ -97,7 +96,7 @@ window.completeStoreSetup = async () => {
             storeName: bizName,
             phone: phone,
             greetingsEnabled: true,
-            customGreetings: defaultGreetings, // Save defaults on creation
+            customGreetings: defaultGreetings,
             ownerEmail: currentGoogleUser.email
         });
 
@@ -112,7 +111,6 @@ window.completeStoreSetup = async () => {
     }
 };
 
-// UI Toggle for Greetings Box
 window.toggleGreetingsBox = () => {
     const isChecked = document.getElementById('admin-greetings-toggle').checked;
     document.getElementById('custom-greetings-container').style.display = isChecked ? 'block' : 'none';
@@ -127,15 +125,13 @@ async function loadDashboardData() {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
             
-            // Handle Greetings
             const isEnabled = data.greetingsEnabled !== false;
             document.getElementById('admin-greetings-toggle').checked = isEnabled;
             
-            // Load custom greetings or fallback to default
             const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
             document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
             
-            window.toggleGreetingsBox(); // Show/hide based on checkbox state
+            window.toggleGreetingsBox(); 
             
             const imgPreview = document.getElementById('admin-img-preview');
             const removeBtn = document.getElementById('remove-pic-btn');
@@ -196,8 +192,6 @@ window.saveStoreSettings = async () => {
 
     try {
         const greetingsEnabled = document.getElementById('admin-greetings-toggle').checked;
-        
-        // Convert textarea back to a clean Array
         const rawGreetings = document.getElementById('admin-custom-greetings').value;
         const customGreetingsArray = rawGreetings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
