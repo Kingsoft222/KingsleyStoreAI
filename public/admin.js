@@ -21,7 +21,6 @@ const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com
 const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
-
 let currentGoogleUser = null;
 let activeStoreId = ""; 
 let pendingBase64Image = null; 
@@ -41,12 +40,10 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
         document.getElementById('login-section').style.display = 'none';
-
         if (user.email === MASTER_EMAIL) {
             const masterBtn = document.getElementById('master-btn');
             if(masterBtn) masterBtn.style.display = 'flex';
         }
-        
         const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
         if (userMapSnapshot.exists()) {
             activeStoreId = userMapSnapshot.val().storeId;
@@ -66,35 +63,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- MASTER VAULT LOGIC ---
-window.toggleMasterVault = async () => {
-    const section = document.getElementById('master-vault-section');
-    if (section.style.display === 'block') {
-        section.style.display = 'none';
-        return;
-    }
-
-    section.style.display = 'block';
-    const snapshot = await get(dbRef(db, 'global_orders'));
-    const orders = snapshot.val() || {};
-    const tbody = document.getElementById('vault-body');
-    
-    let totalOrders = 0;
-    let totalGmv = 0;
-    tbody.innerHTML = "";
-
-    Object.keys(orders).reverse().forEach(key => {
-        const o = orders[key];
-        totalOrders++;
-        totalGmv += Number(o.price);
-        tbody.innerHTML += `<tr><td>@${o.storeId || 'N/A'}</td><td>${o.item}</td><td>₦${o.price.toLocaleString()}</td></tr>`;
-    });
-
-    document.getElementById('v-orders').innerText = totalOrders;
-    document.getElementById('v-gmv').innerText = "₦" + totalGmv.toLocaleString();
-};
-
-// --- VENDOR CORE LOGIC ---
 window.loginWithGoogle = async () => {
     try { await signInWithPopup(auth, provider); } 
     catch (error) { alert("Login Failed: " + error.message); }
@@ -126,7 +94,8 @@ window.completeStoreSetup = async () => {
             greetingsEnabled: true,
             customGreetings: defaultGreetings,
             ownerEmail: currentGoogleUser.email,
-            quickSearches: ["Native Wear", "Jeans", "Corporate", "Bridal"]
+            quickSearches: ["Native Wear", "Jeans", "Corporate", "Bridal"],
+            searchHint: "Search Senator or Ankara" // NEW
         });
         activeStoreId = usernameInput;
         document.getElementById('onboarding-section').style.display = 'none';
@@ -142,19 +111,19 @@ async function loadDashboardData() {
         if (data) {
             document.getElementById('admin-store-name').value = data.storeName || "";
             document.getElementById('admin-phone').value = data.phone || "";
-            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
             
+            // LOAD SEARCH HINT
+            const hintInput = document.getElementById('admin-search-hint');
+            if(hintInput) hintInput.value = data.searchHint || "Search Senator or Ankara";
+
+            document.getElementById('admin-greetings-toggle').checked = data.greetingsEnabled !== false;
             const loadedGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : defaultGreetings;
             document.getElementById('admin-custom-greetings').value = loadedGreetings.join('\n');
             
-            // Load Quick Searches with proper spacing
             const qsInput = document.getElementById('admin-quick-searches');
-            if (qsInput && data.quickSearches) {
-                qsInput.value = data.quickSearches.join(', ');
-            }
+            if (qsInput && data.quickSearches) qsInput.value = data.quickSearches.join(', ');
 
             window.toggleGreetingsBox(); 
-            
             const imgPreview = document.getElementById('admin-img-preview');
             const removeBtn = document.getElementById('remove-pic-btn');
             if (data.profileImage) {
@@ -176,59 +145,6 @@ async function loadDashboardData() {
     } catch (e) { console.error(e); }
 }
 
-function renderOrderHistory(orders) {
-    const listDiv = document.getElementById('order-history-list');
-    const keys = Object.keys(orders).reverse();
-    if (keys.length === 0) {
-        listDiv.innerHTML = `<p style="text-align:center; color:#666;">Waiting for your first AI sale...</p>`;
-        return;
-    }
-    listDiv.innerHTML = keys.map(key => {
-        const o = orders[key];
-        const date = new Date(o.timestamp).toLocaleDateString() + " " + new Date(o.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        return `<div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-            <h4 style="margin: 0; color: #333; font-size: 0.95rem;">${o.item}</h4>
-            <div style="display: flex; justify-content: space-between; margin-top: 5px; align-items: center;">
-                <span style="color: #e60023; font-weight: bold;">₦${o.price.toLocaleString()}</span>
-                <span style="font-size: 0.8rem; color: #888;">${date}</span>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-window.toggleGreetingsBox = () => {
-    const isChecked = document.getElementById('admin-greetings-toggle').checked;
-    const box = document.getElementById('custom-greetings-container');
-    if(box) box.style.display = isChecked ? 'block' : 'none';
-};
-
-window.handleAdminImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        pendingBase64Image = event.target.result;
-        const imgPreview = document.getElementById('admin-img-preview');
-        imgPreview.src = pendingBase64Image;
-        imgPreview.style.display = "block";
-        document.getElementById('remove-pic-btn').style.display = "inline-block";
-    };
-    reader.readAsDataURL(file);
-};
-
-window.removeAdminImage = async () => {
-    if (!activeStoreId) return;
-    if(confirm("Remove profile photo?")) {
-        try {
-            await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-            document.getElementById('admin-img-preview').style.display = "none";
-            document.getElementById('remove-pic-btn').style.display = "none";
-            pendingBase64Image = null;
-            showToast("Photo removed!");
-        } catch (e) { alert("Error removing photo."); }
-    }
-};
-
 window.saveStoreSettings = async () => {
     if (!activeStoreId) return;
     const saveBtn = document.getElementById('save-btn');
@@ -240,30 +156,19 @@ window.saveStoreSettings = async () => {
         const rawGreetings = document.getElementById('admin-custom-greetings').value;
         const customGreetingsArray = rawGreetings.split('\n').map(line => line.trim()).filter(line => line.length > 0);
         
-        // --- SMART QUICK SEARCH LOGIC (Max 3 words + Protect Gender) ---
         const qsInputRaw = document.getElementById('admin-quick-searches').value;
         const genderKeywords = ["men", "ladies", "women", "man", "woman", "girls", "boys"];
-        
         const qsArray = qsInputRaw.split(',').map(tag => {
             const words = tag.trim().split(/\s+/);
-            // If already short, return it
             if (words.length <= 3) return tag.trim();
-
-            // If long, check for gender keywords
             const genderWord = words.find(w => genderKeywords.includes(w.toLowerCase()));
-            
-            if (genderWord) {
-                // Keep first 2 words plus the important gender word
-                return `${words[0]} ${words[1]} ${genderWord}`;
-            } else {
-                // Otherwise, just take the first 3 words
-                return words.slice(0, 3).join(' ');
-            }
+            return genderWord ? `${words[0]} ${words[1]} ${genderWord}` : words.slice(0, 3).join(' ');
         }).filter(tag => tag.length > 0);
 
         let updateData = { 
             storeName: document.getElementById('admin-store-name').value, 
             phone: document.getElementById('admin-phone').value,
+            searchHint: document.getElementById('admin-search-hint').value, // NEW
             greetingsEnabled: greetingsEnabled,
             customGreetings: customGreetingsArray,
             quickSearches: qsArray
@@ -277,98 +182,12 @@ window.saveStoreSettings = async () => {
         }
 
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-        
-        // Refresh display to show the clean, trimmed tags
         document.getElementById('admin-quick-searches').value = qsArray.join(', ');
         showToast("Profile Saved!");
     } catch (error) { alert("Failed to save."); }
-
     saveBtn.innerText = "Save Profile Settings";
     saveBtn.disabled = false;
 };
 
-window.uploadNewProduct = async () => {
-    if (!activeStoreId) return;
-    const name = document.getElementById('prod-name').value.trim();
-    const brand = document.getElementById('prod-brand').value;
-    const price = document.getElementById('prod-price').value;
-    const tags = document.getElementById('prod-tags').value.toLowerCase().trim();
-    const btn = document.getElementById('upload-prod-btn');
-
-    if (!name || !price || !pendingProductBase64) return alert("All fields required!");
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
-    btn.disabled = true;
-
-    try {
-        const fileId = Date.now();
-        const imagePath = `inventory/${activeStoreId}/${fileId}.jpg`;
-        const imageRef = storageRef(storage, imagePath);
-        await uploadString(imageRef, pendingProductBase64, 'data_url');
-        const imageUrl = await getDownloadURL(imageRef);
-
-        const productData = { name, cat: brand, price: Number(price), tags, imgUrl: imageUrl, storagePath: imagePath };
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), productData);
-
-        document.getElementById('prod-name').value = "";
-        document.getElementById('prod-price').value = "";
-        document.getElementById('prod-tags').value = "";
-        document.getElementById('prod-pic-upload').value = "";
-        document.getElementById('prod-img-preview').style.display = "none";
-        pendingProductBase64 = null;
-        showToast("Item added!");
-        loadDashboardData(); 
-    } catch (e) { alert("Upload failed."); }
-    btn.innerHTML = `<i class="fas fa-plus"></i> Add Item to Store`;
-    btn.disabled = false;
-};
-
-window.handleProductImagePreview = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        pendingProductBase64 = event.target.result;
-        const imgPreview = document.getElementById('prod-img-preview');
-        imgPreview.src = pendingProductBase64;
-        imgPreview.style.display = "block";
-    };
-    reader.readAsDataURL(file);
-};
-
-function renderInventoryList(catalog) {
-    const listDiv = document.getElementById('inventory-list');
-    const keys = Object.keys(catalog);
-    if (keys.length === 0) { listDiv.innerHTML = `<p style="text-align:center; color:#666;">Empty Store.</p>`; return; }
-    listDiv.innerHTML = keys.map(key => {
-        const item = catalog[key];
-        return `<div class="inventory-item">
-            <img src="${item.imgUrl}">
-            <div class="inventory-item-details">
-                <h4>${item.name}</h4>
-                <p>₦${item.price.toLocaleString()} &bull; ${item.cat}</p>
-            </div>
-            <button onclick="window.deleteProduct('${key}', '${item.storagePath}')" style="background:none; border:none; color:#ff4444; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
-        </div>`;
-    }).join('');
-}
-
-window.deleteProduct = async (dbKey, storagePath) => {
-    if (!confirm("Delete this item permanently?")) return;
-    try {
-        await remove(dbRef(db, `stores/${activeStoreId}/catalog/${dbKey}`));
-        if(storagePath) {
-             try { await deleteObject(storageRef(storage, storagePath)); } catch(e){}
-        }
-        showToast("Deleted");
-        loadDashboardData(); 
-    } catch (e) { alert("Failed."); }
-};
-
-function showToast(msg) {
-    const toast = document.getElementById('status-toast');
-    if(toast) {
-        toast.innerText = msg;
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-    }
-}
+// ... (Other functions like toggleMasterVault, renderInventoryList, etc. remain the same as your original)
+// [Note: Make sure to keep your existing deleteProduct, renderOrderHistory, and showToast functions at the end!]

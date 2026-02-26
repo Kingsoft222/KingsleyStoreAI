@@ -1,159 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VirtualMall | Vendor Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VirtualMall Admin - Control Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #f4f4f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .admin-container { width: 100%; max-width: 550px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        h1 { color: #e60023; text-align: center; margin-top: 0; font-size: 1.8rem; }
-        h2 { font-size: 1.3rem; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
-        p.subtitle { text-align: center; color: #666; margin-bottom: 25px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 0.9rem; }
-        input[type="text"], input[type="tel"], input[type="number"], select, textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-family: 'Inter'; }
-        
-        /* 🎨 Refined Quick Search Style */
-        #admin-quick-searches { font-size: 0.82rem; color: #444; background: #fafafa; border: 1px solid #ddd; }
-
-        .btn { width: 100%; padding: 15px; background: #e60023; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn:hover { background: #c2001d; }
-        .btn-secondary { background: #333; }
-        .btn-google { background: white; color: #333; border: 1px solid #ccc; }
-        .profile-preview { width: 100px; height: 100px; border-radius: 50%; background: #eee; margin: 10px auto; display: block; object-fit: cover; border: 3px solid #e60023; }
-        .toast { display: none; background: #28a745; color: white; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 300px; }
-        
-        #master-btn { background: #000; color: #00ffcc; border: 1px solid #00ffcc; margin-bottom: 20px; display: none; }
-        #master-vault-section { display: none; background: #111; color: #fff; padding: 20px; border-radius: 12px; margin-top: 20px; border: 2px solid #00ffcc; }
-        .vault-stats { display: flex; gap: 10px; margin-bottom: 15px; }
-        .v-box { flex: 1; background: #222; padding: 10px; border-radius: 8px; text-align: center; }
-        .v-box small { color: #00ffcc; font-size: 0.7rem; }
-        .v-box p { margin: 5px 0 0; font-weight: 800; font-size: 1.2rem; color: #00ffcc; }
-        .vault-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .vault-table th { text-align: left; color: #00ffcc; border-bottom: 1px solid #333; padding: 5px; }
-        .vault-table td { padding: 8px 5px; border-bottom: 1px solid #222; }
-
-        .product-preview { width: 100%; height: 150px; border-radius: 8px; background: #eee; margin-top: 10px; object-fit: cover; display: none; border: 1px dashed #ccc; }
-        .inventory-list { margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .inventory-item { display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+        :root { --primary: #e60023; --bg: #f4f4f4; --card: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card); padding: 25px; border-radius: 15px; shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h3 { margin-top: 0; color: #333; display: flex; align-items: center; gap: 10px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #ad001a; }
+        .btn-outline { background: #eee; color: #333; }
+        .btn-master { background: #000; color: #fff; display: none; margin-bottom: 20px; }
+        .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
         .inventory-item img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
-        .inventory-item-details { flex-grow: 1; margin-left: 15px; }
-        .inventory-item-details h4 { margin: 0; font-size: 1rem; color: #333; }
-        .inventory-item-details p { margin: 3px 0 0; font-size: 0.8rem; color: #e60023; font-weight: bold; }
-        .store-link-box { background: #f0f8ff; border: 1px dashed #0056b3; padding: 15px; border-radius: 8px; text-align: center; margin-top: 30px; }
-        .store-link-box a { color: #0056b3; font-weight: bold; word-break: break-all; text-decoration: none; }
-        
-        #login-section, #onboarding-section, #dashboard-section { display: none; }
+        .inventory-item-details { flex-grow: 1; }
+        #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
+        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
     </style>
 </head>
 <body>
-    <div class="admin-container">
-        <div id="status-toast" class="toast">Success!</div>
 
-        <div id="login-section">
-            <h1>VirtualMall</h1>
-            <p class="subtitle">Log in or create your AI Storefront</p>
-            <button onclick="window.loginWithGoogle()" class="btn btn-google">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px;" alt="Google" />
-                Continue with Google
-            </button>
+<div class="container">
+    <button id="master-btn" class="btn-master" onclick="window.toggleMasterVault()">
+        <i class="fas fa-crown"></i> MASTER VAULT
+    </button>
+
+    <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff;">
+        <h3>Global Orders</h3>
+        <p>Total Orders: <span id="v-orders">0</span> | GMV: <span id="v-gmv">₦0</span></p>
+        <table style="width:100%; text-align: left; font-size: 0.8rem;">
+            <thead><tr><th>Store</th><th>Item</th><th>Price</th></tr></thead>
+            <tbody id="vault-body"></tbody>
+        </table>
+    </div>
+
+    <div id="login-section" class="card" style="text-align: center;">
+        <img src="https://cdn-icons-png.flaticon.com/512/3081/3081648.png" width="80">
+        <h2>VirtualMall Admin</h2>
+        <p>Manage your AI store and track orders.</p>
+        <button class="btn-primary" onclick="window.loginWithGoogle()">
+            <i class="fab fa-google"></i> Login with Google
+        </button>
+    </div>
+
+    <div id="onboarding-section" class="card" style="display:none;">
+        <h3>Welcome, Setup Your Store</h3>
+        <div class="form-group">
+            <label>Choose Store Username (No spaces)</label>
+            <input type="text" id="setup-username" placeholder="e.g. kingss1">
         </div>
-
-        <div id="onboarding-section">
-            <h1>Set Up Your Store</h1>
-            <p class="subtitle">Just a few details to get your shop live.</p>
-            <div class="form-group"><label>Store Username (No spaces)</label><input type="text" id="setup-username" placeholder="e.g. emeka" /></div>
-            <div class="form-group"><label>Display Business Name</label><input type="text" id="setup-bizname" placeholder="Emeka Luxury Fits" /></div>
-            <div class="form-group"><label>WhatsApp Number</label><input type="tel" id="setup-phone" placeholder="2348000000000" /></div>
-            <button onclick="window.completeStoreSetup()" class="btn" id="setup-btn">Create Store</button>
+        <div class="form-group">
+            <label>Business Name</label>
+            <input type="text" id="setup-bizname" placeholder="e.g. Kingsoft Luxury">
         </div>
+        <div class="form-group">
+            <label>WhatsApp Phone (e.g. 234816...)</label>
+            <input type="number" id="setup-phone" placeholder="2348167029609">
+        </div>
+        <button id="setup-btn" class="btn-primary" onclick="window.completeStoreSetup()">Create Store</button>
+    </div>
 
-        <div id="dashboard-section">
-            <button id="master-btn" class="btn" onclick="window.toggleMasterVault()">
-                <i class="fas fa-user-shield"></i> MASTER COMMAND CENTER
-            </button>
-
-            <div id="master-vault-section">
-                <h3 style="margin:0 0 15px 0; color:#00ffcc;">PLATFORM LEDGER</h3>
-                <div class="vault-stats">
-                    <div class="v-box"><small>TOTAL SALES</small><p id="v-orders">0</p></div>
-                    <div class="v-box"><small>TOTAL GMV</small><p id="v-gmv">₦0</p></div>
-                </div>
-                <div style="max-height: 200px; overflow-y: auto;">
-                    <table class="vault-table">
-                        <thead><tr><th>Store</th><th>Item</th><th>Price</th></tr></thead>
-                        <tbody id="vault-body"></tbody>
-                    </table>
-                </div>
+    <div id="dashboard-section" style="display:none;">
+        <div class="card">
+            <h3><i class="fas fa-user-circle"></i> Profile Settings</h3>
+            <img id="admin-img-preview" class="preview-img">
+            <div style="text-align:center;">
+                <input type="file" id="admin-pic-upload" style="display:none;" onchange="window.handleAdminImage(event)">
+                <button class="btn-outline" style="width:auto; padding: 5px 15px;" onclick="document.getElementById('admin-pic-upload').click()">Change Photo</button>
+                <button id="remove-pic-btn" class="btn-outline" style="width:auto; padding: 5px 15px; color:red; display:none;" onclick="window.removeAdminImage()">Remove</button>
             </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; margin-top:20px;">
-                <h1 style="margin:0;">Store Panel</h1>
-                <button onclick="window.logoutAdmin()" style="background:none; border:none; color:#e60023; font-weight:bold; cursor:pointer;">Logout</button>
-            </div>
-
-            <div class="form-group"><label>Display Business Name</label><input type="text" id="admin-store-name" /></div>
-            <div class="form-group"><label>WhatsApp Phone Number</label><input type="tel" id="admin-phone" /></div>
-
-            <div class="form-group" style="text-align: center;">
-                <label>Store Profile Picture</label>
-                <img src="" id="admin-img-preview" class="profile-preview" alt="Preview" style="display:none;" />
-                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                    <input type="file" id="admin-pic-upload" accept="image/*" style="display:none;" onchange="window.handleAdminImage(event)" />
-                    <button onclick="document.getElementById('admin-pic-upload').click()" class="btn btn-secondary" style="width: auto; padding: 8px 15px; font-size:0.9rem;">Change Photo</button>
-                    <button onclick="window.removeAdminImage()" id="remove-pic-btn" style="display:none; background:none; border:1px solid #ff4444; color:#ff4444; padding: 8px 15px; border-radius: 8px; cursor:pointer; font-weight:bold; font-size:0.9rem;">Remove</button>
-                </div>
-            </div>
-
-            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="admin-greetings-toggle" style="width: 20px; height: 20px;" onchange="window.toggleGreetingsBox()" />
-                <label style="margin: 0;">Enable Auto-Greetings</label>
-            </div>
-
-            <div class="form-group" id="custom-greetings-container">
-                <label>Custom Greetings (One per line)</label>
-                <textarea id="admin-custom-greetings" rows="5"></textarea>
+            
+            <div class="form-group">
+                <label>Store Name</label>
+                <input type="text" id="admin-store-name">
             </div>
 
             <div class="form-group">
-                <label>Quick Search Cards (Max 3 words, comma separated)</label>
-                <input type="text" id="admin-quick-searches" placeholder="Native Wear, Ladies Corporate, Men Streetwear" />
+                <label>Search Bar Hint (Placeholder)</label>
+                <input type="text" id="admin-search-hint" placeholder="e.g. Search Senator or Ankara">
+                <small style="color: #666; font-size: 0.75rem;">This is the text customers see in your search bar.</small>
             </div>
 
-            <button onclick="window.saveStoreSettings()" class="btn" id="save-btn" style="margin-bottom: 30px;">Save Profile Settings</button>
-
-            <h2>Upload New Item</h2>
-            <div style="background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 10px;">
-                <div class="form-group"><label>Item Name</label><input type="text" id="prod-name" /></div>
-                <div style="display: flex; gap: 10px;">
-                    <div class="form-group" style="flex: 1;"><label>Category</label>
-                        <select id="prod-brand">
-                            <option value="Casual">Casual</option><option value="Corporate">Corporate</option><option value="Native">Native</option><option value="Bridal">Bridal</option><option value="Streetwear">Streetwear</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;"><label>Price (₦)</label><input type="number" id="prod-price" /></div>
-                </div>
-                <div class="form-group"><label>AI Search Tags</label><input type="text" id="prod-tags" placeholder="baggy, jeans, blue" /></div>
-                <div class="form-group">
-                    <label>Item Photo</label>
-                    <input type="file" id="prod-pic-upload" accept="image/*" onchange="window.handleProductImagePreview(event)" />
-                    <img src="" id="prod-img-preview" class="product-preview" />
-                </div>
-                <button onclick="window.uploadNewProduct()" class="btn" id="upload-prod-btn"><i class="fas fa-plus"></i> Add Item to Store</button>
+            <div class="form-group">
+                <label>WhatsApp Number (with 234)</label>
+                <input type="number" id="admin-phone">
             </div>
 
-            <h2>Live Inventory</h2>
-            <div id="inventory-list" class="inventory-list"></div>
-
-            <div class="store-link-box">
-                <p style="margin-top:0; font-size:0.9rem; color:#666;">Storefront link:</p>
-                <a href="#" id="my-store-link" target="_blank">Loading...</a>
+            <div class="form-group">
+                <label>Trending Tags (separated by comma)</label>
+                <input type="text" id="admin-quick-searches">
             </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="admin-greetings-toggle" style="width: auto;" onchange="window.toggleGreetingsBox()">
+                <label style="margin:0;">Enable AI Greetings</label>
+            </div>
+
+            <div id="custom-greetings-container" class="form-group" style="display:none;">
+                <label>Custom AI Greetings (One per line)</label>
+                <textarea id="admin-custom-greetings" rows="4"></textarea>
+            </div>
+
+            <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Profile Settings</button>
+            <p style="font-size: 0.8rem; color:#666; text-align:center; margin-top:10px;">
+                Store Link: <a id="my-store-link" target="_blank" style="color:var(--primary); font-weight:bold;"></a>
+            </p>
         </div>
+
+        <div class="card">
+            <h3><i class="fas fa-plus-circle"></i> Add New Product</h3>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="prod-name" placeholder="e.g. White Senator">
+            </div>
+            <div class="form-group">
+                <label>Price (₦)</label>
+                <input type="number" id="prod-price" placeholder="25000">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="prod-brand">
+                    <option value="Native Wear">Native Wear</option>
+                    <option value="Suits">Suits</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Corporate">Corporate</option>
+                    <option value="Accessories">Accessories</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Search Tags (e.g. blue, cotton, stylish)</label>
+                <input type="text" id="prod-tags" placeholder="blue, cotton">
+            </div>
+            <div class="form-group">
+                <label>Product Image</label>
+                <input type="file" id="prod-pic-upload" onchange="window.handleProductImagePreview(event)">
+                <img id="prod-img-preview" style="width:100%; height:200px; object-fit:contain; display:none; margin-top:10px;">
+            </div>
+            <button id="upload-prod-btn" class="btn-primary" onclick="window.uploadNewProduct()">
+                <i class="fas fa-plus"></i> Add Item to Store
+            </button>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-boxes"></i> My Inventory</h3>
+            <div id="inventory-list"></div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-shopping-cart"></i> Recent Orders</h3>
+            <div id="order-history-list"></div>
+        </div>
+
+        <button class="btn-outline" onclick="window.logoutAdmin()">Logout</button>
     </div>
-    <script src="./admin.js" type="module"></script>
+</div>
+
+<div id="status-toast"></div>
+
+<script type="module" src="admin.js"></script>
 </body>
 </html>
