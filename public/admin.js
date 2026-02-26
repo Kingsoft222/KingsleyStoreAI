@@ -22,16 +22,16 @@ const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
 let currentGoogleUser = null, activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
-const defaultGreetings = ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?", "Chief, looking for premium native?", "Boss, let's find your style!"];
+const defaultGreetings = ["Nne, what are you looking for today?", "My guy, what are you looking for today?", "Classic Man, what are you looking for today?"];
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
         document.getElementById('login-section').style.display = 'none';
-        if (user.email === MASTER_EMAIL) { document.getElementById('master-btn').style.display = 'flex'; }
-        const snapshot = await get(dbRef(db, `users/${user.uid}`));
-        if (snapshot.exists()) {
-            activeStoreId = snapshot.val().storeId;
+        if (user.email === MASTER_EMAIL) document.getElementById('master-btn').style.display = 'block';
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) {
+            activeStoreId = snap.val().storeId;
             document.getElementById('onboarding-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
@@ -46,8 +46,8 @@ window.toggleMasterVault = async () => {
     const section = document.getElementById('master-vault-section');
     section.style.display = section.style.display === 'block' ? 'none' : 'block';
     if (section.style.display === 'block') {
-        const snapshot = await get(dbRef(db, 'global_orders'));
-        const orders = snapshot.val() || {};
+        const snap = await get(dbRef(db, 'global_orders'));
+        const orders = snap.val() || {};
         const tbody = document.getElementById('vault-body');
         let totalOrders = 0, totalGmv = 0; tbody.innerHTML = "";
         Object.keys(orders).reverse().forEach(key => {
@@ -120,21 +120,22 @@ window.saveStoreSettings = async () => {
 };
 
 window.uploadNewProduct = async () => {
-    const name = document.getElementById('prod-name').value;
+    const name = document.getElementById('prod-name').value.trim();
     const price = document.getElementById('prod-price').value;
     const cat = document.getElementById('prod-brand').value;
-    const tags = document.getElementById('prod-tags').value.toLowerCase();
+    const tags = document.getElementById('prod-tags').value.toLowerCase().trim();
     const btn = document.getElementById('upload-prod-btn');
-    if (!name || !price || !pendingProductBase64) return alert("Fill all fields!");
+    if (!name || !price || !pendingProductBase64) return alert("All fields required!");
     btn.innerText = "Uploading..."; btn.disabled = true;
     try {
         const id = Date.now(), path = `inventory/${activeStoreId}/${id}.jpg`, sRef = storageRef(storage, path);
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { name, cat, price: Number(price), tags, imgUrl: url, storagePath: path });
+        document.getElementById('prod-name').value = ""; document.getElementById('prod-price').value = "";
         document.getElementById('prod-img-preview').style.display = "none";
-        showToast("Item added!"); loadDashboardData();
-    } catch (e) { alert("Failed."); }
+        pendingProductBase64 = null; showToast("Item added!"); loadDashboardData();
+    } catch (e) { alert("Upload failed."); }
     btn.innerText = "Add Item"; btn.disabled = false;
 };
 
@@ -159,8 +160,8 @@ function renderInventoryList(catalog) {
     div.innerHTML = keys.map(k => {
         const i = catalog[k];
         return `<div class="inventory-item"><img src="${i.imgUrl}">
-            <div class="inventory-item-details"><h4>${i.name}</h4><p>₦${i.price.toLocaleString()}</p></div>
-            <button onclick="window.deleteProduct('${k}', '${i.storagePath}')" style="color:red; background:none; border:none;"><i class="fas fa-trash"></i></button>
+            <div class="inventory-item-details"><h4>${i.name}</h4><p>₦${i.price.toLocaleString()} &bull; ${i.cat}</p></div>
+            <button onclick="window.deleteProduct('${k}', '${i.storagePath}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
         </div>`;
     }).join('');
 }

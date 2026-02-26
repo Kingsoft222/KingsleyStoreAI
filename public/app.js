@@ -33,6 +33,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || currentStoreId.toUpperCase() + " STORE";
+            
+            // --- DYNAMIC SEARCH HINT UPDATE ---
+            const searchInput = document.getElementById('ai-input');
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search Senator or Ankara";
+            }
+            // ----------------------------------
+
             if (data.profileImage) {
                 const ownerImg = document.getElementById('owner-img');
                 if(ownerImg) { ownerImg.src = data.profileImage; ownerImg.style.display = 'block'; }
@@ -189,12 +197,10 @@ function initVoiceSearch() {
 
 async function resizeImage(base64Str) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX_SIDE = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX_SIDE) { h *= MAX_SIDE / w; w = MAX_SIDE; } } else { if (h > MAX_SIDE) { w *= MAX_SIDE / h; h = MAX_SIDE; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = base64Str; }); }
 
-// 🎯 THE PERMANENT FIX: Multi-Proxy Failover (100% Reliability for Millions of Users)
 async function getBase64FromUrl(url) { 
     return new Promise((resolve, reject) => {
         const freshParam = 'vmall_' + Math.random().toString(36).substring(7);
         const freshUrl = url + (url.includes('?') ? '&' : '?') + 'fresh=' + freshParam;
-
         const tryFetch = async (proxyBase) => {
             const r = await fetch(`${proxyBase}${encodeURIComponent(freshUrl)}`);
             if (!r.ok) throw new Error();
@@ -205,27 +211,19 @@ async function getBase64FromUrl(url) {
                 rd.readAsDataURL(b);
             });
         };
-
-        // Chain the attempts: AllOrigins -> CodeTabs -> Direct Anonymous
-        tryFetch(`https://api.allorigins.win/raw?url=`)
-            .then(resolve)
-            .catch(() => {
-                tryFetch(`https://api.codetabs.com/v1/proxy?quest=`)
-                    .then(resolve)
-                    .catch(() => {
-                        const img = new Image();
-                        img.crossOrigin = "anonymous";
-                        img.onload = () => {
-                            const canvas = document.createElement("canvas");
-                            canvas.width = img.width; canvas.height = img.height;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0);
-                            resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
-                        };
-                        img.onerror = () => reject(new Error("Security Blocked. Refresh page."));
-                        img.src = freshUrl;
-                    });
+        tryFetch(`https://api.allorigins.win/raw?url=`).then(resolve).catch(() => {
+            tryFetch(`https://api.codetabs.com/v1/proxy?quest=`).then(resolve).catch(() => {
+                const img = new Image(); img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width; canvas.height = img.height;
+                    const ctx = canvas.getContext("2d"); ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL("image/jpeg").split(',')[1]);
+                };
+                img.onerror = () => reject(new Error("Security Blocked. Refresh page."));
+                img.src = freshUrl;
             });
+        });
     });
 }
 
