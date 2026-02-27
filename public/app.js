@@ -29,10 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             document.getElementById('ai-input').placeholder = data.searchHint || "Search...";
             
-            // WHATSAPP FIX: Ensure country code is clean
+            // WHATSAPP FIX: Strip everything but numbers for the API link
             if (data.phone) {
-                let p = data.phone.toString().trim();
-                storePhone = p.startsWith('+') ? p.substring(1) : p;
+                storePhone = data.phone.toString().replace(/\D/g, ''); 
             }
 
             if (data.profileImage) {
@@ -40,18 +39,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(ownerImg) { ownerImg.src = data.profileImage; ownerImg.style.display = 'block'; }
             }
             
+            const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled === true) {
-                window.activeGreetings = data.customGreetings || ["Welcome!"];
-                document.getElementById('dynamic-greeting').style.display = 'block';
+                window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Chief, looking for premium native?"];
+                greetingEl.style.display = 'block';
+            } else {
+                window.activeGreetings = [];
+                greetingEl.style.display = 'none';
             }
 
             if (data.catalog) storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
         }
     });
+
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && window.activeGreetings.length > 0) { el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; gIndex++; }
+        if (el && window.activeGreetings.length > 0) { 
+            el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
+            gIndex++; 
+        }
     }, 2500);
+
+    initVoiceSearch();
     updateCartUI();
 });
 
@@ -61,8 +70,8 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('ai-fitting-result').innerHTML = `
         <div style="padding:20px; text-align:center;">
             <h2 style="font-weight:800; color:white;">AI Showroom</h2>
-            <p style="color:white; font-weight:bold;">Try on <strong>${selectedCloth.name}</strong>.</p>
-            <p style="color:white; font-size:0.9rem; margin-bottom:15px;">Upload body photo (capturing from head to toe)</p>
+            <p style="color:white;">Try on <strong>${selectedCloth.name}</strong>.</p>
+            <p style="color:white; font-weight:bold;">Upload body photo (capturing from head to toe)</p>
             <input type="file" id="temp-tryon-input" hidden accept="image/*" onchange="window.handleCustomerUpload(event)" />
             <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">Select from Gallery</button>
         </div>`;
@@ -94,13 +103,12 @@ window.startTryOn = async () => {
                     <button onclick="window.openCart()" style="width:100%; padding:15px; background:transparent; color:white; border:1px solid white; border-radius:12px; font-weight:bold;">Proceed to Cart <i class="fas fa-arrow-right"></i></button>
                 </div>`;
         }
-    } catch (e) { alert("Error. Please refresh."); window.closeFittingRoom(); }
+    } catch (e) { alert("Error connecting. Refresh."); window.closeFittingRoom(); }
 };
 
 window.checkoutWhatsApp = () => {
     let list = cart.map(i => `▪ 1x ${i.name} - ₦${i.price.toLocaleString()}`).join('%0A');
     let total = cart.reduce((s, i) => s + i.price, 0);
-    // FORCE PLUS LOGIC FOR WA.ME
     window.open(`https://wa.me/${storePhone}?text=Hello%20${currentStoreId},%20I%20want%20to%20pay%20for:%0A${list}%0A%0A*TOTAL:%20₦${total.toLocaleString()}*`);
 };
 
@@ -119,7 +127,20 @@ async function getBase64FromUrl(url) {
     });
 }
 
+function initVoiceSearch() {
+    const micBtn = document.getElementById('mic-btn');
+    if (!micBtn) return;
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    micBtn.addEventListener('click', () => { micBtn.style.color = "#e60023"; recognition.start(); });
+    recognition.onresult = (e) => { 
+        document.getElementById('ai-input').value = e.results[0][0].transcript; 
+        window.executeSearch(); 
+    };
+    recognition.onend = () => { micBtn.style.color = "#5f6368"; };
+}
+
 window.addToCart = () => { cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); showToast("✅ Added!"); window.closeFittingRoom(); };
+window.openCart = () => { window.closeFittingRoom(); document.getElementById('fitting-room-modal').style.display='flex'; /* logic to render cart list */ };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };

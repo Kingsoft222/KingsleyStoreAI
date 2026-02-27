@@ -21,12 +21,11 @@ const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com
 const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
-let currentGoogleUser = null, activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
+let currentGoogleUser = null, activeStoreId = "", pendingProductBase64 = null; 
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
-        // RESTORE COMMAND CENTER VISIBILITY
         const mBtn = document.getElementById('master-btn');
         if (user.email === MASTER_EMAIL && mBtn) mBtn.style.display = 'block';
 
@@ -59,11 +58,12 @@ async function loadDashboardData() {
 }
 
 window.uploadNewProduct = async () => {
-    const nameInput = document.getElementById('prod-name');
-    const priceInput = document.getElementById('prod-price');
+    const nameI = document.getElementById('prod-name');
+    const priceI = document.getElementById('prod-price');
+    const tagsI = document.getElementById('prod-tags');
     const btn = document.getElementById('upload-prod-btn');
 
-    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Select image and fill all fields!");
+    if (!nameI.value || !priceI.value || !pendingProductBase64) return alert("Select image and fill name/price!");
     btn.innerText = "Adding...";
 
     try {
@@ -71,20 +71,22 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
-            name: nameInput.value, 
+            name: nameI.value, 
             cat: document.getElementById('prod-brand').value, 
-            price: Number(priceInput.value), 
+            price: Number(priceI.value), 
+            tags: tagsI.value,
             imgUrl: url, 
             storagePath: path 
         });
         
-        // SWIFT RESET: Clear Text and the Big Preview Image
-        nameInput.value = "";
-        priceInput.value = "";
+        // SWIFT RESET: Clear EVERYTHING for the next product
+        nameI.value = "";
+        priceI.value = "";
+        tagsI.value = "";
         pendingProductBase64 = null;
         document.getElementById('prod-img-preview').style.display = 'none';
         
-        showToast("Item Added Successfully!");
+        showToast("Item Added!");
         loadDashboardData();
     } catch (e) { alert("Error adding product."); }
     btn.innerText = "Add Item";
@@ -100,6 +102,11 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+window.toggleMasterVault = () => {
+    const section = document.getElementById('master-vault-section');
+    if(section) section.style.display = section.style.display === 'block' ? 'none' : 'block';
+};
+
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn'); btn.innerText = "Saving...";
     const updateData = {
@@ -107,11 +114,6 @@ window.saveStoreSettings = async () => {
         phone: document.getElementById('admin-phone').value,
         searchHint: document.getElementById('admin-search-hint').value
     };
-    if (pendingBase64Image) {
-        const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
-        await uploadString(ref, pendingBase64Image, 'data_url');
-        updateData.profileImage = await getDownloadURL(ref);
-    }
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
     btn.innerText = "Save Settings";
     showToast("Profile Updated!");
@@ -128,7 +130,7 @@ function renderInventoryList(catalog) {
 }
 
 window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete permanently?")) return;
+    if (!confirm("Delete?")) return;
     await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
     if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
     loadDashboardData();
@@ -136,8 +138,4 @@ window.deleteProduct = async (k, path) => {
 
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
 window.logoutAdmin = () => signOut(auth);
-window.toggleMasterVault = () => {
-    const section = document.getElementById('master-vault-section');
-    if(section) section.style.display = section.style.display === 'block' ? 'none' : 'block';
-};
 function showToast(m) { const t = document.getElementById('status-toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
