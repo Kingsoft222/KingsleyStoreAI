@@ -20,14 +20,19 @@ const provider = new GoogleAuthProvider();
 const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
 const storage = getStorage(app);
 
+const MASTER_EMAIL = "kman39980@gmail.com";
 let currentGoogleUser = null, activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
-        const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
-        if (userMapSnapshot.exists()) {
-            activeStoreId = userMapSnapshot.val().storeId;
+        // RESTORE COMMAND CENTER VISIBILITY
+        const mBtn = document.getElementById('master-btn');
+        if (user.email === MASTER_EMAIL && mBtn) mBtn.style.display = 'block';
+
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) {
+            activeStoreId = snap.val().storeId;
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
@@ -43,32 +48,22 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // --- RESTORED STORE LINK DISPLAY ---
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
-        if(linkEl) { 
-            linkEl.href = storeLink; 
-            linkEl.innerText = storeLink; 
-        }
+        if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
 
-        // --- RESTORED PROFILE IMAGE ---
         const imgP = document.getElementById('admin-img-preview');
-        if (data.profileImage && imgP) { 
-            imgP.src = data.profileImage; 
-            imgP.style.display = "block"; 
-        }
+        if (data.profileImage && imgP) { imgP.src = data.profileImage; imgP.style.display = "block"; }
         renderInventoryList(data.catalog || {});
     }
 }
 
-// RESTORED SWIFT UPLOAD: Only clears Name and Price
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
-    const cat = document.getElementById('prod-brand').value;
     const btn = document.getElementById('upload-prod-btn');
 
-    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Image!");
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Select image and fill all fields!");
     btn.innerText = "Adding...";
 
     try {
@@ -77,18 +72,21 @@ window.uploadNewProduct = async () => {
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name: nameInput.value, 
-            cat: cat, 
+            cat: document.getElementById('prod-brand').value, 
             price: Number(priceInput.value), 
             imgUrl: url, 
             storagePath: path 
         });
         
-        // Swift Reset: Clear only Name and Price
+        // SWIFT RESET: Clear Text and the Big Preview Image
         nameInput.value = "";
         priceInput.value = "";
-        showToast("Item Added!");
+        pendingProductBase64 = null;
+        document.getElementById('prod-img-preview').style.display = 'none';
+        
+        showToast("Item Added Successfully!");
         loadDashboardData();
-    } catch (e) { alert("Failed to add product."); }
+    } catch (e) { alert("Error adding product."); }
     btn.innerText = "Add Item";
 };
 
@@ -119,16 +117,6 @@ window.saveStoreSettings = async () => {
     showToast("Profile Updated!");
 };
 
-window.handleAdminImage = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingBase64Image = ev.target.result;
-        const p = document.getElementById('admin-img-preview');
-        p.src = ev.target.result; p.style.display = 'block';
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
-
 function renderInventoryList(catalog) {
     const div = document.getElementById('inventory-list');
     div.innerHTML = Object.keys(catalog).map(k => `
@@ -139,6 +127,17 @@ function renderInventoryList(catalog) {
         </div>`).join('');
 }
 
+window.deleteProduct = async (k, path) => {
+    if (!confirm("Delete permanently?")) return;
+    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
+    if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
+    loadDashboardData();
+};
+
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
 window.logoutAdmin = () => signOut(auth);
+window.toggleMasterVault = () => {
+    const section = document.getElementById('master-vault-section');
+    if(section) section.style.display = section.style.display === 'block' ? 'none' : 'block';
+};
 function showToast(m) { const t = document.getElementById('status-toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
