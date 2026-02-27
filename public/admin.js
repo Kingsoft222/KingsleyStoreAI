@@ -96,7 +96,10 @@ window.uploadNewProduct = async () => {
         priceInput.value = "";
         tagsInput.value = "";
         if(fileInput) fileInput.value = "";
-        if(imgPreview) imgPreview.style.display = "none";
+        if(imgPreview) {
+            imgPreview.style.display = "none";
+            imgPreview.src = "";
+        }
         pendingProductBase64 = null;
 
         showToast("Product Added Successfully!");
@@ -105,12 +108,17 @@ window.uploadNewProduct = async () => {
     btn.innerText = "Add Item";
 };
 
+// RESTORED: REMOVE PROFILE PHOTO LOGIC
 window.removeAdminImage = async () => {
     if(!confirm("Are you sure you want to remove your profile photo?")) return;
-    await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-    document.getElementById('admin-img-preview').style.display = 'none';
-    document.getElementById('remove-pic-btn').style.display = 'none';
-    showToast("Profile Photo Removed");
+    try {
+        await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
+        document.getElementById('admin-img-preview').style.display = 'none';
+        document.getElementById('remove-pic-btn').style.display = 'none';
+        showToast("Profile Photo Removed");
+    } catch (e) {
+        showToast("Failed to remove photo");
+    }
 };
 
 window.handleAdminImage = (e) => {

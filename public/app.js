@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             
-            // --- SEARCH HINT RESTORATION ---
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
@@ -37,11 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.profileImage) { document.getElementById('owner-img').src = data.profileImage; }
             
-            // --- WHATSAPP SEND FIX ---
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // --- GREETINGS FIX (Prevents "Loading..." hang) ---
             const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) 
@@ -73,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- SEARCH & MIC LOGIC ---
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
@@ -109,7 +105,6 @@ function initVoiceSearch() {
     recognition.onend = () => { micBtn.style.color = "#5f6368"; };
 }
 
-// --- SHOWROOM & CART VISIBILITY ---
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -175,8 +170,11 @@ window.startTryOn = async () => {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; cursor:pointer;">Add to Cart 🛍️</button>`;
+        } else {
+            alert("AI processing failed. Please try a clearer body photo.");
+            window.closeFittingRoom();
         }
-    } catch (e) { alert("Try again."); window.closeFittingRoom(); }
+    } catch (e) { alert("Network error. Please check your connection."); window.closeFittingRoom(); }
 };
 
 window.addToCart = () => {
@@ -197,7 +195,35 @@ window.checkoutWhatsApp = () => {
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 async function getBase64FromUrl(url) { return new Promise((resolve) => { fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).then(r => r.blob()).then(b => { const rd = new FileReader(); rd.onloadend = () => resolve(rd.result.split(',')[1]); rd.readAsDataURL(b); }); }); }
-async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 1024; let w = img.width, h = img.height; if (w > h) { h *= MAX/w; w = MAX; } else { w *= MAX/h; h = M = MAX; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = b64; }); }
-window.handleCustomerUpload = (e) => { const reader = new FileReader(); reader.onload = async (ev) => { tempCustomerPhoto = await resizeImage(ev.target.result); window.startTryOn(); }; reader.readAsDataURL(e.target.files[0]); };
+
+async function resizeImage(b64) { 
+    return new Promise((res) => { 
+        const img = new Image(); 
+        img.onload = () => { 
+            const canvas = document.createElement('canvas'); 
+            const MAX = 1024; 
+            let w = img.width, h = img.height; 
+            if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+            else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
+            canvas.width = w; canvas.height = h; 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, w, h); 
+            res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); 
+        }; 
+        img.src = b64; 
+    }); 
+}
+
+window.handleCustomerUpload = (e) => { 
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader(); 
+    reader.onload = async (ev) => { 
+        tempCustomerPhoto = await resizeImage(ev.target.result); 
+        window.startTryOn(); 
+    }; 
+    reader.readAsDataURL(file); 
+};
+
 function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
