@@ -185,7 +185,6 @@ window.downloadInventory = async () => {
 
 window.downloadOrders = async () => {
     alert("Fetching store orders...");
-    // Future logic for order management
 };
 
 function renderInventoryList(catalog) {

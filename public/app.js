@@ -28,13 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
-            
             const searchInput = document.getElementById('ai-input');
-            if (searchInput) {
-                searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-            }
-
-            if (data.profileImage) { document.getElementById('owner-img').src = data.profileImage; }
+            if (searchInput) searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
@@ -69,6 +65,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initVoiceSearch();
 });
+
+// --- SUCCESS STATE LOGIC RESTORED ---
+window.addToCart = () => {
+    if(!selectedCloth) return;
+    cart.push(selectedCloth);
+    localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
+    updateCartUI(); 
+    showToast("✅ Added successfully"); 
+
+    // Find the current result div to modify buttons
+    const resDiv = document.getElementById('ai-fitting-result');
+    const existingBtn = resDiv.querySelector('button');
+    
+    if (existingBtn) {
+        // Change existing button to "Check another one"
+        existingBtn.innerText = "Check another one";
+        existingBtn.onclick = () => window.closeFittingRoom();
+        existingBtn.style.background = "#555"; // Subtle color for secondary action
+        
+        // Add "Proceed to cart" button below it
+        const proceedBtn = document.createElement('button');
+        proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
+        proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
+        proceedBtn.onclick = () => window.openCart();
+        resDiv.appendChild(proceedBtn);
+    }
+};
 
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
@@ -169,21 +192,12 @@ window.startTryOn = async () => {
         if (result.success) {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
-                <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; cursor:pointer;">Add to Cart 🛍️</button>`;
+                <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else {
             alert("AI processing failed. Please try a clearer body photo.");
             window.closeFittingRoom();
         }
     } catch (e) { alert("Network error. Please check your connection."); window.closeFittingRoom(); }
-};
-
-window.addToCart = () => {
-    if(!selectedCloth) return;
-    cart.push(selectedCloth);
-    localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
-    updateCartUI(); 
-    showToast("✅ Added!"); 
-    window.closeFittingRoom();
 };
 
 window.checkoutWhatsApp = () => {
