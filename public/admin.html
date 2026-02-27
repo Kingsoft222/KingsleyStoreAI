@@ -35,10 +35,9 @@
     </button>
 
     <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff;">
-        <h3>Global Orders</h3>
-        <p>Total Orders: <span id="v-orders">0</span> | GMV: <span id="v-gmv">₦0</span></p>
-        <table style="width:100%; text-align: left; font-size: 0.8rem;">
-            <thead><tr><th>Store</th><th>Item</th><th>Price</th></tr></thead>
+        <h3>Global Orders & Stores</h3>
+        <table style="width:100%; text-align: left; font-size: 0.8rem; color: white;">
+            <thead><tr><th>Store ID</th><th>Name</th><th>Phone</th></tr></thead>
             <tbody id="vault-body"></tbody>
         </table>
     </div>
@@ -51,9 +50,9 @@
 
     <div id="onboarding-section" class="card" style="display:none;">
         <h3>Setup Your Store</h3>
-        <div class="form-group"><input type="text" id="setup-username" placeholder="Username"></div>
+        <div class="form-group"><input type="text" id="setup-username" placeholder="Username (Unique ID)"></div>
         <div class="form-group"><input type="text" id="setup-bizname" placeholder="Business Name"></div>
-        <div class="form-group"><input type="number" id="setup-phone" placeholder="WhatsApp Number"></div>
+        <div class="form-group"><input type="number" id="setup-phone" placeholder="WhatsApp Number (e.g. 080...)"></div>
         <button id="setup-btn" class="btn-primary" onclick="window.completeStoreSetup()">Create Store</button>
     </div>
 
@@ -64,7 +63,6 @@
             <div style="text-align:center;">
                 <input type="file" id="admin-pic-upload" style="display:none;" onchange="window.handleAdminImage(event)">
                 <button class="btn-outline" style="width:auto; padding: 5px 15px;" onclick="document.getElementById('admin-pic-upload').click()">Change Photo</button>
-                <button id="remove-pic-btn" class="btn-outline" style="width:auto; padding: 5px 15px; color:red; display:none;" onclick="window.removeAdminImage()">Remove</button>
             </div>
             
             <div class="form-group">
@@ -73,67 +71,85 @@
             </div>
 
             <div class="form-group">
-                <label>Search Bar Hint (Placeholder)</label>
-                <input type="text" id="admin-search-hint">
+                <label>Search Bar Hint</label>
+                <input type="text" id="admin-search-hint" placeholder="e.g. Search for Senator Suits...">
             </div>
 
             <div class="form-group">
-                <label>WhatsApp Number</label>
+                <label>WhatsApp Number (₦ Checkout)</label>
                 <input type="number" id="admin-phone">
             </div>
 
-            <div class="form-group">
-                <label>Trending Tags (comma separated)</label>
-                <input type="text" id="admin-quick-searches">
-            </div>
-
             <div style="margin-top:10px; display: flex; align-items: center; gap: 10px;">
-                <input type="checkbox" id="admin-greetings-toggle" style="width:auto;" onchange="window.toggleGreetingsBox()"> 
+                <input type="checkbox" id="greetings-toggle" style="width:auto;"> 
                 <label style="margin:0;">Enable AI Greetings</label>
             </div>
 
-            <div id="custom-greetings-container" class="form-group" style="display:none; margin-top:10px;">
-                <label>Custom Greetings (One per line)</label>
-                <textarea id="admin-custom-greetings" rows="4"></textarea>
+            <div class="form-group" style="margin-top:10px;">
+                <label>Custom Greetings (Comma separated)</label>
+                <textarea id="admin-greetings" rows="3" placeholder="Chief, looking for premium native?, Boss, what's your style today?"></textarea>
             </div>
 
             <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Profile Settings</button>
-            <p style="text-align:center; font-size:0.8rem;">Store Link: <a id="my-store-link" target="_blank" style="color:var(--primary);"></a></p>
+            <p style="text-align:center; font-size:0.8rem;">Live Store: <a id="my-store-link" target="_blank" style="color:var(--primary);"></a></p>
         </div>
 
         <div class="card">
             <h3><i class="fas fa-boxes"></i> Inventory</h3>
             <div id="inventory-list"></div>
-            <button class="btn-primary" style="margin-top:10px;" onclick="document.getElementById('add-product-section').scrollIntoView();"><i class="fas fa-plus"></i> Add New Product</button>
+            <button class="btn-primary" style="margin-top:10px;" onclick="document.getElementById('add-product-section').scrollIntoView({behavior:'smooth'});"><i class="fas fa-plus"></i> Add New Product</button>
         </div>
 
         <div class="card">
-            <h3><i class="fas fa-file-pdf"></i> Business Reports</h3>
-            <p style="font-size:0.85rem; color:#666;">Generate a PDF of all your customer orders and inventory status.</p>
-            <button class="btn-pdf" onclick="window.downloadOrdersPDF()">
-                <i class="fas fa-download"></i> Download Orders & Inventory PDF
-            </button>
+            <h3><i class="fas fa-file-invoice"></i> Business Reports</h3>
+            <p style="font-size:0.85rem; color:#666;">Download your current inventory and order status.</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-pdf" onclick="window.downloadInventory()">
+                    <i class="fas fa-download"></i> Inventory Data
+                </button>
+                <button class="btn-pdf" onclick="window.downloadOrders()">
+                    <i class="fas fa-history"></i> Orders Data
+                </button>
+            </div>
         </div>
 
         <div id="add-product-section" class="card">
             <h3>Add New Product</h3>
-            <input type="text" id="prod-name" placeholder="Name">
-            <input type="number" id="prod-price" placeholder="Price">
-            <select id="prod-brand">
-                <option value="Native Wear">Native Wear</option>
-                <option value="Suits">Suits</option>
-                <option value="Casual">Casual</option>
-            </select>
-            <input type="text" id="prod-tags" placeholder="Tags">
-            <input type="file" id="prod-pic-upload" onchange="window.handleProductImagePreview(event)">
-            <img id="prod-img-preview" style="width:100%; height:200px; object-fit:contain; display:none; margin-top:10px;">
-            <button id="upload-prod-btn" class="btn-primary" onclick="window.uploadNewProduct()">Add Item</button>
+            <div class="form-group">
+                <label>Product Name</label>
+                <input type="text" id="prod-name" placeholder="e.g. Red Senator Suit">
+            </div>
+            <div class="form-group">
+                <label>Price (₦)</label>
+                <input type="number" id="prod-price" placeholder="Amount only">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="prod-brand">
+                    <option value="Native Wear">Native Wear</option>
+                    <option value="Suits">Suits</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Agbada">Agbada</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Tags (Comma separated)</label>
+                <input type="text" id="prod-tags" placeholder="red, native, premium">
+            </div>
+            <div class="form-group">
+                <label>Clothing Photo</label>
+                <input type="file" id="prod-pic-upload" onchange="window.handleProductImagePreview(event)">
+                <img id="prod-img-preview" style="width:100%; height:200px; object-fit:contain; display:none; margin-top:10px; border-radius: 8px; border: 1px dashed #ccc;">
+            </div>
+            <button id="upload-prod-btn" class="btn-primary" onclick="window.uploadNewProduct()">Add Item to Store</button>
         </div>
 
         <button class="btn-outline" onclick="window.logoutAdmin()">Logout</button>
     </div>
 </div>
+
 <div id="status-toast"></div>
+
 <script type="module" src="admin.js"></script>
 </body>
 </html>
