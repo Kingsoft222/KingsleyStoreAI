@@ -43,7 +43,7 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // --- RESTORED STORE LINK ---
+        // --- RESTORED STORE LINK DISPLAY ---
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { 
@@ -61,7 +61,7 @@ async function loadDashboardData() {
     }
 }
 
-// SWIFT UPLOAD: Only clears Name and Price
+// RESTORED SWIFT UPLOAD: Only clears Name and Price
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');

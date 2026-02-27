@@ -112,7 +112,6 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resultDiv = document.getElementById('ai-fitting-result');
-    // RESTORED ORIGINAL CIRCULAR SPINNER
     resultDiv.innerHTML = `
         <div class="loader-container">
             <div class="rotating-dots">
