@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com");
+const db = getDatabase(app);
 
 const urlParams = new URLSearchParams(window.location.search);
 const currentStoreId = urlParams.get('store') || 'kingsley'; 
@@ -28,26 +28,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             document.getElementById('ai-input').placeholder = data.searchHint || "Search...";
-            
-            // WHATSAPP FIX: Strip everything but numbers for the API link
-            if (data.phone) {
-                storePhone = data.phone.toString().replace(/\D/g, ''); 
-            }
-
+            if (data.phone) storePhone = data.phone.toString().replace(/\D/g, ''); 
             if (data.profileImage) {
-                const ownerImg = document.getElementById('owner-img');
-                if(ownerImg) { ownerImg.src = data.profileImage; ownerImg.style.display = 'block'; }
+                const img = document.getElementById('owner-img');
+                if(img) img.src = data.profileImage;
             }
-            
-            const greetingEl = document.getElementById('dynamic-greeting');
-            if (data.greetingsEnabled === true) {
-                window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Chief, looking for premium native?"];
-                greetingEl.style.display = 'block';
-            } else {
-                window.activeGreetings = [];
-                greetingEl.style.display = 'none';
+            if (data.greetingsEnabled) {
+                window.activeGreetings = data.customGreetings || ["Welcome!"];
+                document.getElementById('dynamic-greeting').style.display = 'block';
             }
-
             if (data.catalog) storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
         }
     });
@@ -64,85 +53,76 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 });
 
+// --- RENDER CART CONTENT (FIXES BLUR ISSUE) ---
+window.openCart = () => {
+    const modal = document.getElementById('fitting-room-modal');
+    const resultDiv = document.getElementById('ai-fitting-result');
+    modal.style.display = 'flex';
+    
+    if (cart.length === 0) {
+        resultDiv.innerHTML = `<div style="padding:40px; text-align:center; color:white;"><h3>Your Cart is Empty</h3><button onclick="window.closeFittingRoom()" style="background:#e60023; color:white; border:none; padding:10px 20px; border-radius:8px; margin-top:10px;">Continue Shopping</button></div>`;
+        return;
+    }
+
+    let total = cart.reduce((sum, item) => sum + item.price, 0);
+    let itemsHTML = cart.map((item, idx) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #555; padding-bottom:10px; color:white;">
+            <div style="text-align:left;"><p style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div>
+            <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button>
+        </div>`).join('');
+
+    resultDiv.innerHTML = `
+        <div style="padding:10px; color:white;">
+            <h2 style="margin-top:0;">YOUR CART</h2>
+            <div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div>
+            <div style="display:flex; justify-content:space-between; font-weight:800; margin:20px 0; border-top: 2px solid #e60023; padding-top:15px;">
+                <span>Total:</span> <span>₦${total.toLocaleString()}</span>
+            </div>
+            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">
+                <i class="fab fa-whatsapp"></i> Checkout via WhatsApp
+            </button>
+        </div>`;
+};
+
+window.checkoutWhatsApp = () => {
+    let list = cart.map(i => `▪ 1x ${i.name} - ₦${i.price.toLocaleString()}`).join('%0A');
+    let total = cart.reduce((s, i) => s + i.price, 0);
+    window.open(`https://wa.me/${storePhone}?text=Order:%0A${list}%0A%0ATOTAL:%20₦${total.toLocaleString()}`);
+};
+
+function initVoiceSearch() {
+    const micBtn = document.getElementById('mic-btn');
+    const sendBtn = document.getElementById('send-btn');
+    if (micBtn) {
+        const Speech = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (Speech) {
+            const rec = new Speech();
+            micBtn.onclick = () => { micBtn.style.color = "#e60023"; rec.start(); };
+            rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); };
+            rec.onend = () => { micBtn.style.color = "#5f6368"; };
+        }
+    }
+    // --- ENABLE SEND ICON ---
+    if (sendBtn) { sendBtn.onclick = () => window.executeSearch(); }
+}
+
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
         <div style="padding:20px; text-align:center;">
             <h2 style="font-weight:800; color:white;">AI Showroom</h2>
-            <p style="color:white;">Try on <strong>${selectedCloth.name}</strong>.</p>
             <p style="color:white; font-weight:bold;">Upload body photo (capturing from head to toe)</p>
             <input type="file" id="temp-tryon-input" hidden accept="image/*" onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">Select from Gallery</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; cursor:pointer;">Select from Gallery</button>
         </div>`;
 };
 
-window.startTryOn = async () => {
-    const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div class="loader-container">
-            <div class="rotating-dots">
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-            </div>
-            <p style="margin-top:20px; font-weight:800; color:white;">STITCHING YOUR OUTFIT...</p>
-        </div>`;
-    
-    try {
-        const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        const response = await fetch('/api/process-vto', { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: tempCustomerPhoto, clothImage: rawCloth, category: selectedCloth.cat }) 
-        });
-        const result = await response.json();
-        if (result.success) {
-            resDiv.innerHTML = `
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; margin-top:20px;">
-                <div style="margin-top:15px; display:flex; flex-direction:column; gap:10px;">
-                    <button id="add-to-cart-dynamic" onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold;">Add to Cart 🛍️</button>
-                    <button onclick="window.openCart()" style="width:100%; padding:15px; background:transparent; color:white; border:1px solid white; border-radius:12px; font-weight:bold;">Proceed to Cart <i class="fas fa-arrow-right"></i></button>
-                </div>`;
-        }
-    } catch (e) { alert("Error connecting. Refresh."); window.closeFittingRoom(); }
-};
-
-window.checkoutWhatsApp = () => {
-    let list = cart.map(i => `▪ 1x ${i.name} - ₦${i.price.toLocaleString()}`).join('%0A');
-    let total = cart.reduce((s, i) => s + i.price, 0);
-    window.open(`https://wa.me/${storePhone}?text=Hello%20${currentStoreId},%20I%20want%20to%20pay%20for:%0A${list}%0A%0A*TOTAL:%20₦${total.toLocaleString()}*`);
-};
-
-window.handleCustomerUpload = (e) => {
-    const reader = new FileReader();
-    reader.onload = async (ev) => { tempCustomerPhoto = await resizeImage(ev.target.result); window.startTryOn(); };
-    if (e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
-};
-
-async function getBase64FromUrl(url) { 
-    return new Promise((resolve) => {
-        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
-            .then(r => r.blob()).then(b => {
-                const rd = new FileReader(); rd.onloadend = () => resolve(rd.result.split(',')[1]); rd.readAsDataURL(b);
-            });
-    });
-}
-
-function initVoiceSearch() {
-    const micBtn = document.getElementById('mic-btn');
-    if (!micBtn) return;
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    micBtn.addEventListener('click', () => { micBtn.style.color = "#e60023"; recognition.start(); });
-    recognition.onresult = (e) => { 
-        document.getElementById('ai-input').value = e.results[0][0].transcript; 
-        window.executeSearch(); 
-    };
-    recognition.onend = () => { micBtn.style.color = "#5f6368"; };
-}
-
-window.addToCart = () => { cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); showToast("✅ Added!"); window.closeFittingRoom(); };
-window.openCart = () => { window.closeFittingRoom(); document.getElementById('fitting-room-modal').style.display='flex'; /* logic to render cart list */ };
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.addToCart = () => { cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); showToast("✅ Added!"); window.closeFittingRoom(); };
+async function getBase64FromUrl(url) { return new Promise(res => { fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).then(r => r.blob()).then(b => { const rd = new FileReader(); rd.onloadend = () => res(rd.result.split(',')[1]); rd.readAsDataURL(b); }); }); }
+async function resizeImage(b) { return new Promise(r => { const i = new Image(); i.onload = () => { const c = document.createElement('canvas'); const M = 1024; let w = i.width, h = i.height; if (w > h) { if (w > M) { h *= M/w; w = M; } } else { if (h > M) { w *= M/h; h = M; } } c.width = w; c.height = h; const ctx = c.getContext('2d'); ctx.drawImage(i, 0, 0, w, h); r(c.toDataURL('image/jpeg', 0.85).split(',')[1]); }; i.src = b; }); }
 function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
-async function resizeImage(b64) { return new Promise(r => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 1024; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } } else { if (h > MAX) { w *= MAX / h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); r(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = b64; }); }
+window.handleCustomerUpload = (e) => { const reader = new FileReader(); reader.onload = async (ev) => { tempCustomerPhoto = await resizeImage(ev.target.result); window.startTryOn(); }; reader.readAsDataURL(e.target.files[0]); };

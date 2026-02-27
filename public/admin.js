@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -17,26 +17,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
+const db = getDatabase(app); 
 const storage = getStorage(app);
 
-const MASTER_EMAIL = "kman39980@gmail.com";
-let currentGoogleUser = null, activeStoreId = "", pendingProductBase64 = null; 
+let activeStoreId = "", pendingProductBase64 = null;
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        currentGoogleUser = user;
-        const mBtn = document.getElementById('master-btn');
-        if (user.email === MASTER_EMAIL && mBtn) mBtn.style.display = 'block';
-
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
             activeStoreId = snap.val().storeId;
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
-        } else { document.getElementById('onboarding-section').style.display = 'block'; }
-    } else { document.getElementById('login-section').style.display = 'block'; }
+        }
+    }
 });
 
 async function loadDashboardData() {
@@ -46,13 +41,6 @@ async function loadDashboardData() {
         document.getElementById('admin-store-name').value = data.storeName || "";
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
-        
-        const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
-        const linkEl = document.getElementById('my-store-link');
-        if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
-
-        const imgP = document.getElementById('admin-img-preview');
-        if (data.profileImage && imgP) { imgP.src = data.profileImage; imgP.style.display = "block"; }
         renderInventoryList(data.catalog || {});
     }
 }
@@ -74,15 +62,15 @@ window.uploadNewProduct = async () => {
             name: nameI.value, 
             cat: document.getElementById('prod-brand').value, 
             price: Number(priceI.value), 
-            tags: tagsI.value,
+            tags: tagsI.value, // SAVES TAGS
             imgUrl: url, 
             storagePath: path 
         });
         
-        // SWIFT RESET: Clear EVERYTHING for the next product
+        // --- FULL RESET (INCLUDING TAGS) ---
         nameI.value = "";
         priceI.value = "";
-        tagsI.value = "";
+        tagsI.value = ""; // NOW TAGS CLEAR TOO
         pendingProductBase64 = null;
         document.getElementById('prod-img-preview').style.display = 'none';
         
@@ -102,40 +90,10 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-window.toggleMasterVault = () => {
-    const section = document.getElementById('master-vault-section');
-    if(section) section.style.display = section.style.display === 'block' ? 'none' : 'block';
-};
-
-window.saveStoreSettings = async () => {
-    const btn = document.getElementById('save-btn'); btn.innerText = "Saving...";
-    const updateData = {
-        storeName: document.getElementById('admin-store-name').value,
-        phone: document.getElementById('admin-phone').value,
-        searchHint: document.getElementById('admin-search-hint').value
-    };
-    await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-    btn.innerText = "Save Settings";
-    showToast("Profile Updated!");
-};
-
 function renderInventoryList(catalog) {
     const div = document.getElementById('inventory-list');
-    div.innerHTML = Object.keys(catalog).map(k => `
-        <div class="inventory-item">
-            <img src="${catalog[k].imgUrl}">
-            <div class="inventory-item-details"><h4>${catalog[k].name}</h4><p>₦${catalog[k].price.toLocaleString()}</p></div>
-            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
-        </div>`).join('');
+    div.innerHTML = Object.keys(catalog).map(k => `<div class="inventory-item"><img src="${catalog[k].imgUrl}"><span>${catalog[k].name}</span></div>`).join('');
 }
 
-window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete?")) return;
-    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
-    if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
-    loadDashboardData();
-};
-
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
-window.logoutAdmin = () => signOut(auth);
-function showToast(m) { const t = document.getElementById('status-toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
+function showToast(m) { const t = document.createElement('div'); t.className = 'status-toast'; t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
