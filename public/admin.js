@@ -25,9 +25,9 @@ let currentGoogleUser = null, activeStoreId = "", pendingBase64Image = null, pen
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentGoogleUser = user;
-        const snap = await get(dbRef(db, `users/${user.uid}`));
-        if (snap.exists()) {
-            activeStoreId = snap.val().storeId;
+        const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
+        if (userMapSnapshot.exists()) {
+            activeStoreId = userMapSnapshot.val().storeId;
             document.getElementById('login-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
@@ -42,16 +42,23 @@ async function loadDashboardData() {
         document.getElementById('admin-store-name').value = data.storeName || "";
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
-        document.getElementById('admin-quick-searches').value = (data.quickSearches || []).join(', ');
+        
+        // RESTORE PROFILE PIC VIEW
+        const imgP = document.getElementById('admin-img-preview');
+        if (data.profileImage) { 
+            imgP.src = data.profileImage; 
+            imgP.style.display = "block"; 
+            document.getElementById('remove-pic-btn').style.display = "inline-block";
+        }
         renderInventoryList(data.catalog || {});
     }
 }
 
+// SWIFT UPLOAD SYSTEM
 window.uploadNewProduct = async () => {
     const name = document.getElementById('prod-name').value;
     const price = document.getElementById('prod-price').value;
     const cat = document.getElementById('prod-brand').value;
-    const tags = document.getElementById('prod-tags').value;
     const btn = document.getElementById('upload-prod-btn');
 
     if (!name || !price || !pendingProductBase64) return alert("Fill all fields!");
@@ -61,12 +68,12 @@ window.uploadNewProduct = async () => {
         const id = Date.now(), path = `inventory/${activeStoreId}/${id}.jpg`, sRef = storageRef(storage, path);
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { name, cat, price: Number(price), tags, imgUrl: url, storagePath: path });
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { name, cat, price: Number(price), imgUrl: url, storagePath: path });
         
-        // SWIFT RESET: Keep the view, clear only the name/price for next item
+        // RESET FIELDS FOR SWIFT NEXT UPLOAD
         document.getElementById('prod-name').value = "";
         document.getElementById('prod-price').value = "";
-        showToast("Added! Ready for next.");
+        showToast("Item Added!");
         loadDashboardData();
     } catch (e) { alert("Failed."); }
     btn.innerText = "Add Item";
@@ -82,6 +89,33 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+window.saveStoreSettings = async () => {
+    const btn = document.getElementById('save-btn'); btn.innerText = "Saving...";
+    const updateData = {
+        storeName: document.getElementById('admin-store-name').value,
+        phone: document.getElementById('admin-phone').value,
+        searchHint: document.getElementById('admin-search-hint').value
+    };
+    if (pendingBase64Image) {
+        const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+        await uploadString(ref, pendingBase64Image, 'data_url');
+        updateData.profileImage = await getDownloadURL(ref);
+    }
+    await update(dbRef(db, `stores/${activeStoreId}`), updateData);
+    btn.innerText = "Save Settings";
+    showToast("Profile Updated!");
+};
+
+window.handleAdminImage = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingBase64Image = ev.target.result;
+        const p = document.getElementById('admin-img-preview');
+        p.src = ev.target.result; p.style.display = 'block';
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
 function renderInventoryList(catalog) {
     const div = document.getElementById('inventory-list');
     div.innerHTML = Object.keys(catalog).map(k => `
@@ -91,24 +125,6 @@ function renderInventoryList(catalog) {
             <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" style="color:red; background:none; border:none;"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
-
-window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete?")) return;
-    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
-    if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
-    loadDashboardData();
-};
-
-window.saveStoreSettings = async () => {
-    const updateData = {
-        storeName: document.getElementById('admin-store-name').value,
-        phone: document.getElementById('admin-phone').value,
-        searchHint: document.getElementById('admin-search-hint').value,
-        quickSearches: document.getElementById('admin-quick-searches').value.split(',').map(t => t.trim())
-    };
-    await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-    showToast("Settings Saved!");
-};
 
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
 window.logoutAdmin = () => signOut(auth);
