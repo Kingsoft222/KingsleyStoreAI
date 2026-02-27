@@ -47,6 +47,14 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
+        // Restore Greetings Settings View
+        if (document.getElementById('admin-greetings')) {
+            document.getElementById('admin-greetings').value = (data.customGreetings || []).join(', ');
+        }
+        if (document.getElementById('greetings-toggle')) {
+            document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
+        }
+
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         if (data.profileImage && imgP) { 
@@ -66,7 +74,7 @@ async function loadDashboardData() {
     }
 }
 
-// SWIFT UPLOAD: Clears EVERYTHING upon submission
+// SWIFT UPLOAD: Clears EVERYTHING on submission for a fresh start
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -143,13 +151,16 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
+// SAVING PROFILE SETTINGS
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
     if(btn) btn.innerText = "Saving...";
     const updateData = {
         storeName: document.getElementById('admin-store-name').value,
         phone: document.getElementById('admin-phone').value,
-        searchHint: document.getElementById('admin-search-hint').value
+        searchHint: document.getElementById('admin-search-hint').value,
+        greetingsEnabled: document.getElementById('greetings-toggle').checked,
+        customGreetings: document.getElementById('admin-greetings').value.split(',').map(g => g.trim())
     };
     if(pendingBase64Image) {
         const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
@@ -160,6 +171,21 @@ window.saveStoreSettings = async () => {
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
     if(btn) btn.innerText = "Save Settings";
     showToast("Settings Saved!");
+};
+
+// REPORTS & DOWNLOADS
+window.downloadInventory = async () => {
+    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
+    const catalog = snap.val();
+    if (!catalog) return alert("No inventory to download");
+    const blob = new Blob([JSON.stringify(catalog, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'inventory.json'; a.click();
+};
+
+window.downloadOrders = async () => {
+    alert("Fetching store orders...");
+    // Future logic for order management
 };
 
 function renderInventoryList(catalog) {
