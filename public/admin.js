@@ -43,39 +43,52 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // RESTORE PROFILE PIC VIEW
+        // --- RESTORED STORE LINK ---
+        const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
+        const linkEl = document.getElementById('my-store-link');
+        if(linkEl) { 
+            linkEl.href = storeLink; 
+            linkEl.innerText = storeLink; 
+        }
+
+        // --- RESTORED PROFILE IMAGE ---
         const imgP = document.getElementById('admin-img-preview');
-        if (data.profileImage) { 
+        if (data.profileImage && imgP) { 
             imgP.src = data.profileImage; 
             imgP.style.display = "block"; 
-            document.getElementById('remove-pic-btn').style.display = "inline-block";
         }
         renderInventoryList(data.catalog || {});
     }
 }
 
-// SWIFT UPLOAD SYSTEM
+// SWIFT UPLOAD: Only clears Name and Price
 window.uploadNewProduct = async () => {
-    const name = document.getElementById('prod-name').value;
-    const price = document.getElementById('prod-price').value;
+    const nameInput = document.getElementById('prod-name');
+    const priceInput = document.getElementById('prod-price');
     const cat = document.getElementById('prod-brand').value;
     const btn = document.getElementById('upload-prod-btn');
 
-    if (!name || !price || !pendingProductBase64) return alert("Fill all fields!");
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Image!");
     btn.innerText = "Adding...";
 
     try {
         const id = Date.now(), path = `inventory/${activeStoreId}/${id}.jpg`, sRef = storageRef(storage, path);
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { name, cat, price: Number(price), imgUrl: url, storagePath: path });
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
+            name: nameInput.value, 
+            cat: cat, 
+            price: Number(priceInput.value), 
+            imgUrl: url, 
+            storagePath: path 
+        });
         
-        // RESET FIELDS FOR SWIFT NEXT UPLOAD
-        document.getElementById('prod-name').value = "";
-        document.getElementById('prod-price').value = "";
+        // Swift Reset: Clear only Name and Price
+        nameInput.value = "";
+        priceInput.value = "";
         showToast("Item Added!");
         loadDashboardData();
-    } catch (e) { alert("Failed."); }
+    } catch (e) { alert("Failed to add product."); }
     btn.innerText = "Add Item";
 };
 
@@ -122,7 +135,7 @@ function renderInventoryList(catalog) {
         <div class="inventory-item">
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details"><h4>${catalog[k].name}</h4><p>₦${catalog[k].price.toLocaleString()}</p></div>
-            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" style="color:red; background:none; border:none;"><i class="fas fa-trash"></i></button>
+            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
 
