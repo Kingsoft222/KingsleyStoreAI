@@ -17,34 +17,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
-const db = getDatabase(app, "https://kingsleystoreai-default-rtdb.firebaseio.com"); 
+const db = getDatabase(app); 
 const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
-let currentGoogleUser = null, activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
+let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        currentGoogleUser = user;
-        document.getElementById('login-section').style.display = 'none';
-        
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) mBtn.style.display = 'block';
         }
-
-        const userMapSnapshot = await get(dbRef(db, `users/${user.uid}`));
-        if (userMapSnapshot.exists()) {
-            activeStoreId = userMapSnapshot.val().storeId;
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) {
+            activeStoreId = snap.val().storeId;
+            document.getElementById('login-section').style.display = 'none';
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
-        } else { 
-            document.getElementById('onboarding-section').style.display = 'block'; 
-        }
-    } else { 
-        document.getElementById('login-section').style.display = 'block'; 
-        document.getElementById('dashboard-section').style.display = 'none';
-    }
+        } else { document.getElementById('onboarding-section').style.display = 'block'; }
+    } else { document.getElementById('login-section').style.display = 'block'; }
 });
 
 async function loadDashboardData() {
@@ -55,33 +47,32 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // Restore Greetings Logic
-        if (document.getElementById('admin-greetings')) {
-            document.getElementById('admin-greetings').value = (data.customGreetings || []).join(', ');
-        }
-        if (document.getElementById('greetings-toggle')) {
-            document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
+        const imgP = document.getElementById('admin-img-preview');
+        const rmBtn = document.getElementById('remove-pic-btn');
+        if (data.profileImage && imgP) { 
+            imgP.src = data.profileImage; 
+            imgP.style.display = "block"; 
+            if(rmBtn) rmBtn.style.display = 'inline-block';
+        } else if (imgP) {
+            imgP.style.display = "none";
+            if(rmBtn) rmBtn.style.display = 'none';
         }
 
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
 
-        const imgP = document.getElementById('admin-img-preview');
-        if (data.profileImage && imgP) { 
-            imgP.src = data.profileImage; 
-            imgP.style.display = "block"; 
-        }
         renderInventoryList(data.catalog || {});
     }
 }
 
-// SWIFT UPLOAD: Fields NOT cleared except Name and Price as requested
+// SWIFT UPLOAD: Clears EVERYTHING upon submission
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
-    const cat = document.getElementById('prod-brand').value;
-    const tags = document.getElementById('prod-tags').value;
+    const tagsInput = document.getElementById('prod-tags');
+    const imgPreview = document.getElementById('prod-img-preview');
+    const fileInput = document.getElementById('prod-pic-upload');
     const btn = document.getElementById('upload-prod-btn');
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Image!");
@@ -92,44 +83,46 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
-            name: nameInput.value, cat: cat, price: Number(priceInput.value), 
-            tags: tags, imgUrl: url, storagePath: path 
+            name: nameInput.value, 
+            price: Number(priceInput.value),
+            cat: document.getElementById('prod-brand').value,
+            tags: tagsInput.value || "",
+            imgUrl: url, 
+            storagePath: path 
         });
         
-        // Professional Reset: Name and Price cleared, Image and Cat stay
+        // RESET ALL FIELDS FOR CLEAN SLATE
         nameInput.value = "";
         priceInput.value = "";
-        showToast("Item Added! Fields kept for swift multi-add.");
+        tagsInput.value = "";
+        if(fileInput) fileInput.value = "";
+        if(imgPreview) imgPreview.style.display = "none";
+        pendingProductBase64 = null;
+
+        showToast("Product Added Successfully!");
         loadDashboardData();
     } catch (e) { alert("Upload Failed."); }
     btn.innerText = "Add Item";
 };
 
-// COMMAND CENTER (VAULT)
-window.toggleMasterVault = async () => {
-    const section = document.getElementById('master-vault-section');
-    if(!section) return;
-    section.style.display = section.style.display === 'none' ? 'block' : 'none';
-    const snap = await get(dbRef(db, 'stores'));
-    const allStores = snap.val() || {};
-    document.getElementById('vault-body').innerHTML = Object.keys(allStores).map(sid => `
-        <tr><td>${sid}</td><td>${allStores[sid].storeName || 'N/A'}</td><td>${allStores[sid].phone || 'N/A'}</td></tr>
-    `).join('');
+window.removeAdminImage = async () => {
+    if(!confirm("Are you sure you want to remove your profile photo?")) return;
+    await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
+    document.getElementById('admin-img-preview').style.display = 'none';
+    document.getElementById('remove-pic-btn').style.display = 'none';
+    showToast("Profile Photo Removed");
 };
 
-// DOWNLOAD BUTTONS LOGIC
-window.downloadInventory = async () => {
-    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
-    const catalog = snap.val();
-    if (!catalog) return alert("No inventory to download");
-    const blob = new Blob([JSON.stringify(catalog, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'inventory.json'; a.click();
-};
-
-window.downloadOrders = async () => {
-    alert("Fetching store orders...");
-    // Logic to fetch orders from a global_orders or store specific orders node
+window.handleAdminImage = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingBase64Image = ev.target.result;
+        const p = document.getElementById('admin-img-preview');
+        p.src = ev.target.result; p.style.display = 'block';
+        const rmBtn = document.getElementById('remove-pic-btn');
+        if(rmBtn) rmBtn.style.display = 'inline-block';
+    };
+    reader.readAsDataURL(e.target.files[0]);
 };
 
 window.handleProductImagePreview = (e) => {
@@ -142,44 +135,29 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// RESTORED SAVE BUTTON LOGIC
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
     if(btn) btn.innerText = "Saving...";
-    
     const updateData = {
         storeName: document.getElementById('admin-store-name').value,
         phone: document.getElementById('admin-phone').value,
-        searchHint: document.getElementById('admin-search-hint').value,
-        greetingsEnabled: document.getElementById('greetings-toggle').checked,
-        customGreetings: document.getElementById('admin-greetings').value.split(',').map(g => g.trim())
+        searchHint: document.getElementById('admin-search-hint').value
     };
-    
-    if (pendingBase64Image) {
-        const pRef = storageRef(storage, `profiles/${activeStoreId}.jpg`);
-        await uploadString(pRef, pendingBase64Image, 'data_url');
-        updateData.profileImage = await getDownloadURL(pRef);
+    if(pendingBase64Image) {
+        const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+        await uploadString(ref, pendingBase64Image, 'data_url');
+        updateData.profileImage = await getDownloadURL(ref);
+        pendingBase64Image = null;
     }
-    
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
     if(btn) btn.innerText = "Save Settings";
-    showToast("Profile Updated!");
-};
-
-window.handleAdminImage = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingBase64Image = ev.target.result;
-        const p = document.getElementById('admin-img-preview');
-        if(p) { p.src = ev.target.result; p.style.display = 'block'; }
-    };
-    reader.readAsDataURL(e.target.files[0]);
+    showToast("Settings Saved!");
 };
 
 function renderInventoryList(catalog) {
-    const div = document.getElementById('inventory-list');
-    if(!div) return;
-    div.innerHTML = Object.keys(catalog).map(k => `
+    const list = document.getElementById('inventory-list');
+    if(!list) return;
+    list.innerHTML = Object.keys(catalog).map(k => `
         <div class="inventory-item">
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details">
@@ -191,10 +169,21 @@ function renderInventoryList(catalog) {
 }
 
 window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete?")) return;
+    if (!confirm("Delete this product?")) return;
     await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
     if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
     loadDashboardData();
+};
+
+window.toggleMasterVault = async () => {
+    const section = document.getElementById('master-vault-section');
+    if(!section) return;
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+    const snap = await get(dbRef(db, 'stores'));
+    const allStores = snap.val() || {};
+    document.getElementById('vault-body').innerHTML = Object.keys(allStores).map(sid => `
+        <tr><td>${sid}</td><td>${allStores[sid].storeName || 'N/A'}</td><td>${allStores[sid].phone || 'N/A'}</td></tr>
+    `).join('');
 };
 
 window.loginWithGoogle = () => signInWithPopup(auth, provider);

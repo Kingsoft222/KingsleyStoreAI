@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
+            
+            // --- SEARCH HINT RESTORATION ---
+            const searchInput = document.getElementById('ai-input');
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+            }
+
             if (data.profileImage) { document.getElementById('owner-img').src = data.profileImage; }
             
             // --- WHATSAPP SEND FIX ---
@@ -173,6 +180,7 @@ window.startTryOn = async () => {
 };
 
 window.addToCart = () => {
+    if(!selectedCloth) return;
     cart.push(selectedCloth);
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
     updateCartUI(); 
@@ -189,7 +197,7 @@ window.checkoutWhatsApp = () => {
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 async function getBase64FromUrl(url) { return new Promise((resolve) => { fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).then(r => r.blob()).then(b => { const rd = new FileReader(); rd.onloadend = () => resolve(rd.result.split(',')[1]); rd.readAsDataURL(b); }); }); }
-async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 1024; let w = img.width, h = img.height; if (w > h) { h *= MAX/w; w = MAX; } else { w *= MAX/h; h = MAX; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = b64; }); }
+async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 1024; let w = img.width, h = img.height; if (w > h) { h *= MAX/w; w = MAX; } else { w *= MAX/h; h = M = MAX; } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]); }; img.src = b64; }); }
 window.handleCustomerUpload = (e) => { const reader = new FileReader(); reader.onload = async (ev) => { tempCustomerPhoto = await resizeImage(ev.target.result); window.startTryOn(); }; reader.readAsDataURL(e.target.files[0]); };
 function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
