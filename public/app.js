@@ -33,7 +33,10 @@ window.activeGreetings = [];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. THEME INITIALIZATION & LISTENER
     applyDynamicThemeStyles();
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
+
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -77,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 
-    // RESTORED MIC & SEND LISTENER
+    // 2. INITIALIZE MIC & SEND BUTTON
     initVoiceSearch();
     const sendBtn = document.getElementById('send-btn');
     if(sendBtn) sendBtn.onclick = () => window.executeSearch();
@@ -87,15 +90,23 @@ document.addEventListener('DOMContentLoaded', () => {
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const textColor = isDarkMode ? 'white' : 'black';
-    const style = document.createElement('style');
-    style.innerHTML = `
+    const subtextColor = isDarkMode ? '#ccc' : '#444';
+
+    const styleId = 'dynamic-theme-style';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = styleId;
+        document.head.appendChild(styleTag);
+    }
+    styleTag.innerHTML = `
         #dynamic-greeting, #store-name-display, .result-card h4, .cart-item-name, .summary-text { color: ${textColor} !important; }
-        .theme-subtext { color: ${textColor} !important; }
+        .theme-subtext, .theme-p { color: ${subtextColor} !important; }
+        #ai-input { color: ${textColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
     `;
-    document.head.appendChild(style);
 }
 
-// VOICE SEARCH RESTORED
+// RESTORED MIC SPEECH ENGINE
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -103,20 +114,22 @@ function initVoiceSearch() {
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
     
-    micBtn.addEventListener('click', () => { 
+    micBtn.onclick = () => { 
         micBtn.style.color = "#e60023"; 
         recognition.start(); 
-    });
+    };
     
     recognition.onresult = (e) => { 
-        document.getElementById('ai-input').value = e.results[0][0].transcript; 
+        const transcript = e.results[0][0].transcript;
+        document.getElementById('ai-input').value = transcript; 
         micBtn.style.color = "#5f6368"; 
         window.executeSearch(); 
     };
     recognition.onend = () => { micBtn.style.color = "#5f6368"; };
+    recognition.onerror = () => { micBtn.style.color = "#5f6368"; };
 }
 
-// AI SHOWROOM MODAL - With Theme-Aware Subtext
+// AI SHOWROOM MODAL
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -128,6 +141,7 @@ window.promptShowroomChoice = (id) => {
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
             <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer; border:none;">Select from Gallery</button>
         </div>`;
+    applyDynamicThemeStyles();
 };
 
 // PROCESSING MODAL - RED Text Loader
@@ -153,25 +167,25 @@ window.startTryOn = async () => {
     } catch (e) { alert("Error."); window.closeFittingRoom(); }
 };
 
-// FINAL CHECKOUT: TRACKING -> WHATSAPP SUMMARY -> CART CLEAR
+// FINAL CHECKOUT: Detailed Summary + Master Vault Tracking
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
 
-    // 1. Log Tracking to Master Vault
+    // 1. Update Tracking in Database
     try { 
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1) 
         }); 
     } catch(e) { console.error("Tracking error:", e); }
     
-    // 2. Build Cart Summary for WhatsApp
+    // 2. Build Summary for WhatsApp
     let list = cart.map(i => `▪ ${i.name} (₦${i.price.toLocaleString()})`).join('%0A');
     let total = cart.reduce((s, i) => s + i.price, 0);
     const summaryMsg = `New Order from VirtualMall:%0A%0A${list}%0A%0A---%0ATOTAL: ₦${total.toLocaleString()}`;
     
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
     
-    // 3. Clear Cart for clean return
+    // 3. Clear Cart for clean slate
     cart = [];
     localStorage.removeItem(`cart_${currentStoreId}`);
     updateCartUI();
@@ -231,9 +245,10 @@ window.openCart = () => {
                 <i class="fab fa-whatsapp"></i> Checkout via WhatsApp
             </button>
         </div>`;
+    applyDynamicThemeStyles();
 };
 
-// --- CORE UTILS ---
+// --- UTILS ---
 async function resizeImage(b64) { 
     return new Promise((res) => { 
         const img = new Image(); 
