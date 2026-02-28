@@ -41,7 +41,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// MASTER VAULT WITH RESET
+// MASTER VAULT LOGIC (Sales Tracking & Reset)
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
@@ -78,7 +78,7 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // INDEPENDENT LABELS CONTROLS
+        // STOREFRONT AD FIELDS
         document.getElementById('admin-label-1').value = data.label1 || "Ladies Trouser";
         document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
 
@@ -87,7 +87,7 @@ async function loadDashboardData() {
         const greetToggle = document.getElementById('greetings-toggle');
         if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
 
-        // PHOTO AND REMOVE BUTTON LOGIC
+        // PHOTO AND RESTORED REMOVE BUTTON
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         if (data.profileImage) { 
@@ -97,12 +97,17 @@ async function loadDashboardData() {
             imgP.style.display = "none";
             if(rmBtn) rmBtn.style.display = "none";
         }
+
+        const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
+        const linkEl = document.getElementById('my-store-link');
+        if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
+
         renderInventoryList(data.catalog || {});
     }
 }
 
 window.removeAdminImage = async () => {
-    if(!confirm("Remove profile photo?")) return;
+    if(!confirm("Permanently remove profile photo?")) return;
     await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
     loadDashboardData();
     showToast("Photo Removed");
@@ -137,7 +142,7 @@ window.uploadNewProduct = async () => {
     const tagsInput = document.getElementById('prod-tags'), imgP = document.getElementById('prod-img-preview');
     const fileInput = document.getElementById('prod-pic-upload'), btn = document.getElementById('upload-prod-btn');
 
-    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Image!");
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
     btn.innerText = "Adding...";
     try {
         const id = Date.now(), path = `inventory/${activeStoreId}/${id}.jpg`, sRef = storageRef(storage, path);
@@ -156,11 +161,10 @@ window.uploadNewProduct = async () => {
         pendingProductBase64 = null;
         
         showToast("Product Added!"); loadDashboardData();
-    } catch (e) { alert("Error adding product."); }
+    } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
 };
 
-// REPORTS & UTILS
 window.downloadInventory = async () => {
     const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
     const data = snap.val() || {};
@@ -216,4 +220,4 @@ window.deleteProduct = async (k, path) => {
 
 window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
-function showToast(m) { const t = document.getElementById('status-toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
+function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }

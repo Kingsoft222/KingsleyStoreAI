@@ -76,9 +76,10 @@
                 <input type="checkbox" id="greetings-toggle" style="width:auto;"> 
                 <label style="margin:0;">Enable AI Greetings</label>
             </div>
-            <div class="form-group"><textarea id="admin-greetings" rows="3" placeholder="Chief, looking for premium native?..."></textarea></div>
+            <div class="form-group"><textarea id="admin-greetings" rows="3" placeholder="Chief, looking for premium style?..."></textarea></div>
 
-            <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Profile Settings</button>
+            <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Settings</button>
+            <p style="text-align:center; font-size:0.8rem; margin-top:15px;">Live Store: <a id="my-store-link" target="_blank" style="color:var(--primary); font-weight:bold;"></a></p>
         </div>
 
         <div id="add-product-section" class="card">
@@ -109,6 +110,7 @@
         <button class="btn-outline" onclick="window.logoutAdmin()">Logout</button>
     </div>
 </div>
+
 <div id="status-toast"></div>
 <script type="module" src="admin.js"></script>
 </body>
