@@ -36,7 +36,10 @@ onAuthStateChanged(auth, async (user) => {
             document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
         } else { document.getElementById('onboarding-section').style.display = 'block'; }
-    } else { document.getElementById('login-section').style.display = 'block'; }
+    } else { 
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('dashboard-section').style.display = 'none';
+    }
 });
 
 async function loadDashboardData() {
@@ -74,7 +77,26 @@ async function loadDashboardData() {
     }
 }
 
-// SWIFT UPLOAD: Clears EVERYTHING on submission for a fresh start
+// LOGOUT: Now fully functional
+window.logoutAdmin = () => {
+    if(!confirm("Are you sure you want to logout?")) return;
+    signOut(auth).then(() => {
+        window.location.reload();
+    }).catch(() => showToast("Error logging out."));
+};
+
+// REMOVE PROFILE PHOTO: Surgical removal from DB and UI
+window.removeAdminImage = async () => {
+    if(!confirm("Are you sure you want to remove your profile photo?")) return;
+    try {
+        await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
+        document.getElementById('admin-img-preview').style.display = 'none';
+        document.getElementById('remove-pic-btn').style.display = 'none';
+        showToast("Profile Photo Removed");
+    } catch (e) { showToast("Failed to remove photo"); }
+};
+
+// SWIFT UPLOAD: Clears Name, Price, Tags, and Image Preview on success
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -99,15 +121,9 @@ window.uploadNewProduct = async () => {
             storagePath: path 
         });
         
-        // RESET ALL FIELDS FOR CLEAN SLATE
-        nameInput.value = "";
-        priceInput.value = "";
-        tagsInput.value = "";
+        nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
-        if(imgPreview) {
-            imgPreview.style.display = "none";
-            imgPreview.src = "";
-        }
+        if(imgPreview) { imgPreview.style.display = "none"; imgPreview.src = ""; }
         pendingProductBase64 = null;
 
         showToast("Product Added Successfully!");
@@ -116,17 +132,15 @@ window.uploadNewProduct = async () => {
     btn.innerText = "Add Item";
 };
 
-// RESTORED: REMOVE PROFILE PHOTO LOGIC
-window.removeAdminImage = async () => {
-    if(!confirm("Are you sure you want to remove your profile photo?")) return;
-    try {
-        await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-        document.getElementById('admin-img-preview').style.display = 'none';
-        document.getElementById('remove-pic-btn').style.display = 'none';
-        showToast("Profile Photo Removed");
-    } catch (e) {
-        showToast("Failed to remove photo");
-    }
+// BUSINESS REPORTS: Instant Download Triggers
+window.downloadInventory = () => {
+    showToast("Downloading Inventory PDF...");
+    // Integration for your PDF library (jspdf/autotable) goes here
+};
+
+window.downloadOrders = () => {
+    showToast("Downloading Orders PDF...");
+    // Integration for your PDF library (jspdf/autotable) goes here
 };
 
 window.handleAdminImage = (e) => {
@@ -151,7 +165,6 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-// SAVING PROFILE SETTINGS
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
     if(btn) btn.innerText = "Saving...";
@@ -171,17 +184,6 @@ window.saveStoreSettings = async () => {
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
     if(btn) btn.innerText = "Save Settings";
     showToast("Settings Saved!");
-};
-
-// BUSINESS REPORTS (Restored to original intent)
-window.downloadInventory = () => {
-    alert("Generating Inventory Report...");
-    // Your existing PDF generation logic goes here
-};
-
-window.downloadOrders = () => {
-    alert("Generating Orders Report...");
-    // Your existing PDF generation logic goes here
 };
 
 function renderInventoryList(catalog) {
@@ -217,5 +219,4 @@ window.toggleMasterVault = async () => {
 };
 
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
-window.logoutAdmin = () => signOut(auth);
 function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
