@@ -45,6 +45,18 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// --- MASTER VAULT LOGIC RESTORED ---
+window.toggleMasterVault = () => {
+    const vaultPanel = document.getElementById('master-vault-panel');
+    if (vaultPanel) {
+        const isHidden = vaultPanel.style.display === 'none' || vaultPanel.style.display === '';
+        vaultPanel.style.display = isHidden ? 'block' : 'none';
+        showToast(isHidden ? "Master Vault Opened" : "Vault Closed");
+    } else {
+        alert("Vault Panel not found in HTML! Check your ID: master-vault-panel");
+    }
+};
+
 async function loadDashboardData() {
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
     const data = snap.val();
@@ -87,9 +99,9 @@ async function loadDashboardData() {
     }
 }
 
-// UNIVERSAL DOWNLOAD HANDLER (PDF or CSV)
+// UNIVERSAL DOWNLOAD HANDLER (Fixed Blank PDF & Choice Logic)
 window.downloadInventory = async () => {
-    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
+    const choice = prompt("Enter 1 for PDF, 2 for CSV (Excel)", "1");
     if (!choice) return;
 
     showToast("Generating Report...");
@@ -98,15 +110,13 @@ window.downloadInventory = async () => {
     if (!data) return alert("Inventory empty.");
 
     if (choice === "1") {
-        // PDF LOGIC
-        let content = `INVENTORY REPORT: ${activeStoreId}\n\n`;
+        let content = `VIRTUAL MALL - INVENTORY REPORT\nGenerated: ${new Date().toLocaleString()}\n\n`;
         Object.values(data).forEach(item => {
-            content += `Item: ${item.name} | Price: ₦${item.price}\nTags: ${item.tags}\n----------\n`;
+            content += `Item: ${item.name} | Price: ₦${item.price.toLocaleString()}\nCategory: ${item.cat}\nTags: ${item.tags}\n----------\n`;
         });
         const blob = new Blob([content], { type: 'application/pdf' });
         triggerDownload(blob, `Inventory_${activeStoreId}.pdf`);
     } else {
-        // CSV LOGIC
         let csv = "Name,Price,Category,Tags\n";
         Object.values(data).forEach(item => {
             csv += `"${item.name}","${item.price}","${item.cat}","${item.tags}"\n`;
@@ -117,7 +127,7 @@ window.downloadInventory = async () => {
 };
 
 window.downloadOrders = async () => {
-    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
+    const choice = prompt("Enter 1 for PDF, 2 for CSV (Excel)", "1");
     if (!choice) return;
 
     showToast("Fetching Orders...");
@@ -126,16 +136,16 @@ window.downloadOrders = async () => {
     if (!data) return alert("No orders found.");
 
     if (choice === "1") {
-        let content = `ORDERS REPORT: ${activeStoreId}\n\n`;
+        let content = `VIRTUAL MALL - ORDERS REPORT\nGenerated: ${new Date().toLocaleString()}\n\n`;
         Object.entries(data).forEach(([id, order]) => {
-            content += `ID: ${id} | Customer: ${order.customerName} | Total: ₦${order.total}\n----------\n`;
+            content += `Order ID: ${id}\nCustomer: ${order.customerName || 'N/A'}\nTotal: ₦${(order.total || 0).toLocaleString()}\nStatus: ${order.status || 'Paid'}\n----------\n`;
         });
         const blob = new Blob([content], { type: 'application/pdf' });
         triggerDownload(blob, `Orders_${activeStoreId}.pdf`);
     } else {
         let csv = "OrderID,Customer,Total,Status\n";
         Object.entries(data).forEach(([id, order]) => {
-            csv += `"${id}","${order.customerName}","${order.total}","${order.status}"\n`;
+            csv += `"${id}","${order.customerName || 'Guest'}","${order.total || 0}","${order.status || 'Paid'}"\n`;
         });
         const blob = new Blob([csv], { type: 'text/csv' });
         triggerDownload(blob, `Orders_${activeStoreId}.csv`);
@@ -149,7 +159,7 @@ function triggerDownload(blob, filename) {
     a.download = filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
     showToast("Download Complete!");
 }
 
