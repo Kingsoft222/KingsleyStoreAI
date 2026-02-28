@@ -18,23 +18,15 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-primary:hover { background: #ad001a; }
         .btn-outline { background: #eee; color: #333; }
-        .btn-pdf { background: #2c3e50; color: white; border: 1px solid #1a252f; }
+        .btn-danger { background: none; color: #e60023; border: 1px solid #e60023; width: auto; padding: 5px 15px; margin-top: 5px; font-size: 0.8rem; }
         .btn-master { background: #000; color: #fff; display: none; margin-bottom: 20px; width: 100%; }
-        
-        /* CATEGORY LABELS (THE ADS) */
-        .split-cards { display: flex; gap: 10px; margin-bottom: 20px; }
-        .split-card { flex: 1; background: #fff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; font-weight: 600; color: #333; }
-
-        /* MASTER VAULT TABLE STYLING */
         #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; }
         #master-vault-section th, #master-vault-section td { padding: 10px; border-bottom: 1px solid #444; text-align: left; }
-        #master-vault-section th { color: #ccc; font-size: 0.75rem; text-transform: uppercase; }
-
+        #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
+        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
         .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
         .inventory-item img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
         .inventory-item-details { flex-grow: 1; }
-        #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
-        .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -45,18 +37,12 @@
     </button>
 
     <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff;">
-        <h3><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
+        <h3>Global Sales Tracking</h3>
         <table>
             <thead>
-                <tr>
-                    <th>Store ID</th>
-                    <th>Name</th>
-                    <th>WA Clicks</th>
-                    <th>Action</th>
-                </tr>
+                <tr><th>Store ID</th><th>Name</th><th>WA Clicks</th><th>Action</th></tr>
             </thead>
-            <tbody id="vault-body">
-                </tbody>
+            <tbody id="vault-body"></tbody>
         </table>
     </div>
 
@@ -66,123 +52,64 @@
         <button class="btn-primary" onclick="window.loginWithGoogle()">Login with Google</button>
     </div>
 
-    <div id="onboarding-section" class="card" style="display:none;">
-        <h3>Setup Your Store</h3>
-        <div class="form-group"><input type="text" id="setup-username" placeholder="Username (Unique ID)"></div>
-        <div class="form-group"><input type="text" id="setup-bizname" placeholder="Business Name"></div>
-        <div class="form-group"><input type="number" id="setup-phone" placeholder="WhatsApp Number (e.g. 234...)"></div>
-        <button id="setup-btn" class="btn-primary" onclick="window.completeStoreSetup()">Create Store</button>
-    </div>
-
     <div id="dashboard-section" style="display:none;">
-        
-        <div class="split-cards">
-            <div class="split-card"><span id="display-label-1">Ladies Trouser</span></div>
-            <div class="split-card"><span id="display-label-2">Dinner Wears</span></div>
-        </div>
-
         <div class="card">
             <h3>Profile Settings</h3>
-            <img id="admin-img-preview" class="preview-img">
             <div style="text-align:center;">
-                <input type="file" id="admin-pic-upload" style="display:none;" onchange="window.handleAdminImage(event)">
-                <button class="btn-outline" style="width:auto; padding: 5px 15px;" onclick="document.getElementById('admin-pic-upload').click()">Change Photo</button>
+                <img id="admin-img-preview" class="preview-img">
+                <div style="margin-top:10px;">
+                    <input type="file" id="admin-pic-upload" style="display:none;" onchange="window.handleAdminImage(event)">
+                    <button class="btn-outline" style="width:auto; padding: 5px 15px;" onclick="document.getElementById('admin-pic-upload').click()">Change Photo</button>
+                    <button id="remove-pic-btn" class="btn-danger" style="display:none;" onclick="window.removeAdminImage()">Remove Photo</button>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label>Store Name</label>
-                <input type="text" id="admin-store-name">
-            </div>
+            <div class="form-group"><label>Store Name</label><input type="text" id="admin-store-name"></div>
+            
+            <div class="form-group"><label>Storefront Ad 1 (Labels on Main Site)</label><input type="text" id="admin-label-1" placeholder="e.g. Ladies Trouser"></div>
+            <div class="form-group"><label>Storefront Ad 2 (Labels on Main Site)</label><input type="text" id="admin-label-2" placeholder="e.g. Dinner Wears"></div>
 
-            <div class="form-group">
-                <label>Storefront Label 1 (Plain Text Ad)</label>
-                <input type="text" id="admin-label-1" placeholder="e.g. Ladies Trouser">
-            </div>
-            <div class="form-group">
-                <label>Storefront Label 2 (Plain Text Ad)</label>
-                <input type="text" id="admin-label-2" placeholder="e.g. Dinner Wears">
-            </div>
-
-            <div class="form-group">
-                <label>Search Bar Hint</label>
-                <input type="text" id="admin-search-hint" placeholder="e.g. Search for Senator Suits...">
-            </div>
-
-            <div class="form-group">
-                <label>WhatsApp Number (₦ Checkout)</label>
-                <input type="number" id="admin-phone">
-            </div>
+            <div class="form-group"><label>WhatsApp Number (₦ Checkout)</label><input type="number" id="admin-phone"></div>
+            <div class="form-group"><label>Search Bar Hint</label><input type="text" id="admin-search-hint"></div>
 
             <div style="margin-top:10px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="greetings-toggle" style="width:auto;"> 
                 <label style="margin:0;">Enable AI Greetings</label>
             </div>
-
-            <div class="form-group" style="margin-top:10px;">
-                <label>Custom Greetings (Comma separated)</label>
-                <textarea id="admin-greetings" rows="3" placeholder="Chief, looking for premium native?, Boss, what's your style today?"></textarea>
-            </div>
+            <div class="form-group"><textarea id="admin-greetings" rows="3" placeholder="Chief, looking for premium native?..."></textarea></div>
 
             <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Profile Settings</button>
-            <p style="text-align:center; font-size:0.8rem;">Live Store: <a id="my-store-link" target="_blank" style="color:var(--primary);"></a></p>
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-boxes"></i> Inventory</h3>
-            <div id="inventory-list"></div>
-            <button class="btn-primary" style="margin-top:10px;" onclick="document.getElementById('add-product-section').scrollIntoView({behavior:'smooth'});"><i class="fas fa-plus"></i> Add New Product</button>
-        </div>
-
-        <div class="card">
-            <h3><i class="fas fa-file-invoice"></i> Business Reports</h3>
-            <p style="font-size:0.85rem; color:#666;">Download your current inventory and order status.</p>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-pdf" onclick="window.downloadInventory()">
-                    <i class="fas fa-download"></i> Inventory Data
-                </button>
-                <button class="btn-pdf" onclick="window.downloadOrders()">
-                    <i class="fas fa-history"></i> Orders Data
-                </button>
-            </div>
         </div>
 
         <div id="add-product-section" class="card">
             <h3>Add New Product</h3>
+            <div class="form-group"><input type="text" id="prod-name" placeholder="Product Name"></div>
+            <div class="form-group"><input type="number" id="prod-price" placeholder="Price (₦)"></div>
             <div class="form-group">
-                <label>Product Name</label>
-                <input type="text" id="prod-name" placeholder="e.g. Red Senator Suit">
-            </div>
-            <div class="form-group">
-                <label>Price (₦)</label>
-                <input type="number" id="prod-price" placeholder="Amount only">
-            </div>
-            <div class="form-group">
-                <label>Category</label>
                 <select id="prod-brand">
                     <option value="Native Wear">Native Wear</option>
                     <option value="Suits">Suits</option>
                     <option value="Casual">Casual</option>
-                    <option value="Agbada">Agbada</option>
                 </select>
             </div>
+            <div class="form-group"><input type="text" id="prod-tags" placeholder="Tags (comma separated)"></div>
             <div class="form-group">
-                <label>Tags (Comma separated)</label>
-                <input type="text" id="prod-tags" placeholder="red, native, premium">
-            </div>
-            <div class="form-group">
-                <label>Clothing Photo</label>
+                <label>Product Photo</label>
                 <input type="file" id="prod-pic-upload" onchange="window.handleProductImagePreview(event)">
-                <img id="prod-img-preview" style="width:100%; height:200px; object-fit:contain; display:none; margin-top:10px; border-radius: 8px; border: 1px dashed #ccc;">
+                <img id="prod-img-preview" style="width:100px; height:100px; display:none; margin-top:10px; border-radius:8px;">
             </div>
             <button id="upload-prod-btn" class="btn-primary" onclick="window.uploadNewProduct()">Add Item to Store</button>
+        </div>
+
+        <div class="card">
+            <h3>Inventory</h3>
+            <div id="inventory-list"></div>
         </div>
 
         <button class="btn-outline" onclick="window.logoutAdmin()">Logout</button>
     </div>
 </div>
-
 <div id="status-toast"></div>
-
 <script type="module" src="admin.js"></script>
 </body>
 </html>

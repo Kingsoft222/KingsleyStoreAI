@@ -34,7 +34,6 @@ window.activeGreetings = [];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Corrected to use dbRef(db, ...) to match your imports
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -45,11 +44,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
             }
 
+            // --- RENDER DEDICATED CATEGORY LABELS ABOVE SEARCH BAR ---
+            const container = document.getElementById('quick-search-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><span>${data.label1 || 'Ladies Wear'}</span></div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><span>${data.label2 || 'Dinner Wear'}</span></div>
+                `;
+            }
+
             if (data.profileImage) { document.getElementById('owner-img').src = data.profileImage; }
             
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // --- GREETINGS TOGGLE FIX ---
             const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) 
@@ -61,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (greetingEl) {
                 greetingEl.style.display = 'none';
+                window.activeGreetings = [];
             }
 
             if (data.catalog) {
@@ -102,15 +112,20 @@ window.addToCart = () => {
             proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
             proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
             
-            // CORRECTED: changed activeStoreId to currentStoreId
             proceedBtn.onclick = async () => {
+                // 1. Log Sales Intent to Master Vault (using currentStoreId)
                 try {
                     await update(dbRef(db, `stores/${currentStoreId}/analytics`), {
                         whatsappClicks: increment(1)
                     });
-                } catch (e) {
-                    console.error("Analytics log failed", e);
-                }
+                } catch (e) { console.error("Tracking error", e); }
+
+                // 2. CLEAR CART COMPLETELY
+                cart = [];
+                localStorage.removeItem(`cart_${currentStoreId}`);
+                window.updateCartUI();
+
+                // 3. Close modal and open cart to show it's empty or go to WhatsApp
                 window.openCart();
             };
             
@@ -118,6 +133,24 @@ window.addToCart = () => {
         }
     }
 };
+
+window.checkoutWhatsApp = () => {
+    let list = cart.map(i => `▪ 1x ${i.name}`).join('%0A');
+    let total = cart.reduce((s, i) => s + i.price, 0);
+
+    // CART CLEARING UPON WHATSAPP TAP
+    const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=Order:%0A${list}%0A%0ATOTAL: ₦${total.toLocaleString()}`;
+    
+    // Clear cart memory and storage
+    cart = [];
+    localStorage.removeItem(`cart_${currentStoreId}`);
+    updateCartUI();
+    
+    window.open(waUrl, '_blank');
+    window.closeFittingRoom();
+};
+
+// ... Remaining utility functions (executeSearch, initVoiceSearch, promptShowroomChoice, openCart, removeFromCart, startTryOn, resizeImage, handleCustomerUpload, showToast, quickSearch) remain identical ...
 
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
@@ -224,12 +257,6 @@ window.startTryOn = async () => {
             window.closeFittingRoom();
         }
     } catch (e) { alert("Network error. Please check your connection."); window.closeFittingRoom(); }
-};
-
-window.checkoutWhatsApp = () => {
-    let list = cart.map(i => `▪ 1x ${i.name}`).join('%0A');
-    let total = cart.reduce((s, i) => s + i.price, 0);
-    window.open(`https://wa.me/${storePhone.replace('+', '')}?text=Order:%0A${list}%0A%0ATOTAL: ₦${total.toLocaleString()}`);
 };
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
