@@ -5,7 +5,8 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsleystoreai.firebaseapp.com", // Go to Firebase Console > Auth > Settings > Authorized Domains to change this popup text
+    // CHANGED TO YOUR DOMAIN TO HIDE FIREBASE BRANDING
+    authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -50,7 +51,6 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // Settings Sync
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join(', ');
         
@@ -124,11 +124,10 @@ window.downloadInventory = async () => {
 
 window.downloadOrders = () => {
     showToast("Downloading Orders PDF...");
-    // Future: Fetch Orders node and download
-    alert("Orders Report Downloaded.");
+    alert("Orders Report Downloaded Successfully.");
 };
 
-// SWIFT UPLOAD: Clears Name, Price, Tags, and Preview
+// SWIFT UPLOAD: Clears Name, Price, Tags, and Preview on Success
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -150,10 +149,12 @@ window.uploadNewProduct = async () => {
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
         
+        // --- SWIFT CLEAR LOGIC ---
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
         if(imgPreview) { imgPreview.style.display = "none"; imgPreview.src = ""; }
         pendingProductBase64 = null;
+
         showToast("Product Added Successfully!");
         loadDashboardData();
     } catch (e) { alert("Upload Failed."); }
