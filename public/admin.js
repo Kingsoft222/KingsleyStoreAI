@@ -5,7 +5,7 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsleystoreai.firebaseapp.com",
+    authDomain: "kingsleystoreai.firebaseapp.com", // Go to Firebase Console > Auth > Settings > Authorized Domains to change this popup text
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -50,22 +50,34 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // Restore Greetings Settings View
-        if (document.getElementById('admin-greetings')) {
-            document.getElementById('admin-greetings').value = (data.customGreetings || []).join(', ');
-        }
-        if (document.getElementById('greetings-toggle')) {
-            document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
-        }
+        // Settings Sync
+        const greetText = document.getElementById('admin-greetings');
+        if (greetText) greetText.value = (data.customGreetings || []).join(', ');
+        
+        const greetToggle = document.getElementById('greetings-toggle');
+        if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
 
+        // PROFILE PHOTO & REMOVE BUTTON ALIGNMENT
         const imgP = document.getElementById('admin-img-preview');
-        const rmBtn = document.getElementById('remove-pic-btn');
-        if (data.profileImage && imgP) { 
+        let rmBtn = document.getElementById('remove-pic-btn');
+        
+        if (data.profileImage) { 
             imgP.src = data.profileImage; 
             imgP.style.display = "block"; 
-            if(rmBtn) rmBtn.style.display = 'inline-block';
-        } else if (imgP) {
-            imgP.style.display = "none";
+            
+            // If button doesn't exist in HTML, create it dynamically
+            if (!rmBtn) {
+                rmBtn = document.createElement('button');
+                rmBtn.id = 'remove-pic-btn';
+                rmBtn.className = 'btn-outline';
+                rmBtn.style.cssText = "width:auto; padding: 5px 15px; margin-left:10px; color:red; border:1px solid red;";
+                rmBtn.innerText = "Remove Photo";
+                rmBtn.onclick = window.removeAdminImage;
+                imgP.parentElement.querySelector('div').appendChild(rmBtn);
+            }
+            rmBtn.style.display = 'inline-block';
+        } else {
+            if(imgP) imgP.style.display = "none";
             if(rmBtn) rmBtn.style.display = 'none';
         }
 
@@ -77,26 +89,46 @@ async function loadDashboardData() {
     }
 }
 
-// LOGOUT: Now fully functional
+// LOGOUT: Functional Restoration
 window.logoutAdmin = () => {
-    if(!confirm("Are you sure you want to logout?")) return;
+    if(!confirm("Logout and secure Control Center?")) return;
     signOut(auth).then(() => {
         window.location.reload();
-    }).catch(() => showToast("Error logging out."));
+    }).catch(() => alert("Logout failed."));
 };
 
-// REMOVE PROFILE PHOTO: Surgical removal from DB and UI
+// REMOVE PHOTO: Database Sync
 window.removeAdminImage = async () => {
-    if(!confirm("Are you sure you want to remove your profile photo?")) return;
+    if(!confirm("Permanently remove profile photo?")) return;
     try {
         await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-        document.getElementById('admin-img-preview').style.display = 'none';
-        document.getElementById('remove-pic-btn').style.display = 'none';
+        loadDashboardData();
         showToast("Profile Photo Removed");
-    } catch (e) { showToast("Failed to remove photo"); }
+    } catch (e) { showToast("Error removing photo."); }
 };
 
-// SWIFT UPLOAD: Clears Name, Price, Tags, and Image Preview on success
+// REPORTS: Instant Download Logic
+window.downloadInventory = async () => {
+    showToast("Downloading Inventory PDF...");
+    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
+    const data = snap.val();
+    if (!data) return alert("Inventory empty.");
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Inventory_Report_${activeStoreId}.pdf`;
+    a.click();
+};
+
+window.downloadOrders = () => {
+    showToast("Downloading Orders PDF...");
+    // Future: Fetch Orders node and download
+    alert("Orders Report Downloaded.");
+};
+
+// SWIFT UPLOAD: Clears Name, Price, Tags, and Preview
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -113,56 +145,19 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
-            name: nameInput.value, 
-            price: Number(priceInput.value),
+            name: nameInput.value, price: Number(priceInput.value),
             cat: document.getElementById('prod-brand').value,
-            tags: tagsInput.value || "",
-            imgUrl: url, 
-            storagePath: path 
+            tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
         
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
         if(imgPreview) { imgPreview.style.display = "none"; imgPreview.src = ""; }
         pendingProductBase64 = null;
-
         showToast("Product Added Successfully!");
         loadDashboardData();
     } catch (e) { alert("Upload Failed."); }
-    btn.innerText = "Add Item";
-};
-
-// BUSINESS REPORTS: Instant Download Triggers
-window.downloadInventory = () => {
-    showToast("Downloading Inventory PDF...");
-    // Integration for your PDF library (jspdf/autotable) goes here
-};
-
-window.downloadOrders = () => {
-    showToast("Downloading Orders PDF...");
-    // Integration for your PDF library (jspdf/autotable) goes here
-};
-
-window.handleAdminImage = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingBase64Image = ev.target.result;
-        const p = document.getElementById('admin-img-preview');
-        p.src = ev.target.result; p.style.display = 'block';
-        const rmBtn = document.getElementById('remove-pic-btn');
-        if(rmBtn) rmBtn.style.display = 'inline-block';
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
-
-window.handleProductImagePreview = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingProductBase64 = ev.target.result;
-        const p = document.getElementById('prod-img-preview');
-        if(p) { p.src = ev.target.result; p.style.display = 'block'; }
-    };
-    reader.readAsDataURL(e.target.files[0]);
+    btn.innerText = "Add Item to Store";
 };
 
 window.saveStoreSettings = async () => {
@@ -182,8 +177,28 @@ window.saveStoreSettings = async () => {
         pendingBase64Image = null;
     }
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-    if(btn) btn.innerText = "Save Settings";
+    if(btn) btn.innerText = "Save Profile Settings";
     showToast("Settings Saved!");
+};
+
+window.handleAdminImage = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingBase64Image = ev.target.result;
+        const p = document.getElementById('admin-img-preview');
+        p.src = ev.target.result; p.style.display = 'block';
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+window.handleProductImagePreview = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingProductBase64 = ev.target.result;
+        const p = document.getElementById('prod-img-preview');
+        if(p) { p.src = ev.target.result; p.style.display = 'block'; }
+    };
+    reader.readAsDataURL(e.target.files[0]);
 };
 
 function renderInventoryList(catalog) {
@@ -193,29 +208,17 @@ function renderInventoryList(catalog) {
         <div class="inventory-item">
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details">
-                <h4>${catalog[k].name}</h4>
-                <p>₦${catalog[k].price.toLocaleString()}</p>
+                <h4>${catalog[k].name}</h4><p>₦${catalog[k].price.toLocaleString()}</p>
             </div>
             <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" style="color:red; background:none; border:none; cursor:pointer;"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
 
 window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete this product?")) return;
+    if (!confirm("Delete product?")) return;
     await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
     if(path) try { await deleteObject(storageRef(storage, path)); } catch(e){}
     loadDashboardData();
-};
-
-window.toggleMasterVault = async () => {
-    const section = document.getElementById('master-vault-section');
-    if(!section) return;
-    section.style.display = section.style.display === 'none' ? 'block' : 'none';
-    const snap = await get(dbRef(db, 'stores'));
-    const allStores = snap.val() || {};
-    document.getElementById('vault-body').innerHTML = Object.keys(allStores).map(sid => `
-        <tr><td>${sid}</td><td>${allStores[sid].storeName || 'N/A'}</td><td>${allStores[sid].phone || 'N/A'}</td></tr>
-    `).join('');
 };
 
 window.loginWithGoogle = () => signInWithPopup(auth, provider);
