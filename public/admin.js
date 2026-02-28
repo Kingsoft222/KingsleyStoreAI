@@ -5,7 +5,7 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsleystoreai.firebaseapp.com", // TECHNICAL HANDSHAKE
+    authDomain: "kingsleystoreai.firebaseapp.com", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -24,9 +24,13 @@ let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null;
 
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // MASTER VAULT RESTORATION
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
-            if(mBtn) mBtn.style.display = 'block';
+            if(mBtn) {
+                mBtn.style.display = 'block';
+                mBtn.removeAttribute('disabled');
+            }
         }
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
@@ -51,19 +55,15 @@ async function loadDashboardData() {
         
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join(', ');
-        
         const greetToggle = document.getElementById('greetings-toggle');
         if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
 
-        // PROFILE PHOTO & REMOVE BUTTON ALIGNMENT
         const imgP = document.getElementById('admin-img-preview');
         let rmBtn = document.getElementById('remove-pic-btn');
         
         if (data.profileImage) { 
             imgP.src = data.profileImage; 
             imgP.style.display = "block"; 
-            
-            // If button doesn't exist in HTML, create it dynamically
             if (!rmBtn) {
                 rmBtn = document.createElement('button');
                 rmBtn.id = 'remove-pic-btn';
@@ -87,15 +87,77 @@ async function loadDashboardData() {
     }
 }
 
-// LOGOUT: Functional Restoration
-window.logoutAdmin = () => {
-    if(!confirm("Logout and secure Control Center?")) return;
-    signOut(auth).then(() => {
-        window.location.reload();
-    }).catch(() => alert("Logout failed."));
+// UNIVERSAL DOWNLOAD HANDLER (PDF or CSV)
+window.downloadInventory = async () => {
+    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
+    if (!choice) return;
+
+    showToast("Generating Report...");
+    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
+    const data = snap.val();
+    if (!data) return alert("Inventory empty.");
+
+    if (choice === "1") {
+        // PDF LOGIC
+        let content = `INVENTORY REPORT: ${activeStoreId}\n\n`;
+        Object.values(data).forEach(item => {
+            content += `Item: ${item.name} | Price: ₦${item.price}\nTags: ${item.tags}\n----------\n`;
+        });
+        const blob = new Blob([content], { type: 'application/pdf' });
+        triggerDownload(blob, `Inventory_${activeStoreId}.pdf`);
+    } else {
+        // CSV LOGIC
+        let csv = "Name,Price,Category,Tags\n";
+        Object.values(data).forEach(item => {
+            csv += `"${item.name}","${item.price}","${item.cat}","${item.tags}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        triggerDownload(blob, `Inventory_${activeStoreId}.csv`);
+    }
 };
 
-// REMOVE PHOTO: Database Sync
+window.downloadOrders = async () => {
+    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
+    if (!choice) return;
+
+    showToast("Fetching Orders...");
+    const snap = await get(dbRef(db, `orders/${activeStoreId}`));
+    const data = snap.val();
+    if (!data) return alert("No orders found.");
+
+    if (choice === "1") {
+        let content = `ORDERS REPORT: ${activeStoreId}\n\n`;
+        Object.entries(data).forEach(([id, order]) => {
+            content += `ID: ${id} | Customer: ${order.customerName} | Total: ₦${order.total}\n----------\n`;
+        });
+        const blob = new Blob([content], { type: 'application/pdf' });
+        triggerDownload(blob, `Orders_${activeStoreId}.pdf`);
+    } else {
+        let csv = "OrderID,Customer,Total,Status\n";
+        Object.entries(data).forEach(([id, order]) => {
+            csv += `"${id}","${order.customerName}","${order.total}","${order.status}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        triggerDownload(blob, `Orders_${activeStoreId}.csv`);
+    }
+};
+
+function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast("Download Complete!");
+}
+
+window.logoutAdmin = () => {
+    if(!confirm("Logout and secure Control Center?")) return;
+    signOut(auth).then(() => { window.location.reload(); });
+};
+
 window.removeAdminImage = async () => {
     if(!confirm("Permanently remove profile photo?")) return;
     try {
@@ -105,27 +167,6 @@ window.removeAdminImage = async () => {
     } catch (e) { showToast("Error removing photo."); }
 };
 
-// REPORTS: Instant Download Logic
-window.downloadInventory = async () => {
-    showToast("Downloading Inventory PDF...");
-    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
-    const data = snap.val();
-    if (!data) return alert("Inventory empty.");
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Inventory_Report_${activeStoreId}.pdf`;
-    a.click();
-};
-
-window.downloadOrders = () => {
-    showToast("Downloading Orders PDF...");
-    alert("Orders Report Downloaded Successfully.");
-};
-
-// SWIFT UPLOAD: Clears Name, Price, Tags, and Preview on Success
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -147,13 +188,11 @@ window.uploadNewProduct = async () => {
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
         
-        // --- SWIFT CLEAR LOGIC ---
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
         if(imgPreview) { imgPreview.style.display = "none"; imgPreview.src = ""; }
         pendingProductBase64 = null;
-
-        showToast("Product Added Successfully!");
+        showToast("Product Added!");
         loadDashboardData();
     } catch (e) { alert("Upload Failed."); }
     btn.innerText = "Add Item to Store";
