@@ -33,9 +33,10 @@ window.activeGreetings = [];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. THEME INITIALIZATION & LISTENER
+    // 1. FORCE REAL-TIME THEME WATCHER
     applyDynamicThemeStyles();
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
+    setInterval(applyDynamicThemeStyles, 2000); // Fail-safe for consistent color matching
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -100,8 +101,7 @@ function applyDynamicThemeStyles() {
         document.head.appendChild(styleTag);
     }
     styleTag.innerHTML = `
-        #dynamic-greeting, #store-name-display, .result-card h4, .cart-item-name, .summary-text { color: ${textColor} !important; }
-        .theme-subtext, .theme-p { color: ${subtextColor} !important; }
+        #dynamic-greeting, #store-name-display, .result-card h4, .cart-item-name, .summary-text, .theme-subtext, .theme-p { color: ${textColor} !important; }
         #ai-input { color: ${textColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
     `;
 }
@@ -167,32 +167,32 @@ window.startTryOn = async () => {
     } catch (e) { alert("Error."); window.closeFittingRoom(); }
 };
 
-// FINAL CHECKOUT: Detailed Summary + Master Vault Tracking
+// FINAL CHECKOUT: FORCED SUMMARY PERSISTENCE + TRACKING
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
 
-    // 1. Update Tracking in Database
+    // 1. ENSURE TRACKING IS LOGGED BEFORE REDIRECT
     try { 
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1) 
         }); 
     } catch(e) { console.error("Tracking error:", e); }
     
-    // 2. Build Summary for WhatsApp
+    // 2. Build Summary (PERSISTENT DATA)
     let list = cart.map(i => `▪ ${i.name} (₦${i.price.toLocaleString()})`).join('%0A');
     let total = cart.reduce((s, i) => s + i.price, 0);
     const summaryMsg = `New Order from VirtualMall:%0A%0A${list}%0A%0A---%0ATOTAL: ₦${total.toLocaleString()}`;
     
+    // 3. ASSIGN URL (Forces summary transfer regardless of WA background state)
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
     
-    // 3. Clear Cart for clean slate
+    // 4. Clear data for return
     cart = [];
     localStorage.removeItem(`cart_${currentStoreId}`);
     updateCartUI();
     
-    // 4. Redirect
-    window.open(waUrl, '_blank');
-    window.closeFittingRoom();
+    // 5. REDIRECT
+    window.location.assign(waUrl);
 };
 
 window.addToCart = () => {
