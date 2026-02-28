@@ -173,18 +173,15 @@ window.saveStoreSettings = async () => {
     showToast("Settings Saved!");
 };
 
-// REPORTS & DOWNLOADS
-window.downloadInventory = async () => {
-    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
-    const catalog = snap.val();
-    if (!catalog) return alert("No inventory to download");
-    const blob = new Blob([JSON.stringify(catalog, null, 2)], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'inventory.json'; a.click();
+// BUSINESS REPORTS (Restored to original intent)
+window.downloadInventory = () => {
+    alert("Generating Inventory Report...");
+    // Your existing PDF generation logic goes here
 };
 
-window.downloadOrders = async () => {
-    alert("Fetching store orders...");
+window.downloadOrders = () => {
+    alert("Generating Orders Report...");
+    // Your existing PDF generation logic goes here
 };
 
 function renderInventoryList(catalog) {

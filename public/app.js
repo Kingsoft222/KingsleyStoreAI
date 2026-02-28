@@ -28,9 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
+            
+            // --- SEARCH HINT SYNC ---
             const searchInput = document.getElementById('ai-input');
-            if (searchInput) searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+            }
+
+            if (data.profileImage) { document.getElementById('owner-img').src = data.profileImage; }
             
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
@@ -74,7 +79,6 @@ window.addToCart = () => {
     updateCartUI(); 
     showToast("✅ Added successfully"); 
 
-    // Find the current result div to modify buttons
     const resDiv = document.getElementById('ai-fitting-result');
     const existingBtn = resDiv.querySelector('button');
     
@@ -82,14 +86,17 @@ window.addToCart = () => {
         // Change existing button to "Check another one"
         existingBtn.innerText = "Check another one";
         existingBtn.onclick = () => window.closeFittingRoom();
-        existingBtn.style.background = "#555"; // Subtle color for secondary action
+        existingBtn.style.background = "#555"; 
         
-        // Add "Proceed to cart" button below it
-        const proceedBtn = document.createElement('button');
-        proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
-        proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
-        proceedBtn.onclick = () => window.openCart();
-        resDiv.appendChild(proceedBtn);
+        // Prevent duplicate "Proceed" buttons
+        if (!document.getElementById('proceed-to-cart-btn')) {
+            const proceedBtn = document.createElement('button');
+            proceedBtn.id = 'proceed-to-cart-btn';
+            proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
+            proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
+            proceedBtn.onclick = () => window.openCart();
+            resDiv.appendChild(proceedBtn);
+        }
     }
 };
 
