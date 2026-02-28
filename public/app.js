@@ -76,6 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
             gIndex++; 
         }
     }, 3000);
+
+    // RESTORED MIC & SEND LISTENER
+    initVoiceSearch();
+    const sendBtn = document.getElementById('send-btn');
+    if(sendBtn) sendBtn.onclick = () => window.executeSearch();
 });
 
 // THEME DETECTION: Text switches between Black/White based on phone theme
@@ -88,6 +93,27 @@ function applyDynamicThemeStyles() {
         .theme-subtext { color: ${textColor} !important; }
     `;
     document.head.appendChild(style);
+}
+
+// VOICE SEARCH RESTORED
+function initVoiceSearch() {
+    const micBtn = document.getElementById('mic-btn');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition || !micBtn) return;
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-NG';
+    
+    micBtn.addEventListener('click', () => { 
+        micBtn.style.color = "#e60023"; 
+        recognition.start(); 
+    });
+    
+    recognition.onresult = (e) => { 
+        document.getElementById('ai-input').value = e.results[0][0].transcript; 
+        micBtn.style.color = "#5f6368"; 
+        window.executeSearch(); 
+    };
+    recognition.onend = () => { micBtn.style.color = "#5f6368"; };
 }
 
 // AI SHOWROOM MODAL - With Theme-Aware Subtext
