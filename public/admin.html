@@ -25,6 +25,11 @@
         .split-cards { display: flex; gap: 10px; margin-bottom: 20px; }
         .split-card { flex: 1; background: #fff; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; font-weight: 600; color: #333; }
 
+        /* MASTER VAULT TABLE STYLING */
+        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; }
+        #master-vault-section th, #master-vault-section td { padding: 10px; border-bottom: 1px solid #444; text-align: left; }
+        #master-vault-section th { color: #ccc; font-size: 0.75rem; text-transform: uppercase; }
+
         .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
         .inventory-item img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
         .inventory-item-details { flex-grow: 1; }
@@ -40,10 +45,18 @@
     </button>
 
     <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff;">
-        <h3>Global Orders & Stores</h3>
-        <table style="width:100%; text-align: left; font-size: 0.8rem; color: white;">
-            <thead><tr><th>Store ID</th><th>Name</th><th>Phone</th></tr></thead>
-            <tbody id="vault-body"></tbody>
+        <h3><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Store ID</th>
+                    <th>Name</th>
+                    <th>WA Clicks</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="vault-body">
+                </tbody>
         </table>
     </div>
 
@@ -57,7 +70,7 @@
         <h3>Setup Your Store</h3>
         <div class="form-group"><input type="text" id="setup-username" placeholder="Username (Unique ID)"></div>
         <div class="form-group"><input type="text" id="setup-bizname" placeholder="Business Name"></div>
-        <div class="form-group"><input type="number" id="setup-phone" placeholder="WhatsApp Number (e.g. 080...)"></div>
+        <div class="form-group"><input type="number" id="setup-phone" placeholder="WhatsApp Number (e.g. 234...)"></div>
         <button id="setup-btn" class="btn-primary" onclick="window.completeStoreSetup()">Create Store</button>
     </div>
 
@@ -82,11 +95,11 @@
             </div>
 
             <div class="form-group">
-                <label>Category Label 1 (Plain Text Ad)</label>
+                <label>Storefront Label 1 (Plain Text Ad)</label>
                 <input type="text" id="admin-label-1" placeholder="e.g. Ladies Trouser">
             </div>
             <div class="form-group">
-                <label>Category Label 2 (Plain Text Ad)</label>
+                <label>Storefront Label 2 (Plain Text Ad)</label>
                 <input type="text" id="admin-label-2" placeholder="e.g. Dinner Wears">
             </div>
 

@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDatabase, ref as dbRef, get, set, update, push, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -44,7 +44,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- MASTER VAULT LOGIC (Fixed & Data-Connected) ---
+// --- MASTER VAULT LOGIC (With Reset & Analytics) ---
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (vaultSection) {
@@ -53,14 +53,15 @@ window.toggleMasterVault = async () => {
             vaultSection.style.display = 'block';
             showToast("Master Vault Accessed");
             const snap = await get(dbRef(db, 'stores'));
-            const stores = snap.val();
+            const stores = snap.val() || {};
             const body = document.getElementById('vault-body');
-            if(stores && body) {
+            if(body) {
                 body.innerHTML = Object.entries(stores).map(([id, s]) => `
                     <tr>
                         <td>${id}</td>
                         <td>${s.storeName || 'Unnamed'}</td>
-                        <td>${s.phone || 'No Phone'}</td>
+                        <td style="color:#25D366; font-weight:bold;">${s.analytics?.whatsappClicks || 0}</td>
+                        <td><button onclick="window.resetStoreClicks('${id}')" style="background:#444; color:white; padding:4px 8px; font-size:10px; border-radius:4px; border:none; cursor:pointer;">Reset</button></td>
                     </tr>
                 `).join('');
             }
@@ -68,6 +69,14 @@ window.toggleMasterVault = async () => {
             vaultSection.style.display = 'none';
         }
     }
+};
+
+// --- RESET ANALYTICS FUNCTION ---
+window.resetStoreClicks = async (storeId) => {
+    if(!confirm(`Reset WhatsApp clicks for ${storeId}?`)) return;
+    await update(dbRef(db, `stores/${storeId}/analytics`), { whatsappClicks: 0 });
+    showToast("Analytics Reset!");
+    window.toggleMasterVault(); // Refresh table
 };
 
 async function loadDashboardData() {
@@ -78,7 +87,7 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // --- DEDICATED LABELS LOAD (Independent of Greetings) ---
+        // --- DEDICATED LABELS LOAD ---
         if(document.getElementById('admin-label-1')) document.getElementById('admin-label-1').value = data.label1 || "Ladies Trouser";
         if(document.getElementById('admin-label-2')) document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
         
@@ -103,9 +112,9 @@ async function loadDashboardData() {
     }
 }
 
-// --- BUSINESS REPORTS (Choice & Real Data Fix) ---
+// --- BUSINESS REPORTS ---
 window.downloadInventory = async () => {
-    const choice = prompt("Enter 1 for PDF, 2 for CSV (Excel)", "1");
+    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
     if (!choice) return;
     showToast("Generating Report...");
     const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
@@ -116,49 +125,36 @@ window.downloadInventory = async () => {
     if (choice === "1") {
         content = `INVENTORY REPORT: ${activeStoreId}\n\n`;
         Object.values(data).forEach(item => {
-            content += `Item: ${item.name} | Price: ₦${item.price.toLocaleString()}\nTags: ${item.tags}\n----------\n`;
+            content += `${item.name}: ₦${item.price.toLocaleString()}\n----------\n`;
         });
-        triggerDownload(new Blob([content], { type: 'application/pdf' }), `Inventory_${activeStoreId}.pdf`);
+        triggerDownload(new Blob([content], { type: 'application/pdf' }), `Inventory.pdf`);
     } else {
-        content = "Name,Price,Category,Tags\n";
+        content = "Name,Price\n";
         Object.values(data).forEach(item => {
-            content += `"${item.name}","${item.price}","${item.cat}","${item.tags}"\n`;
+            content += `"${item.name}","${item.price}"\n`;
         });
-        triggerDownload(new Blob([content], { type: 'text/csv' }), `Inventory_${activeStoreId}.csv`);
+        triggerDownload(new Blob([content], { type: 'text/csv' }), `Inventory.csv`);
     }
 };
 
 window.downloadOrders = async () => {
-    const choice = prompt("Enter 1 for PDF, 2 for CSV (Excel)", "1");
+    const choice = prompt("Enter 1 for PDF, 2 for CSV", "1");
     if (!choice) return;
     showToast("Fetching Orders...");
     const snap = await get(dbRef(db, `orders/${activeStoreId}`));
-    const data = snap.val();
-    if (!data) return alert("No orders found.");
-
-    let content = "";
-    if (choice === "1") {
-        content = `ORDERS REPORT: ${activeStoreId}\n\n`;
-        Object.entries(data).forEach(([id, order]) => {
-            content += `ID: ${id} | Customer: ${order.customerName} | Total: ₦${(order.total || 0).toLocaleString()}\n----------\n`;
-        });
-        triggerDownload(new Blob([content], { type: 'application/pdf' }), `Orders_${activeStoreId}.pdf`);
-    } else {
-        content = "OrderID,Customer,Total,Status\n";
-        Object.entries(data).forEach(([id, order]) => {
-            content += `"${id}","${order.customerName}","${order.total}","${order.status}"\n`;
-        });
-        triggerDownload(new Blob([content], { type: 'text/csv' }), `Orders_${activeStoreId}.csv`);
-    }
+    const data = snap.val() || {};
+    let content = choice === "1" ? "ORDERS REPORT\n\n" : "OrderID,Customer,Total\n";
+    Object.entries(data).forEach(([id, o]) => {
+        content += choice === "1" ? `ID: ${id} | Customer: ${o.customerName}\n` : `"${id}","${o.customerName}","${o.total}"\n`;
+    });
+    triggerDownload(new Blob([content], { type: choice === "1" ? 'application/pdf' : 'text/csv' }), `Orders.${choice === "1" ? 'pdf' : 'csv'}`);
 };
 
 function triggerDownload(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
     setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
     showToast("Download Complete!");
 }
@@ -172,7 +168,6 @@ window.saveStoreSettings = async () => {
         storeName: document.getElementById('admin-store-name').value,
         phone: document.getElementById('admin-phone').value,
         searchHint: document.getElementById('admin-search-hint').value,
-        // DEDICATED LABEL SAVE
         label1: document.getElementById('admin-label-1').value,
         label2: document.getElementById('admin-label-2').value,
         customGreetings: document.getElementById('admin-greetings').value.split(',').map(g => g.trim())
@@ -186,7 +181,7 @@ window.saveStoreSettings = async () => {
     await update(dbRef(db, `stores/${activeStoreId}`), updateData);
     if(btn) btn.innerText = "Save Profile Settings";
     showToast("Settings Saved!");
-    loadDashboardData(); // Refresh visuals
+    loadDashboardData();
 };
 
 window.uploadNewProduct = async () => {

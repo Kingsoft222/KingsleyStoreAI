@@ -1,5 +1,15 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { 
+    getDatabase, 
+    ref as dbRef, 
+    get, 
+    set, 
+    update, 
+    push, 
+    remove, 
+    increment, 
+    onValue 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -24,12 +34,12 @@ window.activeGreetings = [];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    onValue(ref(db, `stores/${currentStoreId}`), (snapshot) => {
+    // Corrected to use dbRef(db, ...) to match your imports
+    onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             
-            // --- SEARCH HINT SYNC ---
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
@@ -71,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- SUCCESS STATE LOGIC RESTORED ---
 window.addToCart = () => {
     if(!selectedCloth) return;
     cart.push(selectedCloth);
@@ -83,18 +92,28 @@ window.addToCart = () => {
     const existingBtn = resDiv.querySelector('button');
     
     if (existingBtn) {
-        // Change existing button to "Check another one"
         existingBtn.innerText = "Check another one";
         existingBtn.onclick = () => window.closeFittingRoom();
         existingBtn.style.background = "#555"; 
         
-        // Prevent duplicate "Proceed" buttons
         if (!document.getElementById('proceed-to-cart-btn')) {
             const proceedBtn = document.createElement('button');
             proceedBtn.id = 'proceed-to-cart-btn';
             proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
             proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
-            proceedBtn.onclick = () => window.openCart();
+            
+            // CORRECTED: changed activeStoreId to currentStoreId
+            proceedBtn.onclick = async () => {
+                try {
+                    await update(dbRef(db, `stores/${currentStoreId}/analytics`), {
+                        whatsappClicks: increment(1)
+                    });
+                } catch (e) {
+                    console.error("Analytics log failed", e);
+                }
+                window.openCart();
+            };
+            
             resDiv.appendChild(proceedBtn);
         }
     }
@@ -215,7 +234,18 @@ window.checkoutWhatsApp = () => {
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-async function getBase64FromUrl(url) { return new Promise((resolve) => { fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).then(r => r.blob()).then(b => { const rd = new FileReader(); rd.onloadend = () => resolve(rd.result.split(',')[1]); rd.readAsDataURL(b); }); }); }
+
+async function getBase64FromUrl(url) { 
+    return new Promise((resolve) => { 
+        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+        .then(r => r.blob())
+        .then(b => { 
+            const rd = new FileReader(); 
+            rd.onloadend = () => resolve(rd.result.split(',')[1]); 
+            rd.readAsDataURL(b); 
+        }); 
+    }); 
+}
 
 async function resizeImage(b64) { 
     return new Promise((res) => { 
