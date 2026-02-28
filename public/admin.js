@@ -5,13 +5,11 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    // CHANGED TO YOUR DOMAIN TO HIDE FIREBASE BRANDING
-    authDomain: "kingsley-store-ai.vercel.app", 
+    authDomain: "kingsleystoreai.firebaseapp.com", // TECHNICAL HANDSHAKE
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
     appId: "1:31402654971:web:26f75b0f913bcaf9f6445e",
-    measurementId: "G-PJZD5D3NF6",
     databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com" 
 };
 
