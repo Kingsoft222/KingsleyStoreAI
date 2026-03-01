@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const textColor = isDarkMode ? 'white' : 'black';
+    const adaptiveTextColor = isDarkMode ? 'white' : 'black';
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) {
@@ -94,8 +94,15 @@ function applyDynamicThemeStyles() {
         document.head.appendChild(styleTag);
     }
     styleTag.innerHTML = `
-        #dynamic-greeting, #store-name-display, .result-card h4, .cart-item-name, .summary-text, .theme-subtext, .theme-p { color: ${textColor} !important; }
-        #ai-input { color: ${textColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
+        /* Adaptive UI elements based on Phone Theme */
+        #dynamic-greeting, #store-name-display, .summary-text, .theme-subtext, .theme-p { color: ${adaptiveTextColor} !important; }
+        #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
+        
+        /* Fixed Product Cards: Always White background with Black font */
+        .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
+        .result-card p { color: #e60023 !important; font-weight: bold; }
+
         .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; color: white; }
     `;
     
@@ -194,7 +201,6 @@ window.addToCart = () => {
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
     
-    // START LOADER IMMEDIATELY
     const loader = document.getElementById('checkout-loader');
     if(loader) loader.style.display = 'flex';
 
@@ -218,7 +224,6 @@ window.checkoutWhatsApp = async () => {
         
         cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI();
         
-        // STOP LOADER BEFORE REDIRECT
         if(loader) loader.style.display = 'none';
         window.location.assign(waUrl);
 
