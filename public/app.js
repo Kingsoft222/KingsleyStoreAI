@@ -33,7 +33,6 @@ window.activeGreetings = [];
 let gIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. FORCE REAL-TIME THEME WATCHER
     applyDynamicThemeStyles();
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
     setInterval(applyDynamicThemeStyles, 2000); 
@@ -81,13 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 3000);
 
-    // 2. INITIALIZE MIC & SEND BUTTON
     initVoiceSearch();
     const sendBtn = document.getElementById('send-btn');
     if(sendBtn) sendBtn.onclick = () => window.executeSearch();
 });
 
-// THEME DETECTION: Text switches between Black/White based on phone theme
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const textColor = isDarkMode ? 'white' : 'black';
@@ -103,10 +100,23 @@ function applyDynamicThemeStyles() {
     styleTag.innerHTML = `
         #dynamic-greeting, #store-name-display, .result-card h4, .cart-item-name, .summary-text, .theme-subtext, .theme-p { color: ${textColor} !important; }
         #ai-input { color: ${textColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
+        .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
     `;
+    
+    // Add Overlay Element if missing
+    if(!document.getElementById('checkout-loader')) {
+        const loader = document.createElement('div');
+        loader.id = 'checkout-loader';
+        loader.className = 'checkout-overlay';
+        loader.innerHTML = `
+            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <p style="margin-top:20px; font-weight:800; color:#e60023; letter-spacing:1px;">SECURING YOUR ORDER...</p>
+            <p style="font-size:0.7rem; color:#888;">Generating Official Receipt</p>
+        `;
+        document.body.appendChild(loader);
+    }
 }
 
-// RESTORED MIC SPEECH ENGINE
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -126,10 +136,8 @@ function initVoiceSearch() {
         window.executeSearch(); 
     };
     recognition.onend = () => { micBtn.style.color = "#5f6368"; };
-    recognition.onerror = () => { micBtn.style.color = "#5f6368"; };
 }
 
-// AI SHOWROOM MODAL
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -144,14 +152,9 @@ window.promptShowroomChoice = (id) => {
     applyDynamicThemeStyles();
 };
 
-// PROCESSING MODAL - RED Text Loader
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div class="loader-container">
-            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p>
-        </div>`;
+    resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p></div>`;
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         const response = await fetch('/api/process-vto', { 
@@ -163,28 +166,31 @@ window.startTryOn = async () => {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
-        } else { alert("Failed. Try a clearer body photo."); window.closeFittingRoom(); }
+        } else { alert("Failed."); window.closeFittingRoom(); }
     } catch (e) { alert("Error."); window.closeFittingRoom(); }
 };
 
-// --- COMPLETE TRANSACTION PROCESS (FOUNDER ACCOUNTABILITY) ---
+// --- COMPLETE TRANSACTION PROCESS (FOUNDER ACCOUNTABILITY + OVERLAY) ---
+
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
+    
+    const loader = document.getElementById('checkout-loader');
+    if(loader) loader.style.display = 'flex';
 
-    // Generate Secure Order Credentials
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     const total = cart.reduce((s, i) => s + i.price, 0);
     const orderDate = new Date().toLocaleString();
 
     try {
-        // 1. GLOBAL TRACKING: Log to Master Vault
+        // 1. GLOBAL TRACKING
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1),
             totalRevenue: increment(total),
             lastSaleID: orderId
         });
 
-        // 2. DATA LOCK: Save Uneditable Receipt record
+        // 2. DATA LOCK
         await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId,
             items: cart,
@@ -193,25 +199,25 @@ window.checkoutWhatsApp = async () => {
             verifiedHost: window.location.hostname
         });
 
-        // 3. SECURE REDIRECT: Construction of verified message
+        // 3. SECURE REDIRECT
         const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
         const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0A` +
                            `Order ID: *${orderId}*%0A` +
                            `Total: *₦${total.toLocaleString()}*%0A%0A` +
                            `✅ *View Official Secure Receipt:*%0A` +
                            `${receiptLink}%0A%0A` +
-                           `⚠️ *Vendor Note:* Verify link hostname matches VirtualMall. Check ID matches.`;
+                           `⚠️ *Vendor Note:* Verify link hostname matches VirtualMall.`;
 
         const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
         
-        // Wipe local cart & navigate
         cart = []; 
         localStorage.removeItem(`cart_${currentStoreId}`); 
         updateCartUI();
         window.location.assign(waUrl);
 
     } catch(e) { 
-        alert("Transaction Security Handshake Failed.");
+        if(loader) loader.style.display = 'none';
+        alert("Security Handshake Failed. Check your internet.");
     }
 };
 
@@ -221,77 +227,18 @@ window.addToCart = () => {
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
     updateCartUI(); 
     showToast("✅ Added successfully"); 
-
     const resDiv = document.getElementById('ai-fitting-result');
-    const existingBtn = resDiv.querySelector('button');
-    if (existingBtn) {
-        existingBtn.innerText = "Check another one";
-        existingBtn.onclick = () => window.closeFittingRoom();
-        existingBtn.style.background = "#555"; 
-        if (!document.getElementById('proceed-to-cart-btn')) {
-            const proceedBtn = document.createElement('button');
-            proceedBtn.id = 'proceed-to-cart-btn';
-            proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
-            proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
-            proceedBtn.onclick = () => window.openCart();
-            resDiv.appendChild(proceedBtn);
-        }
-    }
+    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2 style="color:#25D366;">✅ Added to Cart</h2><button onclick="window.openCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">Proceed to Cart <i class="fas fa-arrow-right"></i></button></div>`;
 };
 
 window.openCart = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><h3 class="summary-text">Your cart is empty</h3></div>`; return; }
-    
     let total = cart.reduce((s, i) => s + i.price, 0);
-    let itemsHTML = cart.map((item, idx) => `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;">
-            <div style="text-align:left;">
-                <p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p>
-                <p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p>
-            </div>
-            <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button>
-        </div>`).join('');
-
-    resDiv.innerHTML = `
-        <div style="padding:10px;">
-            <h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2>
-            <div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div>
-            <div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;">
-                <span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span>
-            </div>
-            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;">
-                <i class="fab fa-whatsapp"></i> Checkout via WhatsApp
-            </button>
-        </div>`;
+    let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;"><div style="text-align:left;"><p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button></div>`).join('');
+    resDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
     applyDynamicThemeStyles();
-};
-
-// --- CORE UTILS ---
-async function resizeImage(b64) { 
-    return new Promise((res) => { 
-        const img = new Image(); 
-        img.onload = () => { 
-            const canvas = document.createElement('canvas'); 
-            const MAX = 800;
-            let w = img.width, h = img.height; 
-            if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
-            else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
-            canvas.width = w; canvas.height = h; 
-            const ctx = canvas.getContext('2d'); 
-            ctx.drawImage(img, 0, 0, w, h); 
-            res(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]); 
-        }; 
-        img.src = b64; 
-    }); 
-}
-
-window.handleCustomerUpload = (e) => { 
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader(); 
-    reader.onload = async (ev) => { tempCustomerPhoto = await resizeImage(ev.target.result); window.startTryOn(); }; 
-    reader.readAsDataURL(file); 
 };
 
 window.executeSearch = () => {
