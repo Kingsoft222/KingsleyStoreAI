@@ -41,33 +41,57 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// MASTER VAULT LOGIC (Sales Tracking & Reset)
+// MASTER VAULT LOGIC (Sales Tracking, Revenue & Audit)
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
     const isHidden = vaultSection.style.display === 'none';
     if (isHidden) {
         vaultSection.style.display = 'block';
-        showToast("Accessing Global Analytics...");
+        showToast("Accessing Founder Analytics...");
         const snap = await get(dbRef(db, 'stores'));
         const stores = snap.val() || {};
         const body = document.getElementById('vault-body');
         if(body) {
             body.innerHTML = Object.entries(stores).map(([id, s]) => `
-                <tr>
-                    <td>${id}</td>
+                <tr style="border-bottom: 1px solid #333;">
+                    <td style="padding:10px;">${id}</td>
                     <td>${s.storeName || 'N/A'}</td>
                     <td style="color:#25D366; font-weight:bold;">${s.analytics?.whatsappClicks || 0}</td>
-                    <td><button onclick="window.resetClicks('${id}')" style="background:#444; color:white; border:none; padding:5px; cursor:pointer; border-radius:4px;">Reset</button></td>
+                    <td style="color:#FFD700; font-weight:bold;">₦${(s.analytics?.totalRevenue || 0).toLocaleString()}</td>
+                    <td style="display:flex; gap:5px; padding:10px;">
+                        <button onclick="window.auditVendorReceipts('${id}')" style="background:#444; color:white; border:none; padding:5px; cursor:pointer; border-radius:4px; font-size:0.7rem;">Audit</button>
+                        <button onclick="window.resetClicks('${id}')" style="background:#e60023; color:white; border:none; padding:5px; cursor:pointer; border-radius:4px; font-size:0.7rem;">Reset</button>
+                    </td>
                 </tr>`).join('');
         }
     } else { vaultSection.style.display = 'none'; }
 };
 
+// FOUNDER AUDIT: View uneditable permanent records
+window.auditVendorReceipts = async (storeId) => {
+    const snap = await get(dbRef(db, `receipts`));
+    const allReceipts = snap.val() || {};
+    const storeReceipts = Object.entries(allReceipts).filter(([id, data]) => data.storeId === storeId);
+
+    if(storeReceipts.length === 0) return alert("No official receipts found for this vendor.");
+
+    let auditLog = `SALES AUDIT: ${storeId.toUpperCase()}\n----------------------\n`;
+    storeReceipts.forEach(([id, data]) => {
+        auditLog += `Order: ${id} | Total: ₦${data.total.toLocaleString()} | Date: ${data.date}\n`;
+    });
+    alert(auditLog);
+};
+
+// FOUNDER RESET: Wipes clicks and revenue (Restored original style)
 window.resetClicks = async (id) => {
-    if(!confirm(`Reset clicks for ${id}?`)) return;
-    await update(dbRef(db, `stores/${id}/analytics`), { whatsappClicks: 0 });
+    if(!confirm(`Permanently reset analytics for ${id}?`)) return;
+    await update(dbRef(db, `stores/${id}/analytics`), { 
+        whatsappClicks: 0,
+        totalRevenue: 0 
+    });
     window.toggleMasterVault(); 
+    showToast("Analytics Cleared");
 };
 
 async function loadDashboardData() {
@@ -78,8 +102,7 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        // STOREFRONT AD FIELDS
-        document.getElementById('admin-label-1').value = data.label1 || "Ladies Trouser";
+        document.getElementById('admin-label-1').value = data.label1 || "Ladies Wear";
         document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
 
         const greetText = document.getElementById('admin-greetings');
@@ -87,7 +110,6 @@ async function loadDashboardData() {
         const greetToggle = document.getElementById('greetings-toggle');
         if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
 
-        // PHOTO AND RESTORED REMOVE BUTTON
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         if (data.profileImage) { 
@@ -154,7 +176,6 @@ window.uploadNewProduct = async () => {
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
         
-        // --- SWIFT CLEAR SUCCESS ---
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
         imgP.style.display = "none";
@@ -163,24 +184,6 @@ window.uploadNewProduct = async () => {
         showToast("Product Added!"); loadDashboardData();
     } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
-};
-
-window.downloadInventory = async () => {
-    const snap = await get(dbRef(db, `stores/${activeStoreId}/catalog`));
-    const data = snap.val() || {};
-    let csv = "Name,Price\n";
-    Object.values(data).forEach(i => csv += `"${i.name}","${i.price}"\n`);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Inventory.csv"; a.click();
-};
-
-window.downloadOrders = async () => {
-    const snap = await get(dbRef(db, `orders/${activeStoreId}`));
-    const data = snap.val() || {};
-    let csv = "OrderID,Customer,Total\n";
-    Object.entries(data).forEach(([id, o]) => csv += `"${id}","${o.customerName}","${o.total}"\n`);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "Orders.csv"; a.click();
 };
 
 window.handleAdminImage = (e) => {
@@ -215,6 +218,7 @@ function renderInventoryList(catalog) {
 window.deleteProduct = async (k, path) => {
     if (!confirm("Delete product?")) return;
     await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
+    try { await deleteObject(storageRef(storage, path)); } catch(e) {}
     loadDashboardData();
 };
 

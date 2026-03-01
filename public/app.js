@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. FORCE REAL-TIME THEME WATCHER
     applyDynamicThemeStyles();
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
-    setInterval(applyDynamicThemeStyles, 2000); // Fail-safe for consistent color matching
+    setInterval(applyDynamicThemeStyles, 2000); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -167,32 +167,52 @@ window.startTryOn = async () => {
     } catch (e) { alert("Error."); window.closeFittingRoom(); }
 };
 
-// FINAL CHECKOUT: FORCED SUMMARY PERSISTENCE + TRACKING
+// --- COMPLETE TRANSACTION PROCESS (FOUNDER ACCOUNTABILITY) ---
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
 
-    // 1. ENSURE TRACKING IS LOGGED BEFORE REDIRECT
-    try { 
+    // Generate Secure Order Credentials
+    const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    const orderDate = new Date().toLocaleString();
+
+    try {
+        // 1. GLOBAL TRACKING: Log to Master Vault
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
-            whatsappClicks: increment(1) 
-        }); 
-    } catch(e) { console.error("Tracking error:", e); }
-    
-    // 2. Build Summary (PERSISTENT DATA)
-    let list = cart.map(i => `▪ ${i.name} (₦${i.price.toLocaleString()})`).join('%0A');
-    let total = cart.reduce((s, i) => s + i.price, 0);
-    const summaryMsg = `New Order from VirtualMall:%0A%0A${list}%0A%0A---%0ATOTAL: ₦${total.toLocaleString()}`;
-    
-    // 3. ASSIGN URL (Forces summary transfer regardless of WA background state)
-    const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
-    
-    // 4. Clear data for return
-    cart = [];
-    localStorage.removeItem(`cart_${currentStoreId}`);
-    updateCartUI();
-    
-    // 5. REDIRECT
-    window.location.assign(waUrl);
+            whatsappClicks: increment(1),
+            totalRevenue: increment(total),
+            lastSaleID: orderId
+        });
+
+        // 2. DATA LOCK: Save Uneditable Receipt record
+        await set(dbRef(db, `receipts/${orderId}`), {
+            storeId: currentStoreId,
+            items: cart,
+            total: total,
+            date: orderDate,
+            verifiedHost: window.location.hostname
+        });
+
+        // 3. SECURE REDIRECT: Construction of verified message
+        const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
+        const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0A` +
+                           `Order ID: *${orderId}*%0A` +
+                           `Total: *₦${total.toLocaleString()}*%0A%0A` +
+                           `✅ *View Official Secure Receipt:*%0A` +
+                           `${receiptLink}%0A%0A` +
+                           `⚠️ *Vendor Note:* Verify link hostname matches VirtualMall. Check ID matches.`;
+
+        const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
+        
+        // Wipe local cart & navigate
+        cart = []; 
+        localStorage.removeItem(`cart_${currentStoreId}`); 
+        updateCartUI();
+        window.location.assign(waUrl);
+
+    } catch(e) { 
+        alert("Transaction Security Handshake Failed.");
+    }
 };
 
 window.addToCart = () => {
@@ -248,7 +268,7 @@ window.openCart = () => {
     applyDynamicThemeStyles();
 };
 
-// --- UTILS ---
+// --- CORE UTILS ---
 async function resizeImage(b64) { 
     return new Promise((res) => { 
         const img = new Image(); 

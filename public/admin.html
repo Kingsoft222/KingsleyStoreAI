@@ -19,9 +19,13 @@
         .btn-primary:hover { background: #ad001a; }
         .btn-outline { background: #eee; color: #333; }
         .btn-danger { background: none; color: #e60023; border: 1px solid #e60023; width: auto; padding: 5px 15px; margin-top: 5px; font-size: 0.8rem; }
-        .btn-master { background: #000; color: #fff; display: none; margin-bottom: 20px; width: 100%; }
-        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; }
-        #master-vault-section th, #master-vault-section td { padding: 10px; border-bottom: 1px solid #444; text-align: left; }
+        
+        /* Master Vault Styling */
+        .btn-master { background: #000; color: #FFD700; display: none; margin-bottom: 20px; width: 100%; border: 1px solid #FFD700; }
+        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        #master-vault-section th { color: #FFD700; border-bottom: 2px solid #333; padding: 10px; text-align: left; }
+        #master-vault-section td { padding: 10px; border-bottom: 1px solid #222; text-align: left; }
+        
         #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
         .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
         .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
@@ -33,14 +37,20 @@
 
 <div class="container">
     <button id="master-btn" class="btn-master" onclick="window.toggleMasterVault()">
-        <i class="fas fa-crown"></i> MASTER VAULT
+        <i class="fas fa-crown"></i> MASTER VAULT (FOUNDER ONLY)
     </button>
 
-    <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff;">
-        <h3>Global Sales Tracking</h3>
+    <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff; border: 1px solid #333;">
+        <h3 style="color:#FFD700;"><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
         <table>
             <thead>
-                <tr><th>Store ID</th><th>Name</th><th>WA Clicks</th><th>Action</th></tr>
+                <tr>
+                    <th>Store ID</th>
+                    <th>Name</th>
+                    <th>Clicks</th>
+                    <th>Revenue</th>
+                    <th>Action</th>
+                </tr>
             </thead>
             <tbody id="vault-body"></tbody>
         </table>
@@ -49,6 +59,7 @@
     <div id="login-section" class="card" style="text-align: center;">
         <img src="https://cdn-icons-png.flaticon.com/512/3081/3081648.png" width="80">
         <h2>VirtualMall Admin</h2>
+        <p style="color:#666; font-size:0.9rem;">Management & Accountability Center</p>
         <button class="btn-primary" onclick="window.loginWithGoogle()">Login with Google</button>
     </div>
 
@@ -66,10 +77,12 @@
             
             <div class="form-group"><label>Store Name</label><input type="text" id="admin-store-name"></div>
             
-            <div class="form-group"><label>Storefront Ad 1 (Labels on Main Site)</label><input type="text" id="admin-label-1" placeholder="e.g. Ladies Trouser"></div>
-            <div class="form-group"><label>Storefront Ad 2 (Labels on Main Site)</label><input type="text" id="admin-label-2" placeholder="e.g. Dinner Wears"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>Storefront Ad 1</label><input type="text" id="admin-label-1" placeholder="Ladies Wear"></div>
+                <div class="form-group"><label>Storefront Ad 2</label><input type="text" id="admin-label-2" placeholder="Men Wear"></div>
+            </div>
 
-            <div class="form-group"><label>WhatsApp Number (₦ Checkout)</label><input type="number" id="admin-phone"></div>
+            <div class="form-group"><label>WhatsApp Number (Accountability Phone)</label><input type="number" id="admin-phone"></div>
             <div class="form-group"><label>Search Bar Hint</label><input type="text" id="admin-search-hint"></div>
 
             <div style="margin-top:10px; display: flex; align-items: center; gap: 10px;">
