@@ -103,7 +103,6 @@ function applyDynamicThemeStyles() {
         .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: white; }
     `;
     
-    // Add Overlay Element if missing
     if(!document.getElementById('checkout-loader')) {
         const loader = document.createElement('div');
         loader.id = 'checkout-loader';
@@ -123,15 +122,9 @@ function initVoiceSearch() {
     if (!SpeechRecognition || !micBtn) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
-    
-    micBtn.onclick = () => { 
-        micBtn.style.color = "#e60023"; 
-        recognition.start(); 
-    };
-    
+    micBtn.onclick = () => { micBtn.style.color = "#e60023"; recognition.start(); };
     recognition.onresult = (e) => { 
-        const transcript = e.results[0][0].transcript;
-        document.getElementById('ai-input').value = transcript; 
+        document.getElementById('ai-input').value = e.results[0][0].transcript; 
         micBtn.style.color = "#5f6368"; 
         window.executeSearch(); 
     };
@@ -152,6 +145,18 @@ window.promptShowroomChoice = (id) => {
     applyDynamicThemeStyles();
 };
 
+// HANDLER FOR IMAGE UPLOAD (RESTORED TRIGGER)
+window.handleCustomerUpload = (e) => { 
+    const file = e.target.files[0]; 
+    if (!file) return;
+    const reader = new FileReader(); 
+    reader.onload = async (ev) => { 
+        tempCustomerPhoto = await resizeImage(ev.target.result); 
+        window.startTryOn(); // Trigger processing immediately after upload
+    }; 
+    reader.readAsDataURL(file); 
+};
+
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p></div>`;
@@ -166,31 +171,23 @@ window.startTryOn = async () => {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
-        } else { alert("Failed."); window.closeFittingRoom(); }
+        } else { alert("Failed. Try a clearer body photo."); window.closeFittingRoom(); }
     } catch (e) { alert("Error."); window.closeFittingRoom(); }
 };
 
-// --- COMPLETE TRANSACTION PROCESS (FOUNDER ACCOUNTABILITY + OVERLAY) ---
-
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
-    
     const loader = document.getElementById('checkout-loader');
     if(loader) loader.style.display = 'flex';
-
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     const total = cart.reduce((s, i) => s + i.price, 0);
     const orderDate = new Date().toLocaleString();
-
     try {
-        // 1. GLOBAL TRACKING
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1),
             totalRevenue: increment(total),
             lastSaleID: orderId
         });
-
-        // 2. DATA LOCK
         await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId,
             items: cart,
@@ -198,26 +195,16 @@ window.checkoutWhatsApp = async () => {
             date: orderDate,
             verifiedHost: window.location.hostname
         });
-
-        // 3. SECURE REDIRECT
         const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
-        const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0A` +
-                           `Order ID: *${orderId}*%0A` +
-                           `Total: *₦${total.toLocaleString()}*%0A%0A` +
-                           `✅ *View Official Secure Receipt:*%0A` +
-                           `${receiptLink}%0A%0A` +
-                           `⚠️ *Vendor Note:* Verify link hostname matches VirtualMall.`;
-
+        const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0AOrder ID: *${orderId}*%0ATotal: *₦${total.toLocaleString()}*%0A%0A✅ *View Official Secure Receipt:*%0A${receiptLink}%0A%0A⚠️ *Vendor Note:* Verify link hostname matches VirtualMall.`;
         const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
-        
         cart = []; 
         localStorage.removeItem(`cart_${currentStoreId}`); 
         updateCartUI();
         window.location.assign(waUrl);
-
     } catch(e) { 
         if(loader) loader.style.display = 'none';
-        alert("Security Handshake Failed. Check your internet.");
+        alert("Transaction Security Handshake Failed.");
     }
 };
 
@@ -226,7 +213,6 @@ window.addToCart = () => {
     cart.push(selectedCloth);
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
     updateCartUI(); 
-    showToast("✅ Added successfully"); 
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2 style="color:#25D366;">✅ Added to Cart</h2><button onclick="window.openCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">Proceed to Cart <i class="fas fa-arrow-right"></i></button></div>`;
 };
@@ -247,9 +233,27 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4 class="cart-item-name" style="margin:5px 0;">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
+    results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4 class="cart-item-name">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
 };
 
+// UTILS
+async function resizeImage(b64) { 
+    return new Promise((res) => { 
+        const img = new Image(); 
+        img.onload = () => { 
+            const canvas = document.createElement('canvas'); 
+            const MAX = 800;
+            let w = img.width, h = img.height; 
+            if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+            else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
+            canvas.width = w; canvas.height = h; 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, w, h); 
+            res(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]); 
+        }; 
+        img.src = b64; 
+    }); 
+}
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
