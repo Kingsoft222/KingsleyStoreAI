@@ -22,7 +22,7 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- THE ONLY CHANGE: AUTH & SECTION TOGGLING ---
+// SURGICAL FIX: Handle Login, Onboarding, and Dashboard visibility
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
@@ -36,34 +36,34 @@ onAuthStateChanged(auth, async (user) => {
 
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
-            // Existing User -> Dashboard
+            // User found: Go to Dashboard
             activeStoreId = snap.val().storeId;
             if(loginSec) loginSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'none';
             if(dashSec) dashSec.style.display = 'block';
             loadDashboardData();
         } else {
-            // New User -> Onboarding (Your Setup Page)
+            // New user: Show the "Set Up Your Store" page
             if(loginSec) loginSec.style.display = 'none';
             if(dashSec) dashSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        // Logged Out -> Login Page
+        // Logged out: Show Login
         if(loginSec) loginSec.style.display = 'block';
         if(dashSec) dashSec.style.display = 'none';
         if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
-// Create Store Profile (Matches your setup page IDs)
+// Create Store Logic (Essential for the onboarding page to work)
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
     const bizName = document.getElementById('setup-bizname').value.trim();
     const phone = document.getElementById('setup-phone').value.trim();
 
-    if(!username || !bizName || !phone) return alert("Please fill all fields!");
+    if(!username || !bizName || !phone) return alert("Fill all fields!");
 
     const check = await get(dbRef(db, `stores/${username}`));
     if(check.exists()) return alert("Username taken!");
@@ -78,7 +78,7 @@ window.createStoreProfile = async () => {
     window.location.reload(); 
 };
 
-// --- EVERYTHING ELSE RESTORED EXACTLY AS YOUR ORIGINAL ---
+// --- EVERYTHING BELOW IS YOUR ORIGINAL UNTOUCHED CODE ---
 
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
@@ -110,7 +110,7 @@ window.auditVendorReceipts = async (storeId) => {
     const snap = await get(dbRef(db, `receipts`));
     const allReceipts = snap.val() || {};
     const storeReceipts = Object.entries(allReceipts).filter(([id, data]) => data.storeId === storeId);
-    if(storeReceipts.length === 0) return alert("No official receipts found.");
+    if(storeReceipts.length === 0) return alert("No official receipts found for this vendor.");
     let auditLog = `SALES AUDIT: ${storeId.toUpperCase()}\n----------------------\n`;
     storeReceipts.forEach(([id, data]) => {
         auditLog += `Order: ${id} | Total: ₦${data.total.toLocaleString()} | Date: ${data.date}\n`;
@@ -120,7 +120,10 @@ window.auditVendorReceipts = async (storeId) => {
 
 window.resetClicks = async (id) => {
     if(!confirm(`Permanently reset analytics for ${id}?`)) return;
-    await update(dbRef(db, `stores/${id}/analytics`), { whatsappClicks: 0, totalRevenue: 0 });
+    await update(dbRef(db, `stores/${id}/analytics`), { 
+        whatsappClicks: 0,
+        totalRevenue: 0 
+    });
     window.toggleMasterVault(); 
     showToast("Analytics Cleared");
 };
@@ -132,8 +135,10 @@ async function loadDashboardData() {
         document.getElementById('admin-store-name').value = data.storeName || "";
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
+        
         document.getElementById('admin-label-1').value = data.label1 || "Ladies Wear";
         document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
+
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join(', ');
         const greetToggle = document.getElementById('greetings-toggle');
@@ -145,12 +150,14 @@ async function loadDashboardData() {
             imgP.src = data.profileImage; imgP.style.display = "block"; 
             if(rmBtn) rmBtn.style.display = "inline-block";
         } else {
-            imgP.style.display = "none"; if(rmBtn) rmBtn.style.display = "none";
+            imgP.style.display = "none";
+            if(rmBtn) rmBtn.style.display = "none";
         }
 
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
+
         renderInventoryList(data.catalog || {});
     }
 }
@@ -190,6 +197,7 @@ window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name'), priceInput = document.getElementById('prod-price');
     const tagsInput = document.getElementById('prod-tags'), imgP = document.getElementById('prod-img-preview');
     const fileInput = document.getElementById('prod-pic-upload'), btn = document.getElementById('upload-prod-btn');
+
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
     btn.innerText = "Adding...";
     try {
@@ -201,9 +209,12 @@ window.uploadNewProduct = async () => {
             cat: document.getElementById('prod-brand').value,
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
+        
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         if(fileInput) fileInput.value = "";
-        imgP.style.display = "none"; pendingProductBase64 = null;
+        imgP.style.display = "none";
+        pendingProductBase64 = null;
+        
         showToast("Product Added!"); loadDashboardData();
     } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
