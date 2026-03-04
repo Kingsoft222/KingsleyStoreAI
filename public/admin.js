@@ -22,33 +22,57 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
+// FIXED AUTH LOGIC: Stops the refresh loop
 onAuthStateChanged(auth, async (user) => {
+    const loginSection = document.getElementById('login-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    
     if (user) {
+        // Master Founder Check
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
-        const snap = await get(dbRef(db, `users/${user.uid}`));
-        if (snap.exists()) {
-            activeStoreId = snap.val().storeId;
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('dashboard-section').style.display = 'block';
-            loadDashboardData();
+
+        try {
+            const snap = await get(dbRef(db, `users/${user.uid}`));
+            if (snap.exists()) {
+                activeStoreId = snap.val().storeId;
+                loginSection.style.display = 'none';
+                dashboardSection.style.display = 'block';
+                loadDashboardData();
+            } else {
+                // New User Auto-Setup (Prevents loop if no DB record exists yet)
+                const cleanName = user.displayName ? user.displayName.split(' ')[0].toLowerCase() : "user";
+                const newId = cleanName + Math.floor(100 + Math.random() * 899);
+                
+                await set(dbRef(db, `users/${user.uid}`), { storeId: newId, email: user.email });
+                await set(dbRef(db, `stores/${newId}`), { 
+                    storeName: user.displayName + "'s Store", 
+                    analytics: { whatsappClicks: 0, totalRevenue: 0 } 
+                });
+                
+                activeStoreId = newId;
+                loginSection.style.display = 'none';
+                dashboardSection.style.display = 'block';
+                loadDashboardData();
+            }
+        } catch (err) {
+            console.error("Auth sync error:", err);
         }
     } else { 
-        document.getElementById('login-section').style.display = 'block';
-        document.getElementById('dashboard-section').style.display = 'none';
+        loginSection.style.display = 'block';
+        dashboardSection.style.display = 'none';
     }
 });
 
-// MASTER VAULT LOGIC (Sales Tracking, Revenue & Audit)
+// MASTER VAULT LOGIC
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
     const isHidden = vaultSection.style.display === 'none';
     if (isHidden) {
         vaultSection.style.display = 'block';
-        showToast("Accessing Founder Analytics...");
         const snap = await get(dbRef(db, 'stores'));
         const stores = snap.val() || {};
         const body = document.getElementById('vault-body');
@@ -68,14 +92,11 @@ window.toggleMasterVault = async () => {
     } else { vaultSection.style.display = 'none'; }
 };
 
-// FOUNDER AUDIT: View uneditable permanent records
 window.auditVendorReceipts = async (storeId) => {
     const snap = await get(dbRef(db, `receipts`));
     const allReceipts = snap.val() || {};
     const storeReceipts = Object.entries(allReceipts).filter(([id, data]) => data.storeId === storeId);
-
-    if(storeReceipts.length === 0) return alert("No official receipts found for this vendor.");
-
+    if(storeReceipts.length === 0) return alert("No official receipts found.");
     let auditLog = `SALES AUDIT: ${storeId.toUpperCase()}\n----------------------\n`;
     storeReceipts.forEach(([id, data]) => {
         auditLog += `Order: ${id} | Total: ₦${data.total.toLocaleString()} | Date: ${data.date}\n`;
@@ -83,13 +104,9 @@ window.auditVendorReceipts = async (storeId) => {
     alert(auditLog);
 };
 
-// FOUNDER RESET: Wipes clicks and revenue (Restored original style)
 window.resetClicks = async (id) => {
-    if(!confirm(`Permanently reset analytics for ${id}?`)) return;
-    await update(dbRef(db, `stores/${id}/analytics`), { 
-        whatsappClicks: 0,
-        totalRevenue: 0 
-    });
+    if(!confirm(`Reset analytics for ${id}?`)) return;
+    await update(dbRef(db, `stores/${id}/analytics`), { whatsappClicks: 0, totalRevenue: 0 });
     window.toggleMasterVault(); 
     showToast("Analytics Cleared");
 };
@@ -101,39 +118,26 @@ async function loadDashboardData() {
         document.getElementById('admin-store-name').value = data.storeName || "";
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
-        
         document.getElementById('admin-label-1').value = data.label1 || "Ladies Wear";
         document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
-
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join(', ');
         const greetToggle = document.getElementById('greetings-toggle');
         if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
-
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         if (data.profileImage) { 
             imgP.src = data.profileImage; imgP.style.display = "block"; 
             if(rmBtn) rmBtn.style.display = "inline-block";
         } else {
-            imgP.style.display = "none";
-            if(rmBtn) rmBtn.style.display = "none";
+            imgP.style.display = "none"; if(rmBtn) rmBtn.style.display = "none";
         }
-
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
-
         renderInventoryList(data.catalog || {});
     }
 }
-
-window.removeAdminImage = async () => {
-    if(!confirm("Permanently remove profile photo?")) return;
-    await update(dbRef(db, `stores/${activeStoreId}`), { profileImage: null });
-    loadDashboardData();
-    showToast("Photo Removed");
-};
 
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
@@ -162,9 +166,8 @@ window.saveStoreSettings = async () => {
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name'), priceInput = document.getElementById('prod-price');
     const tagsInput = document.getElementById('prod-tags'), imgP = document.getElementById('prod-img-preview');
-    const fileInput = document.getElementById('prod-pic-upload'), btn = document.getElementById('upload-prod-btn');
-
-    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
+    const btn = document.getElementById('upload-prod-btn');
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Missing Info!");
     btn.innerText = "Adding...";
     try {
         const id = Date.now(), path = `inventory/${activeStoreId}/${id}.jpg`, sRef = storageRef(storage, path);
@@ -175,12 +178,8 @@ window.uploadNewProduct = async () => {
             cat: document.getElementById('prod-brand').value,
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
-        
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
-        if(fileInput) fileInput.value = "";
-        imgP.style.display = "none";
-        pendingProductBase64 = null;
-        
+        imgP.style.display = "none"; pendingProductBase64 = null;
         showToast("Product Added!"); loadDashboardData();
     } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
