@@ -22,43 +22,41 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- FIXED SIGN-IN & ONBOARDING BRIDGE ---
+// --- FIXED SIGN-IN LOOP & ONBOARDING TOGGLE ---
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
     if (user) {
-        // Master Founder Logic
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
 
-        // Check if store exists in database
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
-            // User exists: Show Dashboard
+            // User exists, go to Dashboard
             activeStoreId = snap.val().storeId;
             loginSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'none';
             dashSec.style.display = 'block';
             loadDashboardData();
         } else {
-            // New user: Show the Onboarding setup form
+            // New user, show Onboarding form
             loginSec.style.display = 'none';
             dashSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        // Logged out: Show Login section only
+        // Logged out
         loginSec.style.display = 'block';
         dashSec.style.display = 'none';
         if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
-// Logic for Onboarding "Create Store" button
+// Logic for Onboarding setup button
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
@@ -80,7 +78,8 @@ window.createStoreProfile = async () => {
     window.location.reload(); 
 };
 
-// --- ORIGINAL MASTER VAULT LOGIC ---
+// --- REST OF CODE EXACTLY AS YOU PASTED ---
+
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
