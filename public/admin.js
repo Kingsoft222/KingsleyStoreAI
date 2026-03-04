@@ -22,64 +22,26 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- FIXED SIGN-IN LOOP & ONBOARDING TOGGLE ---
 onAuthStateChanged(auth, async (user) => {
-    const loginSec = document.getElementById('login-section');
-    const onboardSec = document.getElementById('onboarding-section');
-    const dashSec = document.getElementById('dashboard-section');
-
     if (user) {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
-
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
-            // User exists, go to Dashboard
             activeStoreId = snap.val().storeId;
-            loginSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'none';
-            dashSec.style.display = 'block';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
             loadDashboardData();
-        } else {
-            // New user, show Onboarding form
-            loginSec.style.display = 'none';
-            dashSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        // Logged out
-        loginSec.style.display = 'block';
-        dashSec.style.display = 'none';
-        if(onboardSec) onboardSec.style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('dashboard-section').style.display = 'none';
     }
 });
 
-// Logic for Onboarding setup button
-window.createStoreProfile = async () => {
-    const user = auth.currentUser;
-    const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
-    const bizName = document.getElementById('setup-bizname').value.trim();
-    const phone = document.getElementById('setup-phone').value.trim();
-
-    if(!username || !bizName || !phone) return alert("Please fill all fields!");
-
-    const check = await get(dbRef(db, `stores/${username}`));
-    if(check.exists()) return alert("Username already taken!");
-
-    await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
-    await set(dbRef(db, `stores/${username}`), { 
-        storeName: bizName, 
-        phone: phone,
-        analytics: { whatsappClicks: 0, totalRevenue: 0 } 
-    });
-
-    window.location.reload(); 
-};
-
-// --- REST OF CODE EXACTLY AS YOU PASTED ---
-
+// MASTER VAULT LOGIC (Sales Tracking, Revenue & Audit)
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
@@ -106,11 +68,14 @@ window.toggleMasterVault = async () => {
     } else { vaultSection.style.display = 'none'; }
 };
 
+// FOUNDER AUDIT: View uneditable permanent records
 window.auditVendorReceipts = async (storeId) => {
     const snap = await get(dbRef(db, `receipts`));
     const allReceipts = snap.val() || {};
     const storeReceipts = Object.entries(allReceipts).filter(([id, data]) => data.storeId === storeId);
+
     if(storeReceipts.length === 0) return alert("No official receipts found for this vendor.");
+
     let auditLog = `SALES AUDIT: ${storeId.toUpperCase()}\n----------------------\n`;
     storeReceipts.forEach(([id, data]) => {
         auditLog += `Order: ${id} | Total: ₦${data.total.toLocaleString()} | Date: ${data.date}\n`;
@@ -118,6 +83,7 @@ window.auditVendorReceipts = async (storeId) => {
     alert(auditLog);
 };
 
+// FOUNDER RESET: Wipes clicks and revenue (Restored original style)
 window.resetClicks = async (id) => {
     if(!confirm(`Permanently reset analytics for ${id}?`)) return;
     await update(dbRef(db, `stores/${id}/analytics`), { 
