@@ -16,67 +16,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
+
+// FIX: This forces Google to show the account selection list every time
+provider.setCustomParameters({ prompt: 'select_account' });
+
 const db = getDatabase(app); 
 const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- RESTORED AUTH & ONBOARDING BRIDGE ---
-onAuthStateChanged(auth, async (user) => {
-    const loginSec = document.getElementById('login-section');
-    const onboardSec = document.getElementById('onboarding-section');
-    const dashSec = document.getElementById('dashboard-section');
-
-    if (user) {
-        if (user.email === MASTER_EMAIL) {
-            const mBtn = document.getElementById('master-btn');
-            if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
-        }
-
-        const snap = await get(dbRef(db, `users/${user.uid}`));
-        if (snap.exists()) {
-            activeStoreId = snap.val().storeId;
-            if(loginSec) loginSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'block';
-            loadDashboardData();
-        } else {
-            // New user: Show the setup page from your photo
-            if(loginSec) loginSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'block';
-        }
-    } else { 
-        if(loginSec) loginSec.style.display = 'block';
-        if(dashSec) dashSec.style.display = 'none';
-        if(onboardSec) onboardSec.style.display = 'none';
-    }
-});
-
-// Setup Page Logic
-window.createStoreProfile = async () => {
-    const user = auth.currentUser;
-    const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
-    const bizName = document.getElementById('setup-bizname').value.trim();
-    const phone = document.getElementById('setup-phone').value.trim();
-
-    if(!username || !bizName || !phone) return alert("Fill all fields!");
-
-    const check = await get(dbRef(db, `stores/${username}`));
-    if(check.exists()) return alert("Username taken!");
-
-    await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
-    await set(dbRef(db, `stores/${username}`), { 
-        storeName: bizName, 
-        phone: phone,
-        analytics: { whatsappClicks: 0, totalRevenue: 0 } 
-    });
-
-    window.location.reload(); 
-};
-
-// --- RESTORED MASTER VAULT LOGIC ---
+// --- 1. MASTER VAULT (FOUNDER ONLY) ---
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
@@ -122,7 +72,59 @@ window.resetClicks = async (id) => {
     showToast("Analytics Cleared");
 };
 
-// --- RESTORED ORIGINAL DASHBOARD UI LOGIC ---
+// --- 2. AUTH & ONBOARDING BRIDGE ---
+onAuthStateChanged(auth, async (user) => {
+    const loginSec = document.getElementById('login-section');
+    const onboardSec = document.getElementById('onboarding-section');
+    const dashSec = document.getElementById('dashboard-section');
+
+    if (user) {
+        if (user.email === MASTER_EMAIL) {
+            const mBtn = document.getElementById('master-btn');
+            if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
+        }
+
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) {
+            activeStoreId = snap.val().storeId;
+            loginSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'none';
+            dashSec.style.display = 'block';
+            loadDashboardData();
+        } else {
+            loginSec.style.display = 'none';
+            dashSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'block';
+        }
+    } else { 
+        loginSec.style.display = 'block';
+        dashSec.style.display = 'none';
+        if(onboardSec) onboardSec.style.display = 'none';
+    }
+});
+
+window.createStoreProfile = async () => {
+    const user = auth.currentUser;
+    const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
+    const bizName = document.getElementById('setup-bizname').value.trim();
+    const phone = document.getElementById('setup-phone').value.trim();
+
+    if(!username || !bizName || !phone) return alert("Fill all fields!");
+
+    const check = await get(dbRef(db, `stores/${username}`));
+    if(check.exists()) return alert("Username taken!");
+
+    await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
+    await set(dbRef(db, `stores/${username}`), { 
+        storeName: bizName, 
+        phone: phone,
+        analytics: { whatsappClicks: 0, totalRevenue: 0 } 
+    });
+
+    window.location.reload(); 
+};
+
+// --- 3. DASHBOARD UI LOGIC ---
 async function loadDashboardData() {
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
     const data = snap.val();
@@ -131,11 +133,14 @@ async function loadDashboardData() {
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         
-        document.getElementById('admin-label-1').value = data.label1 || "Ladies Wear";
-        document.getElementById('admin-label-2').value = data.label2 || "Dinner Wears";
+        const card1 = document.getElementById('admin-label-1'); 
+        const card2 = document.getElementById('admin-label-2');
+        if(card1) card1.value = data.label1 || "Ladies Wear";
+        if(card2) card2.value = data.label2 || "Dinner Wears";
 
         const greetText = document.getElementById('admin-greetings');
-        if (greetText) greetText.value = (data.customGreetings || []).join(', ');
+        if (greetText) greetText.value = (data.customGreetings || []).join('\n');
+        
         const greetToggle = document.getElementById('greetings-toggle');
         if (greetToggle) greetToggle.checked = data.greetingsEnabled !== false;
 
@@ -145,8 +150,7 @@ async function loadDashboardData() {
             imgP.src = data.profileImage; imgP.style.display = "block"; 
             if(rmBtn) rmBtn.style.display = "inline-block";
         } else {
-            imgP.style.display = "none";
-            if(rmBtn) rmBtn.style.display = "none";
+            imgP.style.display = "none"; if(rmBtn) rmBtn.style.display = "none";
         }
 
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
@@ -174,7 +178,7 @@ window.saveStoreSettings = async () => {
         label1: document.getElementById('admin-label-1').value,
         label2: document.getElementById('admin-label-2').value,
         greetingsEnabled: document.getElementById('greetings-toggle').checked,
-        customGreetings: document.getElementById('admin-greetings').value.split(',').map(g => g.trim())
+        customGreetings: document.getElementById('admin-greetings').value.split('\n').filter(g => g.trim() !== "")
     };
     if(pendingBase64Image) {
         const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
@@ -188,10 +192,11 @@ window.saveStoreSettings = async () => {
     loadDashboardData();
 };
 
+// --- 4. INVENTORY LOGIC ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name'), priceInput = document.getElementById('prod-price');
     const tagsInput = document.getElementById('prod-tags'), imgP = document.getElementById('prod-img-preview');
-    const fileInput = document.getElementById('prod-pic-upload'), btn = document.getElementById('upload-prod-btn');
+    const btn = document.getElementById('upload-prod-btn');
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
     btn.innerText = "Adding...";
@@ -204,12 +209,8 @@ window.uploadNewProduct = async () => {
             cat: document.getElementById('prod-brand').value,
             tags: tagsInput.value || "", imgUrl: url, storagePath: path 
         });
-        
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
-        if(fileInput) fileInput.value = "";
-        imgP.style.display = "none";
-        pendingProductBase64 = null;
-        
+        imgP.style.display = "none"; pendingProductBase64 = null;
         showToast("Product Added!"); loadDashboardData();
     } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
