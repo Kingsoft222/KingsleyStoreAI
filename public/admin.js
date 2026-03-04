@@ -22,51 +22,53 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// SURGICAL FIX: Handle Login, Onboarding, and Dashboard visibility
+// --- FIXED SIGN-IN & ONBOARDING BRIDGE ---
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
     if (user) {
+        // Master Founder Logic
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
 
+        // Check if store exists in database
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
-            // User found: Go to Dashboard
+            // User exists: Show Dashboard
             activeStoreId = snap.val().storeId;
-            if(loginSec) loginSec.style.display = 'none';
+            loginSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'block';
+            dashSec.style.display = 'block';
             loadDashboardData();
         } else {
-            // New user: Show the "Set Up Your Store" page
-            if(loginSec) loginSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'none';
+            // New user: Show the Onboarding setup form
+            loginSec.style.display = 'none';
+            dashSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        // Logged out: Show Login
-        if(loginSec) loginSec.style.display = 'block';
-        if(dashSec) dashSec.style.display = 'none';
+        // Logged out: Show Login section only
+        loginSec.style.display = 'block';
+        dashSec.style.display = 'none';
         if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
-// Create Store Logic (Essential for the onboarding page to work)
+// Logic for Onboarding "Create Store" button
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
     const bizName = document.getElementById('setup-bizname').value.trim();
     const phone = document.getElementById('setup-phone').value.trim();
 
-    if(!username || !bizName || !phone) return alert("Fill all fields!");
+    if(!username || !bizName || !phone) return alert("Please fill all fields!");
 
     const check = await get(dbRef(db, `stores/${username}`));
-    if(check.exists()) return alert("Username taken!");
+    if(check.exists()) return alert("Username already taken!");
 
     await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
     await set(dbRef(db, `stores/${username}`), { 
@@ -78,8 +80,7 @@ window.createStoreProfile = async () => {
     window.location.reload(); 
 };
 
-// --- EVERYTHING BELOW IS YOUR ORIGINAL UNTOUCHED CODE ---
-
+// --- ORIGINAL MASTER VAULT LOGIC ---
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
     if (!vaultSection) return;
