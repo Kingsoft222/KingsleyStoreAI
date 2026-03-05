@@ -114,6 +114,7 @@ async function loadDashboardData() {
     }
 }
 
+// --- FIXED: EMERGENCY ID RECOVERY & COMPLETE FORM RESET ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -124,18 +125,28 @@ window.uploadNewProduct = async () => {
     const btn = document.getElementById('upload-prod-btn');
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
+
+    // Emergency Session ID Recovery for New Users
+    let uploadId = activeStoreId;
+    if (!uploadId) {
+        const user = auth.currentUser;
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) { uploadId = snap.val().storeId; activeStoreId = uploadId; } 
+        else { return alert("Store session not ready. Please refresh."); }
+    }
+
     btn.innerText = "Adding...";
     btn.disabled = true;
     
     try {
         const id = Date.now();
-        const path = `inventory/${activeStoreId}/${id}.jpg`;
+        const path = `inventory/${uploadId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
+        await push(dbRef(db, `stores/${uploadId}/catalog`), { 
             name: nameInput.value, 
             price: Number(priceInput.value),
             cat: brandInput.value,
@@ -144,6 +155,7 @@ window.uploadNewProduct = async () => {
             storagePath: path 
         });
 
+        // COMPLETE RESET OF ALL FIELDS
         nameInput.value = "";
         priceInput.value = "";
         tagsInput.value = "";
@@ -155,9 +167,13 @@ window.uploadNewProduct = async () => {
         
         showToast("Product Added Successfully!");
         loadDashboardData();
-    } catch (e) { alert("Upload error."); }
-    btn.innerText = "Add Item to Store";
-    btn.disabled = false;
+    } catch (e) { 
+        console.error(e);
+        alert("Upload error. Please check connection."); 
+    } finally {
+        btn.innerText = "Add Item to Store";
+        btn.disabled = false;
+    }
 };
 
 window.saveStoreSettings = async () => {
