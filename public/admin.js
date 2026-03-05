@@ -114,7 +114,6 @@ async function loadDashboardData() {
     }
 }
 
-// --- FIXED: EMERGENCY ID RECOVERY, METADATA & COMPLETE FORM RESET ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -126,7 +125,6 @@ window.uploadNewProduct = async () => {
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
 
-    // Recover Session if lost
     let uploadId = activeStoreId;
     if (!uploadId) {
         const user = auth.currentUser;
@@ -143,7 +141,6 @@ window.uploadNewProduct = async () => {
         const path = `inventory/${uploadId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
-        // Metadata ensures storefront recognizes it as an image instantly
         const metadata = { contentType: 'image/jpeg' };
         await uploadString(sRef, pendingProductBase64, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
@@ -157,7 +154,6 @@ window.uploadNewProduct = async () => {
             storagePath: path 
         });
 
-        // FULL RESET OF ALL FIELDS
         nameInput.value = "";
         priceInput.value = "";
         tagsInput.value = "";
