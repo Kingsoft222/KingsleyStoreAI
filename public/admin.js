@@ -51,7 +51,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- LOCKED: NEW USER GREETINGS (Nne, My Guy, etc.) ---
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
@@ -115,7 +114,6 @@ async function loadDashboardData() {
     }
 }
 
-// --- OPTIMIZED: INSTANT UPLOAD & CLEAN CLEAR ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -127,13 +125,13 @@ window.uploadNewProduct = async () => {
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
     btn.innerText = "Adding...";
+    btn.disabled = true;
     
     try {
         const id = Date.now();
         const path = `inventory/${activeStoreId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
-        // Immediate upload
         await uploadString(sRef, pendingProductBase64, 'data_url');
         const url = await getDownloadURL(sRef);
         
@@ -146,18 +144,20 @@ window.uploadNewProduct = async () => {
             storagePath: path 
         });
 
-        // Instant Clean Fields
         nameInput.value = "";
         priceInput.value = "";
         tagsInput.value = "";
+        brandInput.selectedIndex = 0;
         if(fileInput) fileInput.value = "";
+        imgPreview.src = "";
         imgPreview.style.display = "none";
         pendingProductBase64 = null;
         
-        showToast("Product Added!");
+        showToast("Product Added Successfully!");
         loadDashboardData();
     } catch (e) { alert("Upload error."); }
     btn.innerText = "Add Item to Store";
+    btn.disabled = false;
 };
 
 window.saveStoreSettings = async () => {
