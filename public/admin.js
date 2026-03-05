@@ -84,6 +84,7 @@ window.createStoreProfile = async () => {
 };
 
 async function loadDashboardData() {
+    if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
     const data = snap.val();
     if (data) {
@@ -98,8 +99,10 @@ async function loadDashboardData() {
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         const photoChangeBtn = document.querySelector("button[onclick*='admin-pic-upload']");
+        
         imgP.style.display = "block";
         if(rmBtn) rmBtn.style.display = "inline-block";
+        
         if (data.profileImage) { 
             imgP.src = data.profileImage; 
             if(photoChangeBtn) photoChangeBtn.innerText = "Change Photo";
@@ -114,6 +117,7 @@ async function loadDashboardData() {
     }
 }
 
+// --- FIXED UPLOAD WITH EMERGENCY ID CHECK ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -167,35 +171,49 @@ window.uploadNewProduct = async () => {
         loadDashboardData();
     } catch (e) { 
         console.error(e);
-        alert("Upload error. Please check connection."); 
+        alert("Upload error: " + e.message); 
     } finally {
         btn.innerText = "Add Item to Store";
         btn.disabled = false;
     }
 };
 
+// --- FIXED SAVE SETTINGS (NO HANGING) ---
 window.saveStoreSettings = async () => {
+    if(!activeStoreId) return alert("Error: No Store ID. Please refresh.");
     const btn = document.getElementById('save-btn');
     btn.innerText = "Saving...";
-    const updateData = {
-        storeName: document.getElementById('admin-store-name').value,
-        phone: document.getElementById('admin-phone').value,
-        searchHint: document.getElementById('admin-search-hint').value,
-        label1: document.getElementById('admin-label-1').value,
-        label2: document.getElementById('admin-label-2').value,
-        greetingsEnabled: document.getElementById('greetings-toggle').checked,
-        customGreetings: document.getElementById('admin-greetings').value.split('\n').filter(g => g.trim() !== "")
-    };
-    if(pendingBase64Image) {
-        const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
-        await uploadString(ref, pendingBase64Image, 'data_url');
-        updateData.profileImage = await getDownloadURL(ref);
-        pendingBase64Image = null;
+    btn.disabled = true;
+
+    try {
+        const updateData = {
+            storeName: document.getElementById('admin-store-name').value,
+            phone: document.getElementById('admin-phone').value,
+            searchHint: document.getElementById('admin-search-hint').value,
+            label1: document.getElementById('admin-label-1').value,
+            label2: document.getElementById('admin-label-2').value,
+            greetingsEnabled: document.getElementById('greetings-toggle').checked,
+            customGreetings: document.getElementById('admin-greetings').value.split('\n').filter(g => g.trim() !== "")
+        };
+
+        if(pendingBase64Image) {
+            const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+            const metadata = { contentType: 'image/jpeg' };
+            await uploadString(ref, pendingBase64Image, 'data_url', metadata);
+            updateData.profileImage = await getDownloadURL(ref);
+            pendingBase64Image = null;
+        }
+
+        await update(dbRef(db, `stores/${activeStoreId}`), updateData);
+        showToast("Saved!");
+        loadDashboardData();
+    } catch (e) {
+        console.error(e);
+        alert("Save failed: " + e.message);
+    } finally {
+        btn.innerText = "Save Settings";
+        btn.disabled = false;
     }
-    await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-    btn.innerText = "Save Settings"; 
-    showToast("Saved!");
-    loadDashboardData();
 };
 
 window.removeAdminImage = async () => {
