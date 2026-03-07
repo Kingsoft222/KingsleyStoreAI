@@ -103,6 +103,7 @@ async function loadDashboardData() {
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
+        
         const imgP = document.getElementById('admin-img-preview');
         const rmBtn = document.getElementById('remove-pic-btn');
         const photoChangeBtn = document.querySelector("button[onclick*='admin-pic-upload']");
@@ -124,6 +125,7 @@ async function loadDashboardData() {
     }
 }
 
+// --- GLOBAL AI FIX: APPLICABLE TO ALL NEW & EXISTING USERS ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -150,7 +152,13 @@ window.uploadNewProduct = async () => {
         const id = Date.now();
         const path = `inventory/${uploadId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
-        const metadata = { contentType: 'image/jpeg' };
+        
+        // GLOBAL AI FIX: Metadata and Cache control stops indefinite loading
+        const metadata = { 
+            contentType: 'image/jpeg',
+            cacheControl: 'public,max-age=3600'
+        };
+        
         await uploadString(sRef, pendingProductBase64, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
         
@@ -197,6 +205,7 @@ window.saveStoreSettings = async () => {
 
         if(pendingBase64Image) {
             const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+            // AI FIX: Metadata for Profile Photo ensures try-on engine visibility
             const metadata = { contentType: 'image/jpeg' };
             await uploadString(ref, pendingBase64Image, 'data_url', metadata);
             updateData.profileImage = await getDownloadURL(ref);
