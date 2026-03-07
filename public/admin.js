@@ -51,12 +51,15 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
+// --- UPDATED SIGNUP LOGIC FOR RANDOM USERS ---
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
     const bizName = document.getElementById('setup-bizname').value.trim();
     const phone = document.getElementById('setup-phone').value.trim();
+    
     if(!username || !bizName || !phone) return alert("Fill all fields!");
+    
     const check = await get(dbRef(db, `stores/${username}`));
     if(check.exists()) return alert("Username taken!");
 
@@ -70,17 +73,26 @@ window.createStoreProfile = async () => {
         "Baddie\nlet's find your style!"
     ];
 
-    await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
-    await set(dbRef(db, `stores/${username}`), { 
-        storeName: bizName, 
-        phone: phone,
-        label1: "Ladies Wear",
-        label2: "Men Wear",
-        customGreetings: finalGreetings,
-        greetingsEnabled: true,
-        analytics: { whatsappClicks: 0, totalRevenue: 0 } 
-    });
-    window.location.reload(); 
+    try {
+        // 1. Link User to StoreID
+        await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
+        
+        // 2. Create Store with ownerEmail to satisfy Security Rules for random users
+        await set(dbRef(db, `stores/${username}`), { 
+            storeName: bizName, 
+            phone: phone,
+            ownerEmail: user.email, // THIS FIXES PERMISSION DENIED PERMANENTLY
+            label1: "Ladies Wear",
+            label2: "Men Wear",
+            customGreetings: finalGreetings,
+            greetingsEnabled: true,
+            analytics: { whatsappClicks: 0, totalRevenue: 0 } 
+        });
+        
+        window.location.reload(); 
+    } catch (e) {
+        alert("Setup failed: " + e.message);
+    }
 };
 
 async function loadDashboardData() {
@@ -117,7 +129,6 @@ async function loadDashboardData() {
     }
 }
 
-// --- FIXED UPLOAD WITH EMERGENCY ID CHECK ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -178,7 +189,6 @@ window.uploadNewProduct = async () => {
     }
 };
 
-// --- FIXED SAVE SETTINGS (NO HANGING) ---
 window.saveStoreSettings = async () => {
     if(!activeStoreId) return alert("Error: No Store ID. Please refresh.");
     const btn = document.getElementById('save-btn');
