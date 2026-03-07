@@ -125,7 +125,7 @@ async function loadDashboardData() {
     }
 }
 
-// --- GLOBAL AI FIX: APPLICABLE TO ALL NEW & EXISTING USERS ---
+// --- GLOBAL AI FIX: ENSURES IMAGES ARE PROCESSIBLE BY THE AI ENGINE ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -153,7 +153,7 @@ window.uploadNewProduct = async () => {
         const path = `inventory/${uploadId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
-        // GLOBAL AI FIX: Metadata and Cache control stops indefinite loading
+        // CRITICAL: Metadata tells the AI processing server this is a valid image
         const metadata = { 
             contentType: 'image/jpeg',
             cacheControl: 'public,max-age=3600'
@@ -205,7 +205,7 @@ window.saveStoreSettings = async () => {
 
         if(pendingBase64Image) {
             const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
-            // AI FIX: Metadata for Profile Photo ensures try-on engine visibility
+            // Metadata for Profile Photo ensures AI engine can reference the brand
             const metadata = { contentType: 'image/jpeg' };
             await uploadString(ref, pendingBase64Image, 'data_url', metadata);
             updateData.profileImage = await getDownloadURL(ref);
