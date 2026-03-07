@@ -51,7 +51,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- UPDATED SIGNUP LOGIC FOR RANDOM USERS ---
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
@@ -74,21 +73,17 @@ window.createStoreProfile = async () => {
     ];
 
     try {
-        // 1. Link User to StoreID
         await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
-        
-        // 2. Create Store with ownerEmail to satisfy Security Rules for random users
         await set(dbRef(db, `stores/${username}`), { 
             storeName: bizName, 
             phone: phone,
-            ownerEmail: user.email, // THIS FIXES PERMISSION DENIED PERMANENTLY
+            ownerEmail: user.email, 
             label1: "Ladies Wear",
             label2: "Men Wear",
             customGreetings: finalGreetings,
             greetingsEnabled: true,
             analytics: { whatsappClicks: 0, totalRevenue: 0 } 
         });
-        
         window.location.reload(); 
     } catch (e) {
         alert("Setup failed: " + e.message);
@@ -155,7 +150,6 @@ window.uploadNewProduct = async () => {
         const id = Date.now();
         const path = `inventory/${uploadId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
-        
         const metadata = { contentType: 'image/jpeg' };
         await uploadString(sRef, pendingProductBase64, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
@@ -169,23 +163,18 @@ window.uploadNewProduct = async () => {
             storagePath: path 
         });
 
-        nameInput.value = "";
-        priceInput.value = "";
-        tagsInput.value = "";
+        nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         brandInput.selectedIndex = 0;
         if(fileInput) fileInput.value = "";
-        imgPreview.src = "";
-        imgPreview.style.display = "none";
+        imgPreview.src = ""; imgPreview.style.display = "none";
         pendingProductBase64 = null;
         
         showToast("Product Added Successfully!");
         loadDashboardData();
     } catch (e) { 
-        console.error(e);
         alert("Upload error: " + e.message); 
     } finally {
-        btn.innerText = "Add Item to Store";
-        btn.disabled = false;
+        btn.innerText = "Add Item to Store"; btn.disabled = false;
     }
 };
 
@@ -218,7 +207,6 @@ window.saveStoreSettings = async () => {
         showToast("Saved!");
         loadDashboardData();
     } catch (e) {
-        console.error(e);
         alert("Save failed: " + e.message);
     } finally {
         btn.innerText = "Save Settings";
@@ -280,6 +268,10 @@ window.toggleMasterVault = async () => {
                 <td><button onclick="window.auditVendorReceipts('${id}')">Audit</button></td></tr>`).join('');
         }
     } else { vaultSection.style.display = 'none'; }
+};
+
+window.auditVendorReceipts = async (vendorId) => {
+    alert("Auditing receipts for: " + vendorId);
 };
 
 window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
