@@ -23,6 +23,23 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
+// --- IMPROVED IMAGE COMPRESSION HELPER (PREVENTS AI HANGS) ---
+async function optimizeImage(base64Str, maxWidth = 1024) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64Str;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality is sweet spot for AI
+        };
+    });
+}
+
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
@@ -125,59 +142,49 @@ async function loadDashboardData() {
     }
 }
 
-// --- GLOBAL AI FIX: ENSURES IMAGES ARE PROCESSIBLE BY THE AI ENGINE ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
     const tagsInput = document.getElementById('prod-tags');
     const brandInput = document.getElementById('prod-brand');
-    const fileInput = document.getElementById('prod-pic-upload');
-    const imgPreview = document.getElementById('prod-img-preview');
     const btn = document.getElementById('upload-prod-btn');
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
 
-    let uploadId = activeStoreId;
-    if (!uploadId) {
-        const user = auth.currentUser;
-        const snap = await get(dbRef(db, `users/${user.uid}`));
-        if (snap.exists()) { uploadId = snap.val().storeId; activeStoreId = uploadId; } 
-        else { return alert("Store session not ready. Please refresh."); }
-    }
-
-    btn.innerText = "Adding...";
+    btn.innerText = "Processing AI Ready Img...";
     btn.disabled = true;
     
     try {
+        // Optimize before upload to ensure 2-3 min processing speed
+        const optimizedImg = await optimizeImage(pendingProductBase64);
+        
         const id = Date.now();
-        const path = `inventory/${uploadId}/${id}.jpg`;
+        const path = `inventory/${activeStoreId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
-        // CRITICAL: Metadata tells the AI processing server this is a valid image
         const metadata = { 
             contentType: 'image/jpeg',
-            cacheControl: 'public,max-age=3600'
+            customMetadata: { 'priority': 'high', 'optimization': 'v2' }
         };
         
-        await uploadString(sRef, pendingProductBase64, 'data_url', metadata);
+        await uploadString(sRef, optimizedImg, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
         
-        await push(dbRef(db, `stores/${uploadId}/catalog`), { 
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name: nameInput.value, 
             price: Number(priceInput.value),
             cat: brandInput.value,
             tags: tagsInput.value || "", 
             imgUrl: url, 
-            storagePath: path 
+            storagePath: path,
+            processedAt: id // Helps AI engine queue by timestamp
         });
 
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
-        brandInput.selectedIndex = 0;
-        if(fileInput) fileInput.value = "";
-        imgPreview.src = ""; imgPreview.style.display = "none";
+        document.getElementById('prod-img-preview').style.display = "none";
         pendingProductBase64 = null;
         
-        showToast("Product Added Successfully!");
+        showToast("Product Live & AI Optimized!");
         loadDashboardData();
     } catch (e) { 
         alert("Upload error: " + e.message); 
@@ -187,10 +194,9 @@ window.uploadNewProduct = async () => {
 };
 
 window.saveStoreSettings = async () => {
-    if(!activeStoreId) return alert("Error: No Store ID. Please refresh.");
+    if(!activeStoreId) return alert("Error: No Store ID.");
     const btn = document.getElementById('save-btn');
-    btn.innerText = "Saving...";
-    btn.disabled = true;
+    btn.innerText = "Saving..."; btn.disabled = true;
 
     try {
         const updateData = {
@@ -204,10 +210,9 @@ window.saveStoreSettings = async () => {
         };
 
         if(pendingBase64Image) {
+            const optimizedProfile = await optimizeImage(pendingBase64Image, 512); // Profiles can be smaller
             const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
-            // Metadata for Profile Photo ensures AI engine can reference the brand
-            const metadata = { contentType: 'image/jpeg' };
-            await uploadString(ref, pendingBase64Image, 'data_url', metadata);
+            await uploadString(ref, optimizedProfile, 'data_url', { contentType: 'image/jpeg' });
             updateData.profileImage = await getDownloadURL(ref);
             pendingBase64Image = null;
         }
@@ -218,8 +223,7 @@ window.saveStoreSettings = async () => {
     } catch (e) {
         alert("Save failed: " + e.message);
     } finally {
-        btn.innerText = "Save Settings";
-        btn.disabled = false;
+        btn.innerText = "Save Settings"; btn.disabled = false;
     }
 };
 
@@ -243,8 +247,8 @@ window.handleProductImagePreview = (e) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
         pendingProductBase64 = ev.target.result;
-        document.getElementById('prod-img-preview').src = ev.target.result;
-        document.getElementById('prod-img-preview').style.display = 'block';
+        const p = document.getElementById('prod-img-preview');
+        p.src = ev.target.result; p.style.display = 'block';
     };
     reader.readAsDataURL(e.target.files[0]);
 };
