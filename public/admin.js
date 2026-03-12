@@ -35,7 +35,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
             canvas.height = img.height * scale;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality is sweet spot for AI
+            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality for AI speed
         };
     });
 }
@@ -142,6 +142,7 @@ async function loadDashboardData() {
     }
 }
 
+// --- UPDATED PROGRESSIVE PROCESSING LOGIC ---
 window.uploadNewProduct = async () => {
     const nameInput = document.getElementById('prod-name');
     const priceInput = document.getElementById('prod-price');
@@ -151,25 +152,31 @@ window.uploadNewProduct = async () => {
 
     if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
 
-    btn.innerText = "Processing AI Ready Img...";
+    btn.innerText = "⚡ AI Optimization...";
     btn.disabled = true;
     
     try {
-        // Optimize before upload to ensure 2-3 min processing speed
+        // Step 1: Client-side compression to avoid processing "indefinitely"
         const optimizedImg = await optimizeImage(pendingProductBase64);
         
         const id = Date.now();
         const path = `inventory/${activeStoreId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
         
+        // Step 2: High Priority Metadata to kickstart the AI Worker
         const metadata = { 
             contentType: 'image/jpeg',
-            customMetadata: { 'priority': 'high', 'optimization': 'v2' }
+            customMetadata: { 
+                'priority': 'high', 
+                'optimization_v2': 'true',
+                'timestamp': id.toString()
+            }
         };
         
         await uploadString(sRef, optimizedImg, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
         
+        // Step 3: Add Status flag so backend knows it's a new request needing 2-min turnaround
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name: nameInput.value, 
             price: Number(priceInput.value),
@@ -177,14 +184,16 @@ window.uploadNewProduct = async () => {
             tags: tagsInput.value || "", 
             imgUrl: url, 
             storagePath: path,
-            processedAt: id // Helps AI engine queue by timestamp
+            status: "ready_for_ai",
+            processedAt: id 
         });
 
+        // Step 4: UI Cleanup
         nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
         document.getElementById('prod-img-preview').style.display = "none";
         pendingProductBase64 = null;
         
-        showToast("Product Live & AI Optimized!");
+        showToast("Product is being processed (Est: 2-3 mins)");
         loadDashboardData();
     } catch (e) { 
         alert("Upload error: " + e.message); 
@@ -210,7 +219,7 @@ window.saveStoreSettings = async () => {
         };
 
         if(pendingBase64Image) {
-            const optimizedProfile = await optimizeImage(pendingBase64Image, 512); // Profiles can be smaller
+            const optimizedProfile = await optimizeImage(pendingBase64Image, 512); 
             const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
             await uploadString(ref, optimizedProfile, 'data_url', { contentType: 'image/jpeg' });
             updateData.profileImage = await getDownloadURL(ref);
