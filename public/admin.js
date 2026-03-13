@@ -23,7 +23,7 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- PERMANENT SPEED FIX: CLIENT-SIDE COMPRESSION ---
+// --- PERMANENT SPEED FIX: CLIENT-SIDE COMPRESSION (PREVENTS BACKEND OVERLOAD) ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -155,7 +155,7 @@ window.uploadNewProduct = async () => {
     btn.disabled = true;
     
     try {
-        // Optimize image to under 200KB so the AI processes it instantly
+        // Step 1: Optimize image on the phone before sending to Firebase
         const optimizedImg = await optimizeImage(pendingProductBase64);
         
         const id = Date.now();
@@ -170,7 +170,7 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, optimizedImg, 'data_url', metadata);
         const url = await getDownloadURL(sRef);
         
-        // REVERTED: Using original DB structure so AI Worker sees it immediately
+        // Step 2: RESTORED ORIGINAL STRUCTURE (No 'status' field to prevent backend confusion)
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name: nameInput.value, 
             price: Number(priceInput.value),
