@@ -32,6 +32,9 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 window.activeGreetings = []; 
 let gIndex = 0;
 
+// THE KEY CONNECTION: Pointing to your live deployed backend
+const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
+
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
@@ -146,14 +149,12 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        // Force high-speed optimization immediately
         tempCustomerPhoto = await resizeImage(ev.target.result); 
         window.startTryOn(); 
     }; 
     reader.readAsDataURL(file); 
 };
 
-// PROGRESSIVE SPEED UPDATE: Optimized to prevent indefinite loading
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p></div>`;
@@ -161,19 +162,17 @@ window.startTryOn = async () => {
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
-        // Timeout protection: If server takes too long, we notify user instead of rolling forever
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min limit
+        const timeoutId = setTimeout(() => controller.abort(), 120000); 
 
-        const response = await fetch('/api/process-vto', { 
+        const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             signal: controller.signal,
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
                 clothImage: rawCloth, 
-                category: selectedCloth.cat || "top_body",
-                storeId: currentStoreId 
+                category: selectedCloth.cat || "top_body" 
             }) 
         });
         
@@ -185,11 +184,11 @@ window.startTryOn = async () => {
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { 
-            throw new Error(result.error || "AI busy");
+            throw new Error(result.error || "Processing failed");
         }
     } catch (e) { 
-        console.error("Try-on error:", e);
-        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">AI is currently busy. Please try again in 1 minute.</p><button onclick="window.startTryOn()" style="margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:8px;">Retry</button></div>`;
+        console.error("AI Error:", e);
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Engine is waking up. Please retry in 1 minute.</p><button onclick="window.startTryOn()" style="margin-top:10px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%;">Retry Fitting</button></div>`;
     }
 };
 
@@ -212,7 +211,6 @@ window.addToCart = () => {
             proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
             proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
             proceedBtn.onclick = () => window.openCart();
-            proceedBtn.appendChild(proceedBtn); // Logic from previous: fixing append
             resDiv.appendChild(proceedBtn);
         }
     }
