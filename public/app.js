@@ -157,13 +157,15 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p></div>`;
+    // Updated loading text to manage user expectations for a 1-4 minute window
+    resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br><span style="font-size:0.8rem; font-weight:400; color:#888;">This usually takes 1-3 minutes</span></p></div>`;
     
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); 
+        // Extended timeout to 4 minutes (240,000ms) to ensure AI has enough time to process
+        const timeoutId = setTimeout(() => controller.abort(), 240000); 
 
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
@@ -188,7 +190,8 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.error("AI Error:", e);
-        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Engine is waking up. Please retry in 1 minute.</p><button onclick="window.startTryOn()" style="margin-top:10px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%;">Retry Fitting</button></div>`;
+        // Removed the "Retry Fitting" button as requested; providing a standard error message instead
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Processing encountered an issue or timed out. Please try again or check your internet connection.</p></div>`;
     }
 };
 
