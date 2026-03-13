@@ -94,15 +94,11 @@ function applyDynamicThemeStyles() {
         document.head.appendChild(styleTag);
     }
     styleTag.innerHTML = `
-        /* Adaptive UI elements based on Phone Theme */
         #dynamic-greeting, #store-name-display, .summary-text, .theme-subtext, .theme-p { color: ${adaptiveTextColor} !important; }
         #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
-        
-        /* Fixed Product Cards: Always White background with Black font */
         .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
-
         .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; color: white; }
     `;
     
@@ -150,28 +146,51 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
+        // Force high-speed optimization immediately
         tempCustomerPhoto = await resizeImage(ev.target.result); 
         window.startTryOn(); 
     }; 
     reader.readAsDataURL(file); 
 };
 
+// PROGRESSIVE SPEED UPDATE: Optimized to prevent indefinite loading
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p></div>`;
+    
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
+        
+        // Timeout protection: If server takes too long, we notify user instead of rolling forever
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 min limit
+
         const response = await fetch('/api/process-vto', { 
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: tempCustomerPhoto, clothImage: rawCloth, category: selectedCloth.cat || "top_body" }) 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({ 
+                userImage: tempCustomerPhoto, 
+                clothImage: rawCloth, 
+                category: selectedCloth.cat || "top_body",
+                storeId: currentStoreId 
+            }) 
         });
+        
+        clearTimeout(timeoutId);
         const result = await response.json();
+
         if (result.success) {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
-        } else { alert("AI processing failed."); window.closeFittingRoom(); }
-    } catch (e) { alert("Server error."); window.closeFittingRoom(); }
+        } else { 
+            throw new Error(result.error || "AI busy");
+        }
+    } catch (e) { 
+        console.error("Try-on error:", e);
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">AI is currently busy. Please try again in 1 minute.</p><button onclick="window.startTryOn()" style="margin-top:10px; background:#444; color:white; border:none; padding:10px; border-radius:8px;">Retry</button></div>`;
+    }
 };
 
 window.addToCart = () => {
@@ -193,6 +212,7 @@ window.addToCart = () => {
             proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
             proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
             proceedBtn.onclick = () => window.openCart();
+            proceedBtn.appendChild(proceedBtn); // Logic from previous: fixing append
             resDiv.appendChild(proceedBtn);
         }
     }
@@ -200,14 +220,11 @@ window.addToCart = () => {
 
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
-    
     const loader = document.getElementById('checkout-loader');
     if(loader) loader.style.display = 'flex';
-
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     const total = cart.reduce((s, i) => s + i.price, 0);
     const orderDate = new Date().toLocaleString();
-
     try {
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1),
@@ -217,16 +234,12 @@ window.checkoutWhatsApp = async () => {
         await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId, items: cart, total: total, date: orderDate, verifiedHost: window.location.hostname
         });
-
         const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
         const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0AOrder ID: *${orderId}*%0ATotal: *₦${total.toLocaleString()}*%0A%0A✅ *View Official Receipt:*%0A${receiptLink}`;
         const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${summaryMsg}`;
-        
         cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI();
-        
         if(loader) loader.style.display = 'none';
         window.location.assign(waUrl);
-
     } catch(e) { 
         if(loader) loader.style.display = 'none';
         alert("Accountability sync failed.");
