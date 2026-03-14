@@ -155,40 +155,20 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-window.startTryOn = async (retryCount = 0) => {
+window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Status sequences to manage perceived wait time
-    const statusMessages = [
-        "Uploading images...",
-        "Analyzing style & fit...",
-        "AI is stitching your outfit...",
-        "Applying final touches...",
-        "Finalizing your look..."
-    ];
-    
-    let msgIndex = 0;
-    const updateLoaderUI = (msg) => {
-        resDiv.innerHTML = `<div class="loader-container">
-            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <p style="margin-top:20px; font-weight:800; color:#e60023;">${msg.toUpperCase()}<br>
-            <span style="font-size:0.8rem; font-weight:400; color:#888;">AI Processing: Stage ${msgIndex + 1} of 5</span></p>
-        </div>`;
-    };
-
-    updateLoaderUI(statusMessages[0]);
-    
-    const statusInterval = setInterval(() => {
-        msgIndex++;
-        if (msgIndex < statusMessages.length) {
-            updateLoaderUI(statusMessages[msgIndex]);
-        }
-    }, 25000); // Progress every 25s within the 4-min window
+    // Direct, high-speed status update
+    resDiv.innerHTML = `<div class="loader-container">
+        <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br>
+        <span style="font-size:0.8rem; font-weight:400; color:#888;">Optimizing for high-speed delivery</span></p>
+    </div>`;
 
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 240000); // 4-minute maximum threshold
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // Strict 2-minute limit for high speed
 
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
@@ -201,10 +181,9 @@ window.startTryOn = async (retryCount = 0) => {
             }) 
         });
         
-        clearInterval(statusInterval);
         clearTimeout(timeoutId);
         
-        if (!response.ok) throw new Error(`Server Response Error: ${response.status}`);
+        if (!response.ok) throw new Error(`Server Error: ${response.status}`);
         
         const result = await response.json();
 
@@ -213,22 +192,15 @@ window.startTryOn = async (retryCount = 0) => {
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { 
-            throw new Error(result.error || "AI Processing Fault");
+            throw new Error(result.error || "AI Fault");
         }
     } catch (e) { 
-        clearInterval(statusInterval);
         console.error("VTO Engine Fault:", e);
-        
-        // Automatic transparent retry for one attempt to fix intermittent network glitches
-        if (retryCount < 1) {
-            console.warn("Retrying VTO process...");
-            return window.startTryOn(retryCount + 1);
-        }
-
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Service unavailable or timed out.</p>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI Tailor is experiencing high demand or your connection dropped. Please stay on this page or refresh the showroom.</p>
-            <button onclick="window.closeFittingRoom()" style="margin-top:20px; background:#444; color:white; border:none; padding:12px; border-radius:12px; width:100%;">Return to Catalog</button>
+            <p style="color:white; font-weight:700;">Connection unstable.</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please check your internet signal and try again.</p>
+            <button onclick="window.startTryOn()" style="margin-top:20px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%; font-weight:bold;">RETRY NOW</button>
+            <button onclick="window.closeFittingRoom()" style="margin-top:10px; background:transparent; color:#888; border:none; padding:10px; width:100%;">Cancel</button>
         </div>`;
     }
 };
@@ -309,14 +281,14 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 750; // Balanced for quality vs upload speed
+            const MAX = 600; // Optimized for high speed
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            res(canvas.toDataURL('image/jpeg', 0.65).split(',')[1]); 
+            res(canvas.toDataURL('image/jpeg', 0.50).split(',')[1]); // Balanced quality for speed
         }; 
         img.src = b64; 
     }); 
@@ -335,7 +307,7 @@ async function getBase64FromUrl(url) {
                 rd.onloadend = () => resolve(rd.result.split(',')[1]); 
                 rd.readAsDataURL(b); 
             })
-            .catch(() => resolve("")); // Fallback to avoid breaking the logic
+            .catch(() => resolve(""));
     }); 
 }
 
