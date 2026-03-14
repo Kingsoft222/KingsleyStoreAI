@@ -32,7 +32,7 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 window.activeGreetings = []; 
 let gIndex = 0;
 
-// THE KEY CONNECTION: Pointing to your live deployed backend
+// THE KEY CONNECTION: Pointing to your live deployed V2 backend
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -157,14 +157,14 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    // Updated loading text to manage user expectations for a 1-4 minute window
+    // Updated loading message to match the 1-4 minute expectation
     resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br><span style="font-size:0.8rem; font-weight:400; color:#888;">This usually takes 1-3 minutes</span></p></div>`;
     
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
         const controller = new AbortController();
-        // Extended timeout to 4 minutes (240,000ms) to ensure AI has enough time to process
+        // Set timeout to 4 minutes (240,000ms) to prevent early termination
         const timeoutId = setTimeout(() => controller.abort(), 240000); 
 
         const response = await fetch(VTO_API_URL, { 
@@ -190,8 +190,8 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.error("AI Error:", e);
-        // Removed the "Retry Fitting" button as requested; providing a standard error message instead
-        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Processing encountered an issue or timed out. Please try again or check your internet connection.</p></div>`;
+        // Removed the "Retry Fitting" button to avoid loops and confusion; providing a passive message instead
+        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Processing encountered an issue or timed out. Please try again in a few moments or check your internet connection.</p></div>`;
     }
 };
 
@@ -266,7 +266,24 @@ window.executeSearch = () => {
     results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4 class="cart-item-name">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
 };
 
-async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]); }; img.src = b64; }); }
+async function resizeImage(b64) { 
+    return new Promise((res) => { 
+        const img = new Image(); 
+        img.onload = () => { 
+            const canvas = document.createElement('canvas'); 
+            const MAX = 700; // Optimized for faster transit and processing
+            let w = img.width, h = img.height; 
+            if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
+            else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
+            canvas.width = w; canvas.height = h; 
+            const ctx = canvas.getContext('2d'); 
+            ctx.drawImage(img, 0, 0, w, h); 
+            // 60% quality offers best balance for speed
+            res(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]); 
+        }; 
+        img.src = b64; 
+    }); 
+}
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
