@@ -32,7 +32,7 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 window.activeGreetings = []; 
 let gIndex = 0;
 
-// THE KEY CONNECTION: Pointing to your live deployed V2 backend
+// LIVE DEPLOYED V2 BACKEND ENDPOINT
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -155,17 +155,40 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-window.startTryOn = async () => {
+window.startTryOn = async (retryCount = 0) => {
     const resDiv = document.getElementById('ai-fitting-result');
-    // Updated loading message to match the 1-4 minute expectation
-    resDiv.innerHTML = `<div class="loader-container"><div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br><span style="font-size:0.8rem; font-weight:400; color:#888;">This usually takes 1-3 minutes</span></p></div>`;
     
+    // Status sequences to manage perceived wait time
+    const statusMessages = [
+        "Uploading images...",
+        "Analyzing style & fit...",
+        "AI is stitching your outfit...",
+        "Applying final touches...",
+        "Finalizing your look..."
+    ];
+    
+    let msgIndex = 0;
+    const updateLoaderUI = (msg) => {
+        resDiv.innerHTML = `<div class="loader-container">
+            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <p style="margin-top:20px; font-weight:800; color:#e60023;">${msg.toUpperCase()}<br>
+            <span style="font-size:0.8rem; font-weight:400; color:#888;">AI Processing: Stage ${msgIndex + 1} of 5</span></p>
+        </div>`;
+    };
+
+    updateLoaderUI(statusMessages[0]);
+    
+    const statusInterval = setInterval(() => {
+        msgIndex++;
+        if (msgIndex < statusMessages.length) {
+            updateLoaderUI(statusMessages[msgIndex]);
+        }
+    }, 25000); // Progress every 25s within the 4-min window
+
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        
         const controller = new AbortController();
-        // Set timeout to 4 minutes (240,000ms) to prevent early termination
-        const timeoutId = setTimeout(() => controller.abort(), 240000); 
+        const timeoutId = setTimeout(() => controller.abort(), 240000); // 4-minute maximum threshold
 
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
@@ -178,20 +201,35 @@ window.startTryOn = async () => {
             }) 
         });
         
+        clearInterval(statusInterval);
         clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`Server Response Error: ${response.status}`);
+        
         const result = await response.json();
 
-        if (result.success) {
+        if (result.success && result.image) {
             resDiv.innerHTML = `
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px;">
+                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { 
-            throw new Error(result.error || "Processing failed");
+            throw new Error(result.error || "AI Processing Fault");
         }
     } catch (e) { 
-        console.error("AI Error:", e);
-        // Removed the "Retry Fitting" button to avoid loops and confusion; providing a passive message instead
-        resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><p style="color:white;">Processing encountered an issue or timed out. Please try again in a few moments or check your internet connection.</p></div>`;
+        clearInterval(statusInterval);
+        console.error("VTO Engine Fault:", e);
+        
+        // Automatic transparent retry for one attempt to fix intermittent network glitches
+        if (retryCount < 1) {
+            console.warn("Retrying VTO process...");
+            return window.startTryOn(retryCount + 1);
+        }
+
+        resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
+            <p style="color:white; font-weight:700;">Service unavailable or timed out.</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI Tailor is experiencing high demand or your connection dropped. Please stay on this page or refresh the showroom.</p>
+            <button onclick="window.closeFittingRoom()" style="margin-top:20px; background:#444; color:white; border:none; padding:12px; border-radius:12px; width:100%;">Return to Catalog</button>
+        </div>`;
     }
 };
 
@@ -271,22 +309,42 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 700; // Optimized for faster transit and processing
+            const MAX = 750; // Balanced for quality vs upload speed
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // 60% quality offers best balance for speed
-            res(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]); 
+            res(canvas.toDataURL('image/jpeg', 0.65).split(',')[1]); 
         }; 
         img.src = b64; 
     }); 
 }
+
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-async function getBase64FromUrl(url) { return new Promise((resolve) => { fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`).then(r => r.blob()).then(b => { const rd = new FileReader(); rd.onloadend = () => resolve(rd.result.split(',')[1]); rd.readAsDataURL(b); }); }); }
-function showToast(m) { const t = document.createElement('div'); t.className = 'cart-toast'; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
+
+async function getBase64FromUrl(url) { 
+    return new Promise((resolve) => { 
+        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
+            .then(r => r.blob())
+            .then(b => { 
+                const rd = new FileReader(); 
+                rd.onloadend = () => resolve(rd.result.split(',')[1]); 
+                rd.readAsDataURL(b); 
+            })
+            .catch(() => resolve("")); // Fallback to avoid breaking the logic
+    }); 
+}
+
+function showToast(m) { 
+    const t = document.createElement('div'); 
+    t.className = 'cart-toast'; 
+    t.innerText = m; 
+    document.body.appendChild(t); 
+    setTimeout(() => t.remove(), 2500); 
+}
+
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
