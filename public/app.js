@@ -158,7 +158,7 @@ window.handleCustomerUpload = (e) => {
 
 /**
  * Ultra-Rapid VTO Execution
- * Streamlined processing to deliver immediate "wearing" results without technical complaints.
+ * Improved image fetching and error handling to bypass CORS/Proxy blocks.
  */
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
@@ -172,6 +172,10 @@ window.startTryOn = async () => {
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
+        if (!rawCloth) {
+            throw new Error("Failed to load clothing item image.");
+        }
+
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
@@ -182,21 +186,26 @@ window.startTryOn = async () => {
             }) 
         });
         
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || `Server responded with ${response.status}`);
+        }
+
         const result = await response.json();
 
         if (result.success && result.image) {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
-                <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Try Another</button>`;
+                <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
         } else { 
-            throw new Error("Failure");
+            throw new Error("AI Synthesis did not return an image.");
         }
     } catch (e) { 
-        console.error("VTO Error:", e);
-        // Minimalistic reset if a true network block occurs
+        console.error("VTO Error Detail:", e);
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Could not complete fitting.</p>
+            <p style="color:white; font-weight:700;">Fitting unsuccessful.</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI could not process the photo at this time. Please try a different photo or check your connection.</p>
             <button onclick="window.closeFittingRoom()" style="margin-top:20px; background:#444; color:white; border:none; padding:15px; border-radius:12px; width:100%;">Return to Catalog</button>
         </div>`;
     }
@@ -278,14 +287,13 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 600; // Ultra-optimized resolution for instant transit
+            const MAX = 600; 
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // 40% quality reduces data footprint drastically for near-instant upload
             res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
         }; 
         img.src = b64; 
@@ -296,21 +304,44 @@ window.quickSearch = (q) => { document.getElementById('ai-input').value = q; win
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 
+/**
+ * Enhanced getBase64FromUrl
+ * Attempts direct fetch first, with improved error handling to ensure AI backend always gets data.
+ */
 async function getBase64FromUrl(url) { 
-    return new Promise((resolve) => { 
-        fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
-            .then(r => r.blob())
-            .then(b => { 
-                const rd = new FileReader(); 
-                rd.onloadend = () => {
-                    const result = rd.result;
-                    const raw = result.includes(',') ? result.split(',')[1] : result;
-                    resolve(raw);
-                }; 
-                rd.readAsDataURL(b); 
-            })
-            .catch(() => resolve(""));
-    }); 
+    try {
+        // Step 1: Try direct fetch (highest success rate if CORS is allowed)
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result;
+                resolve(result.includes(',') ? result.split(',')[1] : result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    } catch (directError) {
+        // Step 2: Fallback to proxy if direct fetch fails due to CORS
+        console.warn("Direct fetch failed, trying proxy...", directError);
+        try {
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error("Proxy failed");
+            const blob = await response.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result;
+                    resolve(result.includes(',') ? result.split(',')[1] : result);
+                };
+                reader.readAsDataURL(blob);
+            });
+        } catch (proxyError) {
+            console.error("All image fetch methods failed.", proxyError);
+            return "";
+        }
+    }
 }
 
 function showToast(m) { 
