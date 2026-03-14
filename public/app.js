@@ -157,10 +157,10 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Robust Try On Execution
- * Removes technical error messages and implements silent retries for "Busy" backend states.
+ * Enhanced Try On Execution
+ * Uses a prioritized, silent retry mechanism to overcome "AI Busy" states without technical messages.
  */
-window.startTryOn = async () => {
+window.startTryOn = async (retryCount = 0) => {
     const resDiv = document.getElementById('ai-fitting-result');
     
     resDiv.innerHTML = `<div class="loader-container">
@@ -172,7 +172,7 @@ window.startTryOn = async () => {
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
-        if (!rawCloth) throw new Error("Image retrieval failed");
+        if (!rawCloth) throw new Error("Image processing failed");
 
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
@@ -186,13 +186,14 @@ window.startTryOn = async () => {
         
         const result = await response.json();
 
-        // Handle "AI is busy" or other 500 errors silently by retrying once after a short delay
+        // If server is busy or fails, we silently retry up to 2 times
         if (!response.ok || !result.success) {
-            if (response.status === 500 || result.error?.includes("busy")) {
-                setTimeout(() => window.startTryOn(), 3000); 
+            if (retryCount < 2) {
+                console.warn(`Attempt ${retryCount + 1} failed, retrying silently...`);
+                setTimeout(() => window.startTryOn(retryCount + 1), 3000); 
                 return;
             }
-            throw new Error("Synthesis failed");
+            throw new Error("Final attempt failed");
         }
 
         if (result.image) {
@@ -203,13 +204,12 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.error("VTO Error:", e);
-        // Minimal reset if a critical network failure persists
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
             <p style="color:white; font-weight:700;">Styling update in progress.</p>
             <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please stay on this page while we finalize your results.</p>
         </div>`;
-        // One final silent attempt after a longer cooldown
-        setTimeout(() => window.startTryOn(), 10000);
+        // Final fallback retry after a longer wait if everything crashed
+        setTimeout(() => window.startTryOn(), 15000);
     }
 };
 
@@ -307,28 +307,32 @@ window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 
 /**
- * Enhanced getBase64FromUrl
- * Uses a more robust proxy method to bypass CORS and prevent 404/net::ERR_FAILED console errors.
+ * Robust getBase64FromUrl
+ * Uses crossOrigin attribute to bypass CORS for Firebase images natively.
  */
 async function getBase64FromUrl(url) { 
-    try {
-        // Step 1: Use a reliable proxy to bypass CORS immediately
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Image proxy failed");
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const result = reader.result;
-                resolve(result.includes(',') ? result.split(',')[1] : result);
-            };
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) {
-        console.warn("Image retrieval failed. AI may not be able to process.", e);
-        return "";
-    }
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous"; // Native CORS bypass for images
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataURL = canvas.toDataURL('image/jpeg');
+            resolve(dataURL.split(',')[1]);
+        };
+        img.onerror = () => {
+            console.warn("Native load failed, trying standard fetch...");
+            fetch(url).then(r => r.blob()).then(b => {
+                const rd = new FileReader();
+                rd.onloadend = () => resolve(rd.result.split(',')[1]);
+                rd.readAsDataURL(b);
+            }).catch(() => resolve(""));
+        };
+        img.src = url;
+    });
 }
 
 function showToast(m) { 
