@@ -157,23 +157,23 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Robust Try On Execution
- * Cleaned payload and removed sensitive timeouts to ensure successful "wearing" results.
+ * Ultra-Rapid VTO Execution
+ * Streamlined processing paths and removed redundant error messaging to ensure speed.
  */
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Direct loading indicator without technical excuses
+    // Direct, professional loading state
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br>
-        <span style="font-size:0.8rem; font-weight:400; color:#888;">Generating AI results</span></p>
+        <span style="font-size:0.8rem; font-weight:400; color:#888;">Creating your virtual look</span></p>
     </div>`;
 
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
-        // Use standard robust fetch for high-data payloads
+        // Immediate fetch with no artificial timeouts
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
@@ -184,24 +184,21 @@ window.startTryOn = async () => {
             }) 
         });
         
-        if (!response.ok) throw new Error("Server communication failure");
-        
         const result = await response.json();
 
         if (result.success && result.image) {
-            // Success: Display the result immediately
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
-                <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Try Another</button>`;
+                <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
         } else { 
-            throw new Error("AI Synthesis Fault");
+            throw new Error("Processing Error");
         }
     } catch (e) { 
         console.error("VTO Error:", e);
+        // Minimalistic recovery state - no technical excuses
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">AI Tailor is busy</p>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please check your internet signal and try again.</p>
+            <p style="color:white; font-weight:700;">Something went wrong.</p>
             <button onclick="window.startTryOn()" style="margin-top:20px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%; font-weight:bold;">RETRY FITTING</button>
         </div>`;
     }
@@ -283,15 +280,15 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 700; // Increased resolution slightly for better clothing detection
+            const MAX = 600; // Ultra-optimized resolution for instant transit
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // 45% quality to keep data travel extremely fast on poor network
-            res(canvas.toDataURL('image/jpeg', 0.45).split(',')[1]); 
+            // 40% quality reduces data footprint significantly for near-instant upload
+            res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
         }; 
         img.src = b64; 
     }); 
@@ -303,14 +300,12 @@ window.updateCartUI = () => { const c = document.getElementById('cart-count'); i
 
 async function getBase64FromUrl(url) { 
     return new Promise((resolve) => { 
-        // Direct extraction to ensure clean data for the backend
         fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`)
             .then(r => r.blob())
             .then(b => { 
                 const rd = new FileReader(); 
                 rd.onloadend = () => {
                     const result = rd.result;
-                    // Safely extract raw base64 string
                     const raw = result.includes(',') ? result.split(',')[1] : result;
                     resolve(raw);
                 }; 
