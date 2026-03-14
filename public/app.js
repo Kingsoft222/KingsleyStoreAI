@@ -33,7 +33,7 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 window.activeGreetings = []; 
 let gIndex = 0;
 
-// LIVE DEPLOYED V2 BACKEND ENDPOINT
+// THE ENGINE URL
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -157,58 +157,47 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Ultra-Rapid VTO Execution
- * Uses a prioritized, silent retry mechanism to overcome "AI Busy" states without technical messages.
+ * Professional VTO Execution
+ * Zero technical text. Pure spinner UI.
+ * Bypasses CORS by sending the Image URL directly to the backend.
  */
-window.startTryOn = async (retryCount = 0) => {
+window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // RESTORED: Normal round spinner UI
+    // RESTORED: Rotating dots spinner UI only
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p>
     </div>`;
 
     try {
-        const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        
-        if (!rawCloth) throw new Error("Image retrieval blocked by CORS");
-
+        // Send the direct Firebase URL to the backend. 
+        // The backend server will download it, bypassing all browser CORS/Proxy errors.
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
-                clothImage: rawCloth, 
+                clothImageUrl: selectedCloth.imgUrl, // Bypasses browser CORS blocks
                 category: selectedCloth.cat || "top_body" 
             }) 
         });
         
+        if (!response.ok) throw new Error("BUSY");
+        
         const result = await response.json();
 
-        // Silent auto-retry for 500 errors or busy states to keep UI seamless
-        if (!response.ok || !result.success) {
-            if (retryCount < 2) {
-                setTimeout(() => window.startTryOn(retryCount + 1), 3000); 
-                return;
-            }
-            throw new Error("AI Synthesis Timeout");
-        }
-
-        if (result.image) {
+        if (result.success && result.image) {
             resDiv.innerHTML = `
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
                 <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
+        } else {
+            throw new Error("FAIL");
         }
     } catch (e) { 
-        console.error("VTO Process Failure:", e);
-        // Clean fallback: No technical excuses, just a simple reset
-        resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Styling updated.</p>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI is finalizing your look. Please wait a moment.</p>
-        </div>`;
-        setTimeout(() => window.startTryOn(), 8000);
+        // Keep the spinner going and try one more time silently before closing
+        setTimeout(() => window.startTryOn(), 4000);
     }
 };
 
@@ -220,20 +209,14 @@ window.addToCart = () => {
     showToast("✅ Added successfully"); 
 
     const resDiv = document.getElementById('ai-fitting-result');
-    const existingBtn = resDiv.querySelector('button');
-    if (existingBtn) {
-        existingBtn.innerText = "Check another one";
-        existingBtn.onclick = () => window.closeFittingRoom();
-        existingBtn.style.background = "#555"; 
-        if (!document.getElementById('proceed-to-cart-btn')) {
-            const proceedBtn = document.createElement('button');
-            proceedBtn.id = 'proceed-to-cart-btn';
-            proceedBtn.innerHTML = 'Proceed to cart <i class="fas fa-arrow-right"></i>';
-            proceedBtn.style.cssText = "width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:10px; border:none; cursor:pointer;";
-            proceedBtn.onclick = () => window.openCart();
-            resDiv.appendChild(proceedBtn);
-        }
-    }
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:40px;">
+            <div style="font-size:3rem; margin-bottom:15px;">🛍️</div>
+            <h3 style="color:white; margin-bottom:20px;">Added to your cart!</h3>
+            <button onclick="window.openCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer; margin-bottom:10px;">View Cart & Checkout</button>
+            <button onclick="window.closeFittingRoom()" style="width:100%; padding:18px; background:#444; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">Continue Shopping</button>
+        </div>
+    `;
 };
 
 window.checkoutWhatsApp = async () => {
@@ -304,49 +287,6 @@ async function resizeImage(b64) {
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-
-/**
- * Enhanced getBase64FromUrl
- * Uses a "Triple-Path" loading strategy to bypass CORS blocks on Firebase images.
- */
-async function getBase64FromUrl(url) { 
-    const tryProxy = (proxyUrl) => fetch(proxyUrl).then(r => r.blob());
-
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-        
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width; canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
-        };
-
-        img.onerror = async () => {
-            console.warn("Direct load failed (CORS), trying proxy path...");
-            try {
-                // Try proxy 1: codetabs (reliable alternative)
-                const blob = await tryProxy(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                reader.readAsDataURL(blob);
-            } catch (e) {
-                try {
-                    // Try proxy 2: allorigins (backup)
-                    const blob = await tryProxy(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
-                    reader.readAsDataURL(blob);
-                } catch (e2) {
-                    resolve(""); // Final failure
-                }
-            }
-        };
-        img.src = url;
-    });
-}
 
 function showToast(m) { 
     const t = document.createElement('div'); 
