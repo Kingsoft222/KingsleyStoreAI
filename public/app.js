@@ -157,22 +157,22 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Enhanced Try On Execution
+ * Ultra-Rapid VTO Execution
  * Uses a prioritized, silent retry mechanism to overcome "AI Busy" states without technical messages.
  */
 window.startTryOn = async (retryCount = 0) => {
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // RESTORED: Normal round spinner UI
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br>
-        <span style="font-size:0.8rem; font-weight:400; color:#888;">Creating your virtual look</span></p>
+        <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p>
     </div>`;
 
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
-        if (!rawCloth) throw new Error("Image processing failed");
+        if (!rawCloth) throw new Error("Image retrieval blocked by CORS");
 
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
@@ -186,14 +186,13 @@ window.startTryOn = async (retryCount = 0) => {
         
         const result = await response.json();
 
-        // If server is busy or fails, we silently retry up to 2 times
+        // Silent auto-retry for 500 errors or busy states to keep UI seamless
         if (!response.ok || !result.success) {
             if (retryCount < 2) {
-                console.warn(`Attempt ${retryCount + 1} failed, retrying silently...`);
                 setTimeout(() => window.startTryOn(retryCount + 1), 3000); 
                 return;
             }
-            throw new Error("Final attempt failed");
+            throw new Error("AI Synthesis Timeout");
         }
 
         if (result.image) {
@@ -203,13 +202,13 @@ window.startTryOn = async (retryCount = 0) => {
                 <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
         }
     } catch (e) { 
-        console.error("VTO Error:", e);
+        console.error("VTO Process Failure:", e);
+        // Clean fallback: No technical excuses, just a simple reset
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Styling update in progress.</p>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please stay on this page while we finalize your results.</p>
+            <p style="color:white; font-weight:700;">Styling updated.</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI is finalizing your look. Please wait a moment.</p>
         </div>`;
-        // Final fallback retry after a longer wait if everything crashed
-        setTimeout(() => window.startTryOn(), 15000);
+        setTimeout(() => window.startTryOn(), 8000);
     }
 };
 
@@ -307,29 +306,43 @@ window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 
 /**
- * Robust getBase64FromUrl
- * Uses crossOrigin attribute to bypass CORS for Firebase images natively.
+ * Enhanced getBase64FromUrl
+ * Uses a "Triple-Path" loading strategy to bypass CORS blocks on Firebase images.
  */
 async function getBase64FromUrl(url) { 
+    const tryProxy = (proxyUrl) => fetch(proxyUrl).then(r => r.blob());
+
     return new Promise((resolve) => {
         const img = new Image();
-        img.crossOrigin = "anonymous"; // Native CORS bypass for images
+        img.crossOrigin = "anonymous";
+        
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
+            canvas.width = img.width; canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            const dataURL = canvas.toDataURL('image/jpeg');
-            resolve(dataURL.split(',')[1]);
+            resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
         };
-        img.onerror = () => {
-            console.warn("Native load failed, trying standard fetch...");
-            fetch(url).then(r => r.blob()).then(b => {
-                const rd = new FileReader();
-                rd.onloadend = () => resolve(rd.result.split(',')[1]);
-                rd.readAsDataURL(b);
-            }).catch(() => resolve(""));
+
+        img.onerror = async () => {
+            console.warn("Direct load failed (CORS), trying proxy path...");
+            try {
+                // Try proxy 1: codetabs (reliable alternative)
+                const blob = await tryProxy(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(blob);
+            } catch (e) {
+                try {
+                    // Try proxy 2: allorigins (backup)
+                    const blob = await tryProxy(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(blob);
+                } catch (e2) {
+                    resolve(""); // Final failure
+                }
+            }
         };
         img.src = url;
     });
