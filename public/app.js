@@ -18,6 +18,7 @@ const firebaseConfig = {
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
     appId: "1:31402654971:web:26f75b0f913bcaf9f6445e",
+    measurementId: "G-PJZD5D3NF6", 
     databaseURL: "https://kingsleystoreai-default-rtdb.firebaseio.com"
 };
 
@@ -156,8 +157,8 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Optimized Try On Execution
- * Direct path logic to ensure swift, non-blocking performance.
+ * Rapid Try On Logic
+ * Simplified path for immediate results.
  */
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
@@ -166,28 +167,22 @@ window.startTryOn = async () => {
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br>
-        <span style="font-size:0.8rem; font-weight:400; color:#888;">Optimized for high-speed delivery</span></p>
+        <span style="font-size:0.8rem; font-weight:400; color:#888;">Optimized for rapid delivery</span></p>
     </div>`;
 
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2-minute threshold
-
+        
+        // Fast direct fetch pointing to live engine
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
                 clothImage: rawCloth, 
                 category: selectedCloth.cat || "top_body" 
             }) 
         });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) throw new Error(`Server Status: ${response.status}`);
         
         const result = await response.json();
 
@@ -196,13 +191,13 @@ window.startTryOn = async () => {
                 <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>`;
         } else { 
-            throw new Error(result.error || "AI Synthesis Error");
+            throw new Error(result.error || "AI Fault");
         }
     } catch (e) { 
         console.error("VTO Error:", e);
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Connection Error</p>
-            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please check your signal strength and retry.</p>
+            <p style="color:white; font-weight:700;">Connection Issue</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">Please check your signal strength and try again.</p>
             <button onclick="window.startTryOn()" style="margin-top:20px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%; font-weight:bold;">RETRY FITTING</button>
             <button onclick="window.closeFittingRoom()" style="margin-top:10px; background:transparent; color:#888; border:none; padding:10px; width:100%;">Return</button>
         </div>`;
@@ -292,7 +287,7 @@ async function resizeImage(b64) {
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // 50% quality for rapid upload speeds
+            // Optimized quality (50%) for rapid delivery on poor networks
             res(canvas.toDataURL('image/jpeg', 0.50).split(',')[1]); 
         }; 
         img.src = b64; 
