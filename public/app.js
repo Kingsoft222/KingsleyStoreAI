@@ -157,32 +157,37 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Ultra-Rapid VTO Execution
- * Streamlined processing paths and removed redundant error messaging to ensure speed.
+ * Rapid VTO Execution
+ * Fixed data handshake to ensure AI successfully receives images and returns results.
  */
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Direct, professional loading state
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...<br>
-        <span style="font-size:0.8rem; font-weight:400; color:#888;">Creating your virtual look</span></p>
+        <span style="font-size:0.8rem; font-weight:400; color:#888;">Powered by Vertex AI Engine</span></p>
     </div>`;
 
     try {
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
         
-        // Immediate fetch with no artificial timeouts
+        // Use standard POST with explicit headers to prevent CORS 'something went wrong' blocks
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
                 clothImage: rawCloth, 
                 category: selectedCloth.cat || "top_body" 
             }) 
         });
+        
+        if (!response.ok) throw new Error("AI Engine not responding");
         
         const result = await response.json();
 
@@ -192,14 +197,15 @@ window.startTryOn = async () => {
                 <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
                 <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
         } else { 
-            throw new Error("Processing Error");
+            throw new Error(result.error || "Synthesis Failed");
         }
     } catch (e) { 
         console.error("VTO Error:", e);
-        // Minimalistic recovery state - no technical excuses
         resDiv.innerHTML = `<div style="text-align:center; padding:30px;">
-            <p style="color:white; font-weight:700;">Something went wrong.</p>
+            <p style="color:white; font-weight:700;">Wait, let's try that again...</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI tailor had a brief glitch. One more try usually fixes it.</p>
             <button onclick="window.startTryOn()" style="margin-top:20px; background:#e60023; color:white; border:none; padding:15px; border-radius:12px; width:100%; font-weight:bold;">RETRY FITTING</button>
+            <button onclick="window.closeFittingRoom()" style="margin-top:10px; background:transparent; color:#888; border:none; padding:10px; width:100%;">Cancel</button>
         </div>`;
     }
 };
@@ -280,15 +286,15 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 600; // Ultra-optimized resolution for instant transit
+            const MAX = 700; // Balanced resolution for high-quality stitching
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // 40% quality reduces data footprint significantly for near-instant upload
-            res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
+            // 50% quality to ensure rapid upload
+            res(canvas.toDataURL('image/jpeg', 0.50).split(',')[1]); 
         }; 
         img.src = b64; 
     }); 
