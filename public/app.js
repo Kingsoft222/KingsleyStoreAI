@@ -186,7 +186,7 @@ window.promptShowroomChoice = (id) => {
 
 /**
  * Step 2: Show Upload Prompt
- * Cleaned UI: Removed duplicate close icon.
+ * UI Fix: Maintain only ONE close icon (X) here.
  */
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
@@ -207,7 +207,7 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        // Resize and strip meta headers for AI compatibility
+        // Rapid pre-processing for successful AI inference
         tempCustomerPhoto = await resizeImage(ev.target.result); 
         if (tempCustomerPhoto) window.startTryOn(); 
     }; 
@@ -335,7 +335,7 @@ async function resizeImage(b64) {
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // Important: Strips 'data:image/jpeg;base64,' for the AI engine
+            // Strips header for engine and uses optimized quality
             res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
         }; 
         img.src = b64; 
