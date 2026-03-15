@@ -1,22 +1,29 @@
 {
-  "name": "naijavirtualmall",
+  "name": "kingsleystoreai",
   "version": "1.0.0",
-  "description": "Kingsley Store AI Virtual Try-On",
-  "main": "app.js",
+  "description": "Kingsley Store AI Virtual Try-On Backend",
+  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "build": "echo 'No build step needed, publishing static files'",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "firebase serve --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Kingsoft222/KingsleyStoreAI.git"
   },
-  "type": "module",
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.0",
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.5",
     "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.9.0",
     "google-auth-library": "^9.15.1"
   }
 }

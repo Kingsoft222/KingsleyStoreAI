@@ -2,14 +2,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
     getDatabase, 
     ref as dbRef, 
-    get, 
-    set, 
-    update, 
-    push, 
-    remove, 
-    increment, 
-    onValue 
+    onValue,
+    update,
+    set,
+    increment
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { 
+    getStorage, 
+    ref as sRef, 
+    uploadString, 
+    getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -24,17 +27,17 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const storage = getStorage(app);
 const urlParams = new URLSearchParams(window.location.search);
 const currentStoreId = urlParams.get('store') || 'kingsley'; 
 
-let tempCustomerPhoto = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
+let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
 window.activeGreetings = []; 
 let gIndex = 0;
-let retryTimeout = null; 
+let vtoRetryCount = 0;
 
-// THE ENGINE URL
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -127,17 +130,14 @@ function initVoiceSearch() {
 }
 
 window.closeFittingRoom = () => {
-    if (retryTimeout) clearTimeout(retryTimeout);
-    tempCustomerPhoto = "";
+    vtoRetryCount = 0;
+    tempUserImageUrl = "";
     document.getElementById('fitting-room-modal').style.display = 'none';
 };
 
-/**
- * Step 1: Interactive Full Item Preview
- */
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
-    tempCustomerPhoto = ""; 
+    tempUserImageUrl = ""; 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
@@ -163,7 +163,6 @@ window.promptShowroomChoice = (id) => {
         const rect = container.getBoundingClientRect();
         const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
         const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-        
         const x = ((clientX - rect.left) / rect.width) * 100;
         const y = ((clientY - rect.top) / rect.height) * 100;
         img.style.transformOrigin = `${Math.min(Math.max(x, 0), 100)}% ${Math.min(Math.max(y, 0), 100)}%`;
@@ -180,19 +179,16 @@ window.promptShowroomChoice = (id) => {
     applyDynamicThemeStyles();
 };
 
-/**
- * Step 2: Show Upload Prompt
- * UI Update: Removed the redundant inner X icon.
- */
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
+            <button id="upload-vto-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
             <button onclick="window.promptShowroomChoice('${selectedCloth.id}')" style="background:transparent; color:#888; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold;">Go Back</button>
         </div>`;
     applyDynamicThemeStyles();
@@ -200,19 +196,32 @@ window.proceedToUpload = () => {
 
 window.handleCustomerUpload = (e) => { 
     const file = e.target.files[0]; if (!file) return;
+    const resDiv = document.getElementById('ai-fitting-result');
+    const btn = document.getElementById('upload-vto-btn');
+    if(btn) { btn.innerText = "PREPARING PHOTO..."; btn.disabled = true; }
+
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        tempCustomerPhoto = await resizeImage(ev.target.result); 
-        if (tempCustomerPhoto) window.startTryOn(); 
+        const base64 = await resizeImage(ev.target.result);
+        const fileName = `vto_temp/${Date.now()}.jpg`;
+        const storageRef = sRef(storage, fileName);
+        
+        try {
+            // High-performance Architecture: Upload first, then send URL to AI
+            await uploadString(storageRef, base64, 'data_url');
+            tempUserImageUrl = await getDownloadURL(storageRef);
+            vtoRetryCount = 0;
+            window.startTryOn(); 
+        } catch (err) {
+            console.error("Upload failed", err);
+            if(btn) { btn.innerText = "RETRY SELECTING PHOTO"; btn.disabled = false; }
+        }
     }; 
     reader.readAsDataURL(file); 
 };
 
-/**
- * Step 3: VTO Logic
- */
 window.startTryOn = async () => {
-    if (!tempCustomerPhoto) return;
+    if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
     resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0;">
@@ -225,7 +234,7 @@ window.startTryOn = async () => {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                userImage: tempCustomerPhoto, 
+                userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
                 category: selectedCloth.cat || "top_body" 
             }) 
@@ -244,10 +253,21 @@ window.startTryOn = async () => {
                     </div>
                 </div>`;
         } else {
-            throw new Error("FAIL");
+            throw new Error("STITCH_FAIL");
         }
     } catch (e) { 
-        retryTimeout = setTimeout(() => window.startTryOn(), 5000);
+        if (vtoRetryCount < 2) {
+            vtoRetryCount++;
+            setTimeout(() => window.startTryOn(), 5000);
+        } else {
+            resDiv.innerHTML = `
+                <div style="text-align:center; padding:30px; position:relative;">
+                    <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+                    <p style="color:white; font-weight:700;">Finalizing your look...</p>
+                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is busy. Please stay here, retrying in 10s.</p>
+                </div>`;
+            setTimeout(() => window.startTryOn(), 10000);
+        }
     }
 };
 
@@ -321,14 +341,14 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 600; 
+            const MAX = 800; // Increased quality slightly for better VTO results
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
+            res(canvas.toDataURL('image/jpeg', 0.80)); 
         }; 
         img.src = b64; 
     }); 
