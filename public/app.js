@@ -104,18 +104,10 @@ function applyDynamicThemeStyles() {
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
         .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; color: white; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; cursor: zoom-in; }
+        .zoomed { transform: scale(2.5); cursor: zoom-out; }
     `;
-    
-    if(!document.getElementById('checkout-loader')) {
-        const loader = document.createElement('div');
-        loader.id = 'checkout-loader';
-        loader.className = 'checkout-overlay';
-        loader.innerHTML = `
-            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <p style="margin-top:20px; font-weight:800; color:#e60023; letter-spacing:1px;">SECURING YOUR ORDER...</p>
-        `;
-        document.body.appendChild(loader);
-    }
 }
 
 function initVoiceSearch() {
@@ -132,16 +124,54 @@ function initVoiceSearch() {
     };
 }
 
+/**
+ * Step 1: Interactive Full Item Preview
+ */
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:5px;">
+            <div class="zoom-container" id="preview-zoom-box">
+                <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
+            </div>
+            <div style="padding:15px 10px;">
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
+                <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:15px;">₦${selectedCloth.price.toLocaleString()}</p>
+                <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap image to zoom details</p>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
+                <button onclick="window.closeFittingRoom()" style="background:transparent; color:#888; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold;">Close</button>
+            </div>
+        </div>`;
+    
+    const img = document.getElementById('preview-img');
+    img.onclick = (e) => {
+        img.classList.toggle('zoomed');
+        if (img.classList.contains('zoomed')) {
+            const rect = img.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            img.style.transformOrigin = `${x}% ${y}%`;
+        }
+    };
+    applyDynamicThemeStyles();
+};
+
+/**
+ * Step 2: Show Upload Prompt
+ */
+window.proceedToUpload = () => {
+    const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px;">
-            <h2 style="color:#e60023; font-weight:800; margin-bottom:5px;">AI SHOWROOM</h2>
-            <p class="theme-subtext" style="font-weight:600; margin-bottom:20px;">Upload a full picture showing your head to toe</p>
+            <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
+            <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer; border:none;">Select from Gallery</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
+            <button onclick="window.promptShowroomChoice('${selectedCloth.id}')" style="background:transparent; color:#888; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold;">Go Back</button>
         </div>`;
     applyDynamicThemeStyles();
 };
@@ -157,47 +187,42 @@ window.handleCustomerUpload = (e) => {
 };
 
 /**
- * Professional VTO Execution
- * Zero technical text. Pure spinner UI.
- * Bypasses CORS by sending the Image URL directly to the backend.
+ * Step 3: VTO Logic
  */
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // RESTORED: Rotating dots spinner UI only
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        <p style="margin-top:20px; font-weight:800; color:#e60023;">STITCHING YOUR OUTFIT...</p>
+        <p style="margin-top:20px; font-weight:800; color:#e60023; letter-spacing:1px;">STITCHING YOUR OUTFIT...</p>
     </div>`;
 
     try {
-        // Send the direct Firebase URL to the backend. 
-        // The backend server will download it, bypassing all browser CORS/Proxy errors.
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
-                clothImageUrl: selectedCloth.imgUrl, // Bypasses browser CORS blocks
+                clothImageUrl: selectedCloth.imgUrl, // Bypasses CORS by handling download on server
                 category: selectedCloth.cat || "top_body" 
             }) 
         });
-        
-        if (!response.ok) throw new Error("BUSY");
         
         const result = await response.json();
 
         if (result.success && result.image) {
             resDiv.innerHTML = `
-                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <button onclick="window.addToCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; margin-top:15px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
-                <button onclick="window.closeFittingRoom()" style="width:100%; padding:12px; background:transparent; color:#888; border:none; margin-top:5px; cursor:pointer;">Discard</button>`;
+                <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
+                <div style="display:flex; gap:12px; margin-top:20px;">
+                    <button onclick="window.addToCart()" style="flex:2; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">Add to Cart 🛍️</button>
+                    <button onclick="window.closeFittingRoom()" style="flex:1; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">Close</button>
+                </div>`;
         } else {
-            throw new Error("FAIL");
+            throw new Error("SERVER_FAIL");
         }
     } catch (e) { 
-        // Keep the spinner going and try one more time silently before closing
-        setTimeout(() => window.startTryOn(), 4000);
+        // Automatic silent retry for transient failures
+        setTimeout(() => window.startTryOn(), 5000);
     }
 };
 
@@ -211,10 +236,10 @@ window.addToCart = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:40px;">
-            <div style="font-size:3rem; margin-bottom:15px;">🛍️</div>
-            <h3 style="color:white; margin-bottom:20px;">Added to your cart!</h3>
-            <button onclick="window.openCart()" style="width:100%; padding:18px; background:#e60023; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer; margin-bottom:10px;">View Cart & Checkout</button>
-            <button onclick="window.closeFittingRoom()" style="width:100%; padding:18px; background:#444; color:white; border-radius:12px; font-weight:bold; border:none; cursor:pointer;">Continue Shopping</button>
+            <div style="font-size:4rem; margin-bottom:20px;">🛍️</div>
+            <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
+            <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button>
+            <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">KEEP SHOPPING</button>
         </div>
     `;
 };
@@ -253,7 +278,7 @@ window.openCart = () => {
     if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><h3 class="summary-text">Your cart is empty</h3></div>`; return; }
     let total = cart.reduce((s, i) => s + i.price, 0);
     let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;"><div style="text-align:left;"><p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button></div>`).join('');
-    resDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:18px; background:#25D366; color:white; border-radius:12px; border:none; font-weight:bold; cursor:pointer;"><i class="fab fa-whatsapp"></i> Checkout via WhatsApp</button></div>`;
+    resDiv.innerHTML = `<div style="padding:10px;"><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div>`;
     applyDynamicThemeStyles();
 };
 
