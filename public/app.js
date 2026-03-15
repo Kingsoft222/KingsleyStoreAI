@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getDatabase, 
-    ref as dbRef, 
+    dbRef, 
     onValue,
     update,
     set,
@@ -17,6 +17,9 @@ import {
     getAuth, 
     signInAnonymously 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Alias for namespaced imports to maintain consistency with your logic
+const ref = dbRef;
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -39,17 +42,21 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
+// For speed optimization, we store the local base64 to avoid download delays
+let localUserBase64 = "";
+
 window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
-const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
+// The system provides the API key at runtime; we keep this empty for automatic injection
+const apiKey = ""; 
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
 
-    onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
+    onValue(ref(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
@@ -116,7 +123,6 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        /* UI FIX: Kill all redundant shell X icons to ensure only one modal exists with anchored content X */
         .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     `;
 }
@@ -138,12 +144,14 @@ function initVoiceSearch() {
 window.closeFittingRoom = () => {
     vtoRetryCount = 0;
     tempUserImageUrl = "";
+    localUserBase64 = "";
     document.getElementById('fitting-room-modal').style.display = 'none';
 };
 
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; 
+    localUserBase64 = "";
     vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
@@ -211,10 +219,12 @@ window.handleCustomerUpload = (e) => {
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
         const base64 = await resizeImage(ev.target.result);
+        localUserBase64 = base64.split(',')[1]; // Store cleaned base64 for fast AI processing
         const fileName = `vto_temp/${Date.now()}.jpg`;
         const storageRef = sRef(storage, fileName);
         
         try {
+            // We still upload to storage for accountability/persistence logic
             await uploadString(storageRef, base64, 'data_url');
             tempUserImageUrl = await getDownloadURL(storageRef);
             vtoRetryCount = 0;
@@ -228,10 +238,9 @@ window.handleCustomerUpload = (e) => {
 };
 
 window.startTryOn = async () => {
-    if (!tempUserImageUrl) return;
+    if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI FIXED: Unified centered popup structure for stitching state
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
@@ -240,31 +249,47 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        const response = await fetch(VTO_API_URL, { 
-            method: 'POST', 
+        // High-speed direct Gemini model call
+        const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a new clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, hair, body shape, and the entire background from Image 1 exactly as they are. Only change the clothing to match Image 2. Drape the new garment naturally and realistically on their body.";
+        
+        // Fetch cloth image and convert to base64 for direct API speed
+        const clothResp = await fetch(selectedCloth.imgUrl);
+        const clothBlob = await clothResp.blob();
+        const clothBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.readAsDataURL(clothBlob);
+        });
+
+        const payload = {
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    { inlineData: { mimeType: "image/jpeg", data: localUserBase64 } },
+                    { inlineData: { mimeType: "image/jpeg", data: clothBase64 } }
+                ]
+            }],
+            generationConfig: {
+                responseModalities: ['TEXT', 'IMAGE']
+            }
+        };
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                jobId: `vto_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-                userImageUrl: tempUserImageUrl, 
-                clothImageUrl: selectedCloth.imgUrl,
-                category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
-            }) 
+            body: JSON.stringify(payload)
         });
         
         if (!response.ok) {
-            const status = response.status;
-            if (status === 404) {
-                displayVTOError("Backend Model Missing (404)", "Model Garden confirmed the endpoint is missing. Please ensure index.js is updated to 'gemini-1.5-pro'.");
-                return; 
-            }
-            throw new Error(`HTTP ${status}`);
+            throw new Error(`HTTP ${response.status}`);
         }
         
         const result = await response.json();
+        const generatedBase64 = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
 
-        if (result.success && (result.image || result.imageUrl)) {
+        if (generatedBase64) {
             vtoRetryCount = 0;
-            const imgSrc = result.image ? `data:image/jpeg;base64,${result.image}` : result.imageUrl;
+            const imgSrc = `data:image/jpeg;base64,${generatedBase64}`;
             resDiv.innerHTML = `
                 <div style="position:relative; text-align:center; padding:10px;">
                     <div class="zoom-container" style="height:auto; min-height:40vh; background:transparent;">
@@ -280,10 +305,9 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
-        // LOGIC FIX: Limit retries to 3 to prevent server flooding and infinite loops
         if (vtoRetryCount < 3) {
             vtoRetryCount++;
-            setTimeout(() => window.startTryOn(), 4000);
+            setTimeout(() => window.startTryOn(), 3000);
         } else {
             displayVTOError("AI Tailor is Busy", "The server is recovering from heavy load. Please try again shortly.");
         }
@@ -329,12 +353,12 @@ window.checkoutWhatsApp = async () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
     const orderDate = new Date().toLocaleString();
     try {
-        await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
+        await update(ref(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1),
             totalRevenue: increment(total),
             lastSaleID: orderId
         });
-        await set(dbRef(db, `receipts/${orderId}`), {
+        await set(ref(db, `receipts/${orderId}`), {
             storeId: currentStoreId, items: cart, total: total, date: orderDate, verifiedHost: window.location.hostname
         });
         const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
