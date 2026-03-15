@@ -39,14 +39,14 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// Optimization: store local base64 for direct AI processing speed
+// Optimization: store local base64 to avoid download/upload delays for AI processing speed
 let localUserBase64 = "";
 
 window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
-// The environment provides the key at runtime for the Gemini engine
+// The environment provides the key at runtime for the Gemini API call
 const geminiApiKey = ""; 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -249,7 +249,7 @@ window.startTryOn = async () => {
         // High-fidelity prompt verified in the prototype to swap clothes
         const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body.";
         
-        // CORS Workaround: Get cloth base64 via Image object to avoid direct fetch restriction
+        // CORS FIXED: Using HTML Image object to bypass Browser Fetch restrictions
         const getBase64 = (url) => new Promise((resolve, reject) => {
             const img = new Image();
             img.setAttribute('crossOrigin', 'anonymous');
@@ -262,14 +262,15 @@ window.startTryOn = async () => {
                 resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
             };
             img.onerror = () => reject(new Error("CLOTH_LOAD_ERROR"));
-            img.src = url;
+            // Add cache-buster to help with authorized handshake
+            img.src = url + (url.includes('?') ? '&' : '?') + 'c=' + Date.now();
         });
 
         let clothBase64;
         try {
             clothBase64 = await getBase64(selectedCloth.imgUrl);
         } catch (e) {
-            // Fallback for strict CORS: use original fetch but with no-cache to try and force a fresh pass
+            // Final fallback: attempt fetch with specific mode
             const clothResp = await fetch(selectedCloth.imgUrl, { mode: 'cors' });
             const clothBlob = await clothResp.blob();
             clothBase64 = await new Promise((resolve) => {
@@ -292,7 +293,7 @@ window.startTryOn = async () => {
             }
         };
 
-        // Use the configured firebase apiKey if the gemini placeholder is empty (for Vercel deployment)
+        // Use the configured firebase apiKey if the gemini placeholder is empty
         const activeKey = geminiApiKey || firebaseConfig.apiKey;
 
         // Direct high-speed Gemini Engine call
