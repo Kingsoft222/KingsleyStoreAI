@@ -146,6 +146,7 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // UI Update: Kept 'X' icon directly on the image preview container
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
@@ -189,6 +190,7 @@ window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
@@ -227,7 +229,8 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
+    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center; position:relative;">
+        <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
     </div>`;
@@ -260,6 +263,7 @@ window.startTryOn = async () => {
             const imgSrc = result.image ? `data:image/jpeg;base64,${result.image}` : result.imageUrl;
             resDiv.innerHTML = `
                 <div style="position:relative; text-align:center; padding:10px;">
+                    <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                     <img src="${imgSrc}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
                     <div style="display:flex; gap:12px; margin-top:20px;">
                         <button onclick="window.addToCart()" style="flex:2; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">Add to Cart 🛍️</button>
@@ -284,6 +288,7 @@ function displayVTOError(title, msg) {
     if (!resDiv) return;
     resDiv.innerHTML = `
         <div style="text-align:center; padding:30px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <p style="color:white; font-weight:700;">${title}</p>
             <p style="color:#888; font-size:0.85rem; margin-top:10px;">${msg}</p>
             <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
@@ -301,6 +306,7 @@ window.addToCart = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:40px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:4rem; margin-bottom:20px;">🛍️</div>
             <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
             <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button>
@@ -339,10 +345,10 @@ window.checkoutWhatsApp = async () => {
 window.openCart = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><h3 class="summary-text">Your cart is empty</h3></div>`; return; }
+    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center; position:relative;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3 class="summary-text">Your cart is empty</h3></div>`; return; }
     let total = cart.reduce((s, i) => s + i.price, 0);
     let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;"><div style="text-align:left;"><p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button></div>`).join('');
-    resDiv.innerHTML = `<div style="padding:10px; position:relative;"><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div>`;
+    resDiv.innerHTML = `<div style="padding:10px; position:relative;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div>`;
     applyDynamicThemeStyles();
 };
 
