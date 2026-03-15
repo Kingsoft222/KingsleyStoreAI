@@ -47,7 +47,13 @@ const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app";
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    signInAnonymously(auth).catch(() => {}); 
+    
+    // Anonymous Auth logic for secure customer sessions
+    signInAnonymously(auth).then(() => {
+        console.log("Guest session started.");
+    }).catch((error) => {
+        console.warn("Auth Notice: Running in limited mode.", error.message);
+    }); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -232,7 +238,6 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        // Fix 1 & 4: Small delay to ensure Storage URL is indexed and ready for backend download
         if (vtoRetryCount === 0) await new Promise(r => setTimeout(r, 1500));
 
         const response = await fetch(VTO_API_URL, { 
@@ -241,7 +246,6 @@ window.startTryOn = async () => {
             body: JSON.stringify({ 
                 userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
-                // Fix 3: Ensure category mapping matches Vertex AI standards
                 category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
             }) 
         });
@@ -265,7 +269,6 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.warn("VTO Error:", e.message);
-        // Fix 5: Limit retries to prevent infinite "Busy" loops
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 5000);
@@ -277,7 +280,6 @@ window.startTryOn = async () => {
                     <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
             setTimeout(() => {
-                // Only auto-retry if the user is still on the "busy" screen
                 const currentRes = document.getElementById('ai-fitting-result');
                 if (currentRes && currentRes.innerText.includes("busy")) {
                     window.startTryOn();
