@@ -232,7 +232,7 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        // Fix for Cloud Errors: Ensure fresh jobId to bypass bad cached states
+        // Fix: Use a unique jobId for every request to bypass bad states and facilitate tracing
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
@@ -244,7 +244,12 @@ window.startTryOn = async () => {
             }) 
         });
         
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            console.error("VTO Technical Error:", response.status, errData);
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
         const result = await response.json();
 
         if (result.success && (result.image || result.imageUrl)) {
@@ -262,11 +267,11 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
-        console.warn("VTO Error:", e.message);
-        // Architecture: Limit retries to exactly 2 to avoid hammering a crashed server
+        console.warn("VTO Error Trace:", e.message);
+        // Smart Back-off: 2 retries with increasing delay
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
-            setTimeout(() => window.startTryOn(), 3000);
+            setTimeout(() => window.startTryOn(), 3000 * vtoRetryCount);
         } else {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:30px; position:relative;">
@@ -275,6 +280,12 @@ window.startTryOn = async () => {
                     <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
                     <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
+            setTimeout(() => {
+                const currentRes = document.getElementById('ai-fitting-result');
+                if (currentRes && currentRes.innerText.includes("busy")) {
+                    window.startTryOn();
+                }
+            }, 10000);
         }
     }
 };
