@@ -116,8 +116,8 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        /* Global CSS Override: Strictly hide redundant edge buttons while keeping the anchored ones */
-        .modal-close-btn, .close-modal, .modal-header .close, #fitting-room-modal > .close-preview-x, .close-btn { display: none !important; }
+        /* UI FIX: Kill all redundant white shell X icons to ensure only one modal exists */
+        .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; }
     `;
 }
 
@@ -148,8 +148,9 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // UI RESTORED: Single clean content area
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:5px;">
+        <div style="text-align:center; padding:5px; position:relative;">
             <div class="zoom-container" id="preview-zoom-box">
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
@@ -191,15 +192,13 @@ window.proceedToUpload = () => {
     vtoRetryCount = 0; 
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:20px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
-                <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
-                <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
-                <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
-                <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-                <button id="vto-upload-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
-            </div>
+        <div style="text-align:center; padding:20px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
+            <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
+            <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
+            <button id="vto-upload-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
             <button onclick="window.promptShowroomChoice('${selectedCloth.id}')" style="background:transparent; color:#888; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold;">Go Back</button>
         </div>`;
     applyDynamicThemeStyles();
@@ -233,14 +232,13 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI FIXED: Centered content and added the single 'X' close button to processing screen
-    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
-        <div style="background:#000; border-radius:15px; padding:60px 10px; position:relative; max-width:400px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+    // UI FIXED: Single popup structure, centered spinner, maintained anchored X icon
+    resDiv.innerHTML = `
+        <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
-        </div>
-    </div>`;
+        </div>`;
 
     try {
         const response = await fetch(VTO_API_URL, { 
@@ -257,7 +255,7 @@ window.startTryOn = async () => {
         if (!response.ok) {
             const status = response.status;
             if (status === 404) {
-                displayVTOError("Backend Model Missing (404)", "Gemini 1.5 Flash search failed in your console. Please update your backend Cloud Run code to use 'gemini-1.5-flash-002'.");
+                displayVTOError("Backend Model Sync Failed (404)", "Model Garden confirmed 'Gemini 1.5 Flash' is missing. Please update backend code to use 'gemini-1.5-flash-002'.");
                 return; 
             }
             throw new Error(`HTTP ${status}`);
@@ -269,7 +267,7 @@ window.startTryOn = async () => {
             vtoRetryCount = 0;
             const imgSrc = result.image ? `data:image/jpeg;base64,${result.image}` : result.imageUrl;
             resDiv.innerHTML = `
-                <div style="text-align:center; padding:10px;">
+                <div style="position:relative; text-align:center; padding:10px;">
                     <div class="zoom-container" style="height:auto; min-height:40vh; background:transparent;">
                         <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                         <img src="${imgSrc}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
@@ -296,13 +294,11 @@ function displayVTOError(title, msg) {
     const resDiv = document.getElementById('ai-fitting-result');
     if (!resDiv) return;
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:30px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
-                <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                <p style="color:white; font-weight:700;">${title}</p>
-                <p style="color:#888; font-size:0.85rem; margin-top:10px;">${msg}</p>
-                <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
-            </div>
+        <div style="position:relative; text-align:center; padding:40px 20px;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <p style="color:white; font-weight:700;">${title}</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">${msg}</p>
+            <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
             <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
         </div>`;
 }
@@ -316,14 +312,12 @@ window.addToCart = () => {
 
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:40px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
-                <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                <div style="font-size:4rem; margin-bottom:20px;">🛍️</div>
-                <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
-                <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button>
-                <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">KEEP SHOPPING</button>
-            </div>
+        <div style="position:relative; text-align:center; padding:60px 20px;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div style="font-size:4rem; margin-bottom:20px;">🛍️</div>
+            <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
+            <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button>
+            <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">KEEP SHOPPING</button>
         </div>`;
 };
 
@@ -358,10 +352,17 @@ window.checkoutWhatsApp = async () => {
 window.openCart = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3 class="summary-text">Your cart is empty</h3></div></div>`; return; }
+    if (cart.length === 0) { resDiv.innerHTML = `<div style="position:relative; padding:60px 20px; text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3 class="summary-text">Your cart is empty</h3></div>`; return; }
     let total = cart.reduce((s, i) => s + i.price, 0);
     let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;"><div style="text-align:left;"><p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button></div>`).join('');
-    resDiv.innerHTML = `<div style="padding:10px;"><div style="background:#000; border-radius:15px; padding:20px; position:relative; max-width:400px; margin:0 auto;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div></div>`;
+    resDiv.innerHTML = `
+        <div style="position:relative; padding:20px;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2>
+            <div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div>
+            <div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div>
+            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button>
+        </div>`;
     applyDynamicThemeStyles();
 };
 
