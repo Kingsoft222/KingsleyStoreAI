@@ -47,13 +47,7 @@ const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app";
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    
-    // Anonymous Auth logic for secure customer sessions
-    signInAnonymously(auth).then(() => {
-        console.log("Guest session started.");
-    }).catch((error) => {
-        console.warn("Auth Notice: Running in limited mode.", error.message);
-    }); 
+    signInAnonymously(auth).catch(() => {}); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -238,12 +232,12 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        if (vtoRetryCount === 0) await new Promise(r => setTimeout(r, 1500));
-
+        // Prevent concurrent identical requests
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
+                jobId: `vto_${Date.now()}`,
                 userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
                 category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
@@ -269,22 +263,19 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.warn("VTO Error:", e.message);
-        if (vtoRetryCount < 2) {
+        // Exponential backoff: Wait longer with each retry to let server recover
+        if (vtoRetryCount < 3) {
             vtoRetryCount++;
-            setTimeout(() => window.startTryOn(), 5000);
+            let delay = vtoRetryCount * 7000; 
+            setTimeout(() => window.startTryOn(), delay);
         } else {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:30px; position:relative;">
                     <p style="color:white; font-weight:700;">Finalizing your look...</p>
-                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI tailor is busy. Please stay here, retrying in 10s.</p>
-                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
+                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is recovering from a heavy load.</p>
+                    <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
+                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#888; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
-            setTimeout(() => {
-                const currentRes = document.getElementById('ai-fitting-result');
-                if (currentRes && currentRes.innerText.includes("busy")) {
-                    window.startTryOn();
-                }
-            }, 10000);
         }
     }
 };
