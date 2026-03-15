@@ -104,9 +104,10 @@ function applyDynamicThemeStyles() {
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
         .checkout-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 10000; color: white; }
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
-        .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; cursor: zoom-in; }
-        .zoomed { transform: scale(2.5); cursor: zoom-out; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
+        .zoomed { transform: scale(2.8); cursor: zoom-out; }
+        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; z-index: 101; border: 1px solid rgba(255,255,255,0.2); }
     `;
 }
 
@@ -133,29 +134,42 @@ window.promptShowroomChoice = (id) => {
     const resDiv = document.getElementById('ai-fitting-result');
     
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:5px;">
+        <div style="text-align:center; padding:5px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="zoom-container" id="preview-zoom-box">
                 <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
             </div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:15px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap image to zoom details</p>
+                <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap to zoom & move to see details</p>
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
-                <button onclick="window.closeFittingRoom()" style="background:transparent; color:#888; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold;">Close</button>
             </div>
         </div>`;
     
+    const container = document.getElementById('preview-zoom-box');
     const img = document.getElementById('preview-img');
-    img.onclick = (e) => {
-        img.classList.toggle('zoomed');
-        if (img.classList.contains('zoomed')) {
-            const rect = img.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            img.style.transformOrigin = `${x}% ${y}%`;
-        }
+
+    // Handle zoom and panning follow
+    const updateFocus = (e) => {
+        if (!img.classList.contains('zoomed')) return;
+        const rect = container.getBoundingClientRect();
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+        const x = ((clientX - rect.left) / rect.width) * 100;
+        const y = ((clientY - rect.top) / rect.height) * 100;
+        img.style.transformOrigin = `${x}% ${y}%`;
     };
+
+    container.onclick = (e) => {
+        img.classList.toggle('zoomed');
+        container.style.cursor = img.classList.contains('zoomed') ? 'zoom-out' : 'zoom-in';
+        if (img.classList.contains('zoomed')) updateFocus(e);
+    };
+
+    container.onmousemove = (e) => updateFocus(e);
+    container.ontouchmove = (e) => updateFocus(e);
+
     applyDynamicThemeStyles();
 };
 
@@ -165,7 +179,8 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="text-align:center; padding:20px;">
+        <div style="text-align:center; padding:20px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
@@ -203,7 +218,7 @@ window.startTryOn = async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 userImage: tempCustomerPhoto, 
-                clothImageUrl: selectedCloth.imgUrl, // Bypasses CORS by handling download on server
+                clothImageUrl: selectedCloth.imgUrl,
                 category: selectedCloth.cat || "top_body" 
             }) 
         });
@@ -221,7 +236,6 @@ window.startTryOn = async () => {
             throw new Error("SERVER_FAIL");
         }
     } catch (e) { 
-        // Automatic silent retry for transient failures
         setTimeout(() => window.startTryOn(), 5000);
     }
 };
