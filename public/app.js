@@ -232,12 +232,12 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        // Prevent concurrent identical requests
+        // Fix for Cloud Errors: Ensure fresh jobId to bypass bad cached states
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                jobId: `vto_${Date.now()}`,
+                jobId: `vto_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
                 userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
                 category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
@@ -263,18 +263,17 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.warn("VTO Error:", e.message);
-        // Exponential backoff: Wait longer with each retry to let server recover
-        if (vtoRetryCount < 3) {
+        // Architecture: Limit retries to exactly 2 to avoid hammering a crashed server
+        if (vtoRetryCount < 2) {
             vtoRetryCount++;
-            let delay = vtoRetryCount * 7000; 
-            setTimeout(() => window.startTryOn(), delay);
+            setTimeout(() => window.startTryOn(), 3000);
         } else {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:30px; position:relative;">
                     <p style="color:white; font-weight:700;">Finalizing your look...</p>
-                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is recovering from a heavy load.</p>
+                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI tailor is busy. Please stay here, retrying in 10s.</p>
                     <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
-                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#888; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
+                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
         }
     }
