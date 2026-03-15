@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getDatabase, 
-    dbRef, 
+    ref as dbRef, 
     onValue,
     update,
     set,
@@ -17,9 +17,6 @@ import {
     getAuth, 
     signInAnonymously 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-// Alias for namespaced imports to maintain consistency with your logic
-const ref = dbRef;
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -42,21 +39,21 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// For speed optimization, we store the local base64 to avoid download delays
+// Optimization: store local base64 to avoid download/upload delays for AI processing
 let localUserBase64 = "";
 
 window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
-// The system provides the API key at runtime; we keep this empty for automatic injection
+// The environment provides the key at runtime for the Gemini API
 const apiKey = ""; 
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
 
-    onValue(ref(db, `stores/${currentStoreId}`), (snapshot) => {
+    onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
@@ -219,12 +216,11 @@ window.handleCustomerUpload = (e) => {
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
         const base64 = await resizeImage(ev.target.result);
-        localUserBase64 = base64.split(',')[1]; // Store cleaned base64 for fast AI processing
+        localUserBase64 = base64.split(',')[1]; // Capture base64 for high-speed AI processing
         const fileName = `vto_temp/${Date.now()}.jpg`;
         const storageRef = sRef(storage, fileName);
         
         try {
-            // We still upload to storage for accountability/persistence logic
             await uploadString(storageRef, base64, 'data_url');
             tempUserImageUrl = await getDownloadURL(storageRef);
             vtoRetryCount = 0;
@@ -249,10 +245,10 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        // High-speed direct Gemini model call
+        // High-fidelity prompt for exact clothing swap
         const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a new clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, hair, body shape, and the entire background from Image 1 exactly as they are. Only change the clothing to match Image 2. Drape the new garment naturally and realistically on their body.";
         
-        // Fetch cloth image and convert to base64 for direct API speed
+        // Fetch the shop image base64 for fast direct processing
         const clothResp = await fetch(selectedCloth.imgUrl);
         const clothBlob = await clothResp.blob();
         const clothBase64 = await new Promise((resolve) => {
@@ -280,9 +276,7 @@ window.startTryOn = async () => {
             body: JSON.stringify(payload)
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         
         const result = await response.json();
         const generatedBase64 = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -353,12 +347,12 @@ window.checkoutWhatsApp = async () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
     const orderDate = new Date().toLocaleString();
     try {
-        await update(ref(db, `stores/${currentStoreId}/analytics`), { 
+        await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
             whatsappClicks: increment(1),
             totalRevenue: increment(total),
             lastSaleID: orderId
         });
-        await set(ref(db, `receipts/${orderId}`), {
+        await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId, items: cart, total: total, date: orderDate, verifiedHost: window.location.hostname
         });
         const receiptLink = `${window.location.origin}/receipt.html?id=${orderId}`;
