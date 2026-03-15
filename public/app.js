@@ -237,7 +237,7 @@ window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI RESTORED: Unified loading structure from your original logic
+    // UI RESTORED: Unified loading structure with emerald coloring
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
@@ -247,17 +247,37 @@ window.startTryOn = async () => {
 
     try {
         // High-fidelity prompt verified in the prototype to swap clothes
-        const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing. Drape the garment naturally on their body.";
+        const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body.";
         
-        // Convert shop image to base64 for direct engine processing
-        const clothResp = await fetch(selectedCloth.imgUrl);
-        if (!clothResp.ok) throw new Error("CLOTH_FETCH_FAILED");
-        const clothBlob = await clothResp.blob();
-        const clothBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(clothBlob);
+        // CORS Workaround: Get cloth base64 via Image object to avoid direct fetch restriction
+        const getBase64 = (url) => new Promise((resolve, reject) => {
+            const img = new Image();
+            img.setAttribute('crossOrigin', 'anonymous');
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
+            };
+            img.onerror = () => reject(new Error("CLOTH_LOAD_ERROR"));
+            img.src = url;
         });
+
+        let clothBase64;
+        try {
+            clothBase64 = await getBase64(selectedCloth.imgUrl);
+        } catch (e) {
+            // Fallback for strict CORS: use original fetch but with no-cache to try and force a fresh pass
+            const clothResp = await fetch(selectedCloth.imgUrl, { mode: 'cors' });
+            const clothBlob = await clothResp.blob();
+            clothBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                reader.readAsDataURL(clothBlob);
+            });
+        }
 
         const payload = {
             contents: [{
@@ -272,8 +292,11 @@ window.startTryOn = async () => {
             }
         };
 
+        // Use the configured firebase apiKey if the gemini placeholder is empty (for Vercel deployment)
+        const activeKey = geminiApiKey || firebaseConfig.apiKey;
+
         // Direct high-speed Gemini Engine call
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${geminiApiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${activeKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -306,7 +329,7 @@ window.startTryOn = async () => {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 3000);
         } else {
-            console.error("VTO error:", e.message);
+            console.error("VTO error details:", e.message);
             displayVTOError("AI Tailor is Busy", "The server is recovering from heavy load. Please try again shortly.");
         }
     }
