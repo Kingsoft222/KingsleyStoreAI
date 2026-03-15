@@ -148,6 +148,7 @@ window.promptShowroomChoice = (id) => {
     
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="zoom-container" id="preview-zoom-box">
                 <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
             </div>
@@ -232,7 +233,6 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        // Fix: Use a unique jobId for every request to bypass bad states and facilitate tracing
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
@@ -245,9 +245,12 @@ window.startTryOn = async () => {
         });
         
         if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            console.error("VTO Technical Error:", response.status, errData);
-            throw new Error(`HTTP ${response.status}`);
+            const status = response.status;
+            if (status === 404) {
+                displayVTOError("System Sync Required (404)", "The backend is using an outdated AI model ID. Update your Cloud Run code to use 'gemini-3-pro-image-preview' for specialized fashion stitching.");
+                return; 
+            }
+            throw new Error(`HTTP ${status}`);
         }
         
         const result = await response.json();
@@ -267,28 +270,26 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
-        console.warn("VTO Error Trace:", e.message);
-        // Smart Back-off: 2 retries with increasing delay
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
-            setTimeout(() => window.startTryOn(), 3000 * vtoRetryCount);
+            setTimeout(() => window.startTryOn(), 4000);
         } else {
-            resDiv.innerHTML = `
-                <div style="text-align:center; padding:30px; position:relative;">
-                    <p style="color:white; font-weight:700;">Finalizing your look...</p>
-                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI tailor is busy. Please stay here, retrying in 10s.</p>
-                    <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
-                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
-                </div>`;
-            setTimeout(() => {
-                const currentRes = document.getElementById('ai-fitting-result');
-                if (currentRes && currentRes.innerText.includes("busy")) {
-                    window.startTryOn();
-                }
-            }, 10000);
+            displayVTOError("AI Tailor is Busy", "The server is recovering from heavy load. Please try again shortly.");
         }
     }
 };
+
+function displayVTOError(title, msg) {
+    const resDiv = document.getElementById('ai-fitting-result');
+    if (!resDiv) return;
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:30px; position:relative;">
+            <p style="color:white; font-weight:700;">${title}</p>
+            <p style="color:#888; font-size:0.85rem; margin-top:10px;">${msg}</p>
+            <button onclick="window.startTryOn()" style="background:#e60023; color:white; border:none; padding:15px; margin-top:20px; width:100%; border-radius:12px; font-weight:bold; cursor:pointer;">RETRY NOW</button>
+            <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:10px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
+        </div>`;
+}
 
 window.addToCart = () => {
     if(!selectedCloth) return;
