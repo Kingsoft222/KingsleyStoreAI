@@ -232,7 +232,7 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
-        // Small wait on first attempt to ensure Storage URL is "live" globally
+        // Fix 1 & 4: Small delay to ensure Storage URL is indexed and ready for backend download
         if (vtoRetryCount === 0) await new Promise(r => setTimeout(r, 1500));
 
         const response = await fetch(VTO_API_URL, { 
@@ -241,7 +241,7 @@ window.startTryOn = async () => {
             body: JSON.stringify({ 
                 userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
-                // Ensure standard category naming to prevent 400 errors
+                // Fix 3: Ensure category mapping matches Vertex AI standards
                 category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
             }) 
         });
@@ -249,11 +249,12 @@ window.startTryOn = async () => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
 
-        if (result.success && result.image) {
+        if (result.success && (result.image || result.imageUrl)) {
             vtoRetryCount = 0;
+            const imgSrc = result.image ? `data:image/jpeg;base64,${result.image}` : result.imageUrl;
             resDiv.innerHTML = `
                 <div style="position:relative; text-align:center; padding:10px;">
-                    <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
+                    <img src="${imgSrc}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
                     <div style="display:flex; gap:12px; margin-top:20px;">
                         <button onclick="window.addToCart()" style="flex:2; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">Add to Cart 🛍️</button>
                         <button onclick="window.closeFittingRoom()" style="flex:1; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">Discard</button>
@@ -264,6 +265,7 @@ window.startTryOn = async () => {
         }
     } catch (e) { 
         console.warn("VTO Error:", e.message);
+        // Fix 5: Limit retries to prevent infinite "Busy" loops
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 5000);
@@ -275,7 +277,9 @@ window.startTryOn = async () => {
                     <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
             setTimeout(() => {
-                if (document.getElementById('ai-fitting-result') && document.getElementById('ai-fitting-result').innerText.includes("busy")) {
+                // Only auto-retry if the user is still on the "busy" screen
+                const currentRes = document.getElementById('ai-fitting-result');
+                if (currentRes && currentRes.innerText.includes("busy")) {
                     window.startTryOn();
                 }
             }, 10000);
