@@ -13,6 +13,10 @@ import {
     uploadString, 
     getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { 
+    getAuth, 
+    signInAnonymously 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -28,6 +32,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 const urlParams = new URLSearchParams(window.location.search);
 const currentStoreId = urlParams.get('store') || 'kingsley'; 
 
@@ -42,8 +47,8 @@ const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app";
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
-    setInterval(applyDynamicThemeStyles, 2000); 
+    // Silent auth to enable storage uploads
+    signInAnonymously(auth).catch(() => {}); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -196,7 +201,6 @@ window.proceedToUpload = () => {
 
 window.handleCustomerUpload = (e) => { 
     const file = e.target.files[0]; if (!file) return;
-    const resDiv = document.getElementById('ai-fitting-result');
     const btn = document.getElementById('upload-vto-btn');
     if(btn) { btn.innerText = "PREPARING PHOTO..."; btn.disabled = true; }
 
@@ -207,7 +211,7 @@ window.handleCustomerUpload = (e) => {
         const storageRef = sRef(storage, fileName);
         
         try {
-            // High-performance Architecture: Upload first, then send URL to AI
+            // High-Speed Architecture: Upload first, then send URL to backend
             await uploadString(storageRef, base64, 'data_url');
             tempUserImageUrl = await getDownloadURL(storageRef);
             vtoRetryCount = 0;
@@ -224,7 +228,7 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0;">
+    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
     </div>`;
@@ -253,7 +257,7 @@ window.startTryOn = async () => {
                     </div>
                 </div>`;
         } else {
-            throw new Error("STITCH_FAIL");
+            throw new Error("FAIL");
         }
     } catch (e) { 
         if (vtoRetryCount < 2) {
@@ -263,10 +267,10 @@ window.startTryOn = async () => {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:30px; position:relative;">
                     <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                    <p style="color:white; font-weight:700;">Finalizing your look...</p>
-                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is busy. Please stay here, retrying in 10s.</p>
+                    <p style="color:white; font-weight:700;">Connection timeout.</p>
+                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is busy. Retrying automatically...</p>
                 </div>`;
-            setTimeout(() => window.startTryOn(), 10000);
+            setTimeout(() => window.startTryOn(), 12000);
         }
     }
 };
@@ -341,7 +345,7 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 800; // Increased quality slightly for better VTO results
+            const MAX = 800; 
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
