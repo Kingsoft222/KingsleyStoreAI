@@ -47,7 +47,6 @@ const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app";
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    // Enable storage uploads
     signInAnonymously(auth).catch(() => {}); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
@@ -143,6 +142,7 @@ window.closeFittingRoom = () => {
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; 
+    vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
@@ -184,6 +184,7 @@ window.promptShowroomChoice = (id) => {
 };
 
 window.proceedToUpload = () => {
+    vtoRetryCount = 0; 
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px; position:relative;">
@@ -231,19 +232,25 @@ window.startTryOn = async () => {
     </div>`;
 
     try {
+        // Small wait on first attempt to ensure Storage URL is "live" globally
+        if (vtoRetryCount === 0) await new Promise(r => setTimeout(r, 1500));
+
         const response = await fetch(VTO_API_URL, { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 userImageUrl: tempUserImageUrl, 
                 clothImageUrl: selectedCloth.imgUrl,
-                category: selectedCloth.cat || "top_body" 
+                // Ensure standard category naming to prevent 400 errors
+                category: (selectedCloth.cat === "top_body" ? "upper_body" : selectedCloth.cat) || "upper_body" 
             }) 
         });
         
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
 
         if (result.success && result.image) {
+            vtoRetryCount = 0;
             resDiv.innerHTML = `
                 <div style="position:relative; text-align:center; padding:10px;">
                     <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
@@ -256,6 +263,7 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
+        console.warn("VTO Error:", e.message);
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 5000);
@@ -264,8 +272,13 @@ window.startTryOn = async () => {
                 <div style="text-align:center; padding:30px; position:relative;">
                     <p style="color:white; font-weight:700;">Finalizing your look...</p>
                     <p style="color:#888; font-size:0.85rem; margin-top:10px;">The AI tailor is busy. Please stay here, retrying in 10s.</p>
+                    <button onclick="window.proceedToUpload()" style="background:transparent; color:#e60023; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold; cursor:pointer;">Try another photo</button>
                 </div>`;
-            setTimeout(() => window.startTryOn(), 10000);
+            setTimeout(() => {
+                if (document.getElementById('ai-fitting-result') && document.getElementById('ai-fitting-result').innerText.includes("busy")) {
+                    window.startTryOn();
+                }
+            }, 10000);
         }
     }
 };
