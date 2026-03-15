@@ -32,7 +32,7 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 
 window.activeGreetings = []; 
 let gIndex = 0;
-let retryTimeout = null; // Track retry timeouts to prevent ghost triggers
+let retryTimeout = null; 
 
 // THE ENGINE URL
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
@@ -129,7 +129,6 @@ function initVoiceSearch() {
 
 /**
  * Global Close for Showroom
- * Clears data and potential retry loops
  */
 window.closeFittingRoom = () => {
     if (retryTimeout) clearTimeout(retryTimeout);
@@ -142,7 +141,7 @@ window.closeFittingRoom = () => {
  */
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
-    tempCustomerPhoto = ""; // Reset photo to ensure we don't skip upload logic
+    tempCustomerPhoto = ""; 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
@@ -155,7 +154,7 @@ window.promptShowroomChoice = (id) => {
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:15px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap image to zoom details • Move to pan</p>
+                <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap to zoom & move to pan</p>
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
             </div>
         </div>`;
@@ -163,7 +162,6 @@ window.promptShowroomChoice = (id) => {
     const container = document.getElementById('preview-zoom-box');
     const img = document.getElementById('preview-img');
 
-    // Pan function handles move events
     const handlePan = (e) => {
         if (!img.classList.contains('zoomed')) return;
         const rect = container.getBoundingClientRect();
@@ -183,13 +181,12 @@ window.promptShowroomChoice = (id) => {
 
     container.onmousemove = handlePan;
     container.ontouchmove = handlePan;
-
     applyDynamicThemeStyles();
 };
 
 /**
  * Step 2: Show Upload Prompt
- * User sees this ONLY after clicking "Wear it!"
+ * Cleaned UI: Removed duplicate close icon.
  */
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
@@ -210,26 +207,21 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
+        // Resize and strip meta headers for AI compatibility
         tempCustomerPhoto = await resizeImage(ev.target.result); 
-        // Logic check: Only start try-on IF photo was successfully prepared
-        if (tempCustomerPhoto) {
-            window.startTryOn(); 
-        }
+        if (tempCustomerPhoto) window.startTryOn(); 
     }; 
     reader.readAsDataURL(file); 
 };
 
 /**
  * Step 3: VTO Logic
- * Spinner UI only appears here, after upload is complete.
+ * Optimized for high-speed delivery and successful "wearing" output.
  */
 window.startTryOn = async () => {
-    // Safety check: Don't execute if photo is missing (prevents premature triggers)
     if (!tempCustomerPhoto) return;
-
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Rotating dots spinner UI
     resDiv.innerHTML = `<div class="loader-container">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:20px; font-weight:800; color:#e60023; letter-spacing:1px;">STITCHING YOUR OUTFIT...</p>
@@ -259,12 +251,10 @@ window.startTryOn = async () => {
                     </div>
                 </div>`;
         } else {
-            throw new Error("SERVER_FAIL");
+            throw new Error("FAIL");
         }
     } catch (e) { 
-        // Silent retry for transient network issues
-        console.warn("Retrying VTO process...");
-        retryTimeout = setTimeout(() => window.startTryOn(), 5000);
+        retryTimeout = setTimeout(() => window.startTryOn(), 4000);
     }
 };
 
@@ -283,8 +273,7 @@ window.addToCart = () => {
             <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
             <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button>
             <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#333; color:white; border-radius:14px; font-weight:bold; border:none; cursor:pointer;">KEEP SHOPPING</button>
-        </div>
-    `;
+        </div>`;
 };
 
 window.checkoutWhatsApp = async () => {
@@ -346,6 +335,7 @@ async function resizeImage(b64) {
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
+            // Important: Strips 'data:image/jpeg;base64,' for the AI engine
             res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
         }; 
         img.src = b64; 
