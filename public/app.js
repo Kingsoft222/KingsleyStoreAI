@@ -11,7 +11,8 @@ import {
     getStorage, 
     ref as sRef, 
     uploadString, 
-    getDownloadURL 
+    getDownloadURL,
+    getBlob
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { 
     getAuth, 
@@ -246,31 +247,40 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        // High-fidelity prompt verified in the prototype to swap clothes
         const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body.";
         
-        // CORS FIXED: Using HTML Image object to bypass Browser Fetch restrictions
-        const getBase64 = (url) => new Promise((resolve, reject) => {
-            const img = new Image();
-            img.setAttribute('crossOrigin', 'anonymous');
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
-            };
-            img.onerror = () => reject(new Error("CLOTH_LOAD_ERROR"));
-            // Add cache-buster to help with authorized handshake
-            img.src = url + (url.includes('?') ? '&' : '?') + 'c=' + Date.now();
-        });
-
+        // CORS FIXED: Using Firebase SDK getBlob which uses authenticated pathways to bypass Fetch/CORS origin blocks
         let clothBase64;
         try {
-            clothBase64 = await getBase64(selectedCloth.imgUrl);
+            // Extract storage path if it's a firebase URL, otherwise use as-is
+            let path = selectedCloth.imgUrl;
+            if (path.includes('firebasestorage.googleapis.com')) {
+                const decodedUrl = decodeURIComponent(path.split('/o/')[1].split('?')[0]);
+                const clothStorageRef = sRef(storage, decodedUrl);
+                const blob = await getBlob(clothStorageRef);
+                clothBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+                    reader.readAsDataURL(blob);
+                });
+            } else {
+                // Fallback for non-firebase images (e.g. Unsplash) using canvas proxy
+                const img = new Image();
+                img.setAttribute('crossOrigin', 'anonymous');
+                clothBase64 = await new Promise((resolve, reject) => {
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width; canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg').split(',')[1]);
+                    };
+                    img.onerror = () => reject(new Error("CLOTH_LOAD_ERROR"));
+                    img.src = selectedCloth.imgUrl + (selectedCloth.imgUrl.includes('?') ? '&' : '?') + 'c=' + Date.now();
+                });
+            }
         } catch (e) {
-            // Final fallback: attempt fetch with specific mode
+            // Final fallback to raw fetch if SDK fails
             const clothResp = await fetch(selectedCloth.imgUrl, { mode: 'cors' });
             const clothBlob = await clothResp.blob();
             clothBase64 = await new Promise((resolve) => {
@@ -288,15 +298,10 @@ window.startTryOn = async () => {
                     { inlineData: { mimeType: "image/jpeg", data: clothBase64 } }
                 ]
             }],
-            generationConfig: {
-                responseModalities: ['TEXT', 'IMAGE']
-            }
+            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] }
         };
 
-        // Use the configured firebase apiKey if the gemini placeholder is empty
         const activeKey = geminiApiKey || firebaseConfig.apiKey;
-
-        // Direct high-speed Gemini Engine call
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${activeKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -330,7 +335,6 @@ window.startTryOn = async () => {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 3000);
         } else {
-            console.error("VTO error details:", e.message);
             displayVTOError("AI Tailor is Busy", "The server is recovering from heavy load. Please try again shortly.");
         }
     }
