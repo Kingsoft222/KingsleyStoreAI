@@ -7,9 +7,10 @@ import axios from 'axios';
 if (!admin.apps.length) { admin.initializeApp(); }
 
 // Initialize Vertex AI with your project details
+// Updated model to gemini-3-pro-image-preview to resolve 404 errors found in logs
 const vertexAI = new VertexAI({ project: 'kingsleystoreai', location: 'us-central1' });
 const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-3-pro-image-preview',
 });
 
 /**

@@ -116,7 +116,7 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        /* Global override to ensure modal edge close buttons from underlying HTML or shell are hidden */
+        /* Global CSS Override: Remove redundant edge buttons while keeping the anchored ones */
         .modal-close-btn, .close-modal, .modal-header .close, #fitting-room-modal > .close-preview-x { display: none !important; }
     `;
 }
@@ -148,7 +148,6 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI Update: 'X' is anchored strictly inside the content container (zoom-container)
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px;">
             <div class="zoom-container" id="preview-zoom-box">
@@ -234,6 +233,7 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // UI UPDATED: Added 'X' close button to processing screen
     resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
         <div style="background:#000; border-radius:15px; padding:60px 10px; position:relative;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
@@ -257,7 +257,7 @@ window.startTryOn = async () => {
         if (!response.ok) {
             const status = response.status;
             if (status === 404) {
-                displayVTOError("System Sync Required (404)", "The backend is using an outdated AI model ID. Update your Cloud Run code to use 'gemini-3-pro-image-preview' for specialized fashion stitching.");
+                displayVTOError("Backend Model Missing (404)", "Gemini 1.5 Flash search failed in your console. Please update your backend Cloud Run code to use 'gemini-1.5-flash-002'.");
                 return; 
             }
             throw new Error(`HTTP ${status}`);
