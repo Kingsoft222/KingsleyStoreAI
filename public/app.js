@@ -43,12 +43,16 @@ window.activeGreetings = [];
 let gIndex = 0;
 let vtoRetryCount = 0;
 
+// THE ENGINE URL
 const VTO_API_URL = "https://process-vto-hbyk7yhqva-uc.a.run.app"; 
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    // Silent auth to enable storage uploads
-    signInAnonymously(auth).catch(() => {}); 
+    // Enable anonymous auth to allow storage uploads
+    signInAnonymously(auth).catch(() => {});
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDynamicThemeStyles);
+    setInterval(applyDynamicThemeStyles, 2000); 
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -140,6 +144,9 @@ window.closeFittingRoom = () => {
     document.getElementById('fitting-room-modal').style.display = 'none';
 };
 
+/**
+ * Step 1: Interactive Full Item Preview
+ */
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; 
@@ -168,6 +175,7 @@ window.promptShowroomChoice = (id) => {
         const rect = container.getBoundingClientRect();
         const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
         const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        
         const x = ((clientX - rect.left) / rect.width) * 100;
         const y = ((clientY - rect.top) / rect.height) * 100;
         img.style.transformOrigin = `${Math.min(Math.max(x, 0), 100)}% ${Math.min(Math.max(y, 0), 100)}%`;
@@ -184,6 +192,9 @@ window.promptShowroomChoice = (id) => {
     applyDynamicThemeStyles();
 };
 
+/**
+ * Step 2: Show Upload Prompt
+ */
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
@@ -193,7 +204,7 @@ window.proceedToUpload = () => {
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button id="upload-vto-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
+            <button id="vto-upload-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
             <button onclick="window.promptShowroomChoice('${selectedCloth.id}')" style="background:transparent; color:#888; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold;">Go Back</button>
         </div>`;
     applyDynamicThemeStyles();
@@ -201,7 +212,7 @@ window.proceedToUpload = () => {
 
 window.handleCustomerUpload = (e) => { 
     const file = e.target.files[0]; if (!file) return;
-    const btn = document.getElementById('upload-vto-btn');
+    const btn = document.getElementById('vto-upload-btn');
     if(btn) { btn.innerText = "PREPARING PHOTO..."; btn.disabled = true; }
 
     const reader = new FileReader(); 
@@ -211,7 +222,7 @@ window.handleCustomerUpload = (e) => {
         const storageRef = sRef(storage, fileName);
         
         try {
-            // High-Speed Architecture: Upload first, then send URL to backend
+            // Stability Logic: Upload first to storage to ensure backend receives valid URL
             await uploadString(storageRef, base64, 'data_url');
             tempUserImageUrl = await getDownloadURL(storageRef);
             vtoRetryCount = 0;
@@ -224,11 +235,14 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
+/**
+ * Step 3: VTO Logic
+ */
 window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
+    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0;">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
         <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
     </div>`;
@@ -260,17 +274,18 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
+        // Prevent infinite loop: Max 2 retries
         if (vtoRetryCount < 2) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 5000);
         } else {
             resDiv.innerHTML = `
-                <div style="text-align:center; padding:30px; position:relative;">
+                <div style="text-align:center; padding:30px;">
                     <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                    <p style="color:white; font-weight:700;">Connection timeout.</p>
-                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">The server is busy. Retrying automatically...</p>
+                    <p style="color:white; font-weight:700;">Finalizing your style...</p>
+                    <p style="color:#888; font-size:0.85rem; margin-top:10px;">Our AI tailor is very busy. Stay here, retrying in 10s.</p>
                 </div>`;
-            setTimeout(() => window.startTryOn(), 12000);
+            setTimeout(() => window.startTryOn(), 10000);
         }
     }
 };
@@ -345,7 +360,7 @@ async function resizeImage(b64) {
         const img = new Image(); 
         img.onload = () => { 
             const canvas = document.createElement('canvas'); 
-            const MAX = 800; 
+            const MAX = 600; 
             let w = img.width, h = img.height; 
             if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } 
             else { if (h > MAX) { w *= MAX/h; h = MAX; } } 
