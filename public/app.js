@@ -116,8 +116,8 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        /* Global CSS Override: Remove redundant edge buttons while keeping the anchored ones */
-        .modal-close-btn, .close-modal, .modal-header .close, #fitting-room-modal > .close-preview-x { display: none !important; }
+        /* Global CSS Override: Strictly hide redundant edge buttons while keeping the anchored ones */
+        .modal-close-btn, .close-modal, .modal-header .close, #fitting-room-modal > .close-preview-x, .close-btn { display: none !important; }
     `;
 }
 
@@ -192,7 +192,7 @@ window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative;">
+            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
                 <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
@@ -233,9 +233,9 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI UPDATED: Added 'X' close button to processing screen
+    // UI FIXED: Centered content and added the single 'X' close button to processing screen
     resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0; text-align:center;">
-        <div style="background:#000; border-radius:15px; padding:60px 10px; position:relative;">
+        <div style="background:#000; border-radius:15px; padding:60px 10px; position:relative; max-width:400px; margin:0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
@@ -297,7 +297,7 @@ function displayVTOError(title, msg) {
     if (!resDiv) return;
     resDiv.innerHTML = `
         <div style="text-align:center; padding:30px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative;">
+            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <p style="color:white; font-weight:700;">${title}</p>
                 <p style="color:#888; font-size:0.85rem; margin-top:10px;">${msg}</p>
@@ -317,7 +317,7 @@ window.addToCart = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:40px;">
-            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative;">
+            <div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;">
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <div style="font-size:4rem; margin-bottom:20px;">🛍️</div>
                 <h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2>
@@ -358,10 +358,10 @@ window.checkoutWhatsApp = async () => {
 window.openCart = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><div style="background:#000; border-radius:15px; padding:40px 10px; position:relative;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3 class="summary-text">Your cart is empty</h3></div></div>`; return; }
+    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:40px; text-align:center;"><div style="background:#000; border-radius:15px; padding:40px 10px; position:relative; max-width:400px; margin:0 auto;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3 class="summary-text">Your cart is empty</h3></div></div>`; return; }
     let total = cart.reduce((s, i) => s + i.price, 0);
     let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:10px;"><div style="text-align:left;"><p class="cart-item-name" style="margin:0; font-weight:bold;">${item.name}</p><p style="margin:0; color:#e60023;">₦${item.price.toLocaleString()}</p></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#ff4444; font-size:1.2rem; cursor:pointer;">✕</button></div>`).join('');
-    resDiv.innerHTML = `<div style="padding:10px;"><div style="background:#000; border-radius:15px; padding:20px; position:relative;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div></div>`;
+    resDiv.innerHTML = `<div style="padding:10px;"><div style="background:#000; border-radius:15px; padding:20px; position:relative; max-width:400px; margin:0 auto;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">YOUR CART SUMMARY</h2><div style="max-height:250px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:800; margin-bottom:20px; border-top: 2px solid #e60023; padding-top:15px;"><span class="summary-text">Order Total:</span> <span class="summary-text">₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer; font-size:1.1rem;"><i class="fab fa-whatsapp"></i> CHECKOUT ON WHATSAPP</button></div></div>`;
     applyDynamicThemeStyles();
 };
 
