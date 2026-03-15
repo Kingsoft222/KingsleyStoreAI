@@ -108,8 +108,7 @@ function applyDynamicThemeStyles() {
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 35px; height: 35px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; z-index: 101; border: 1px solid rgba(255,255,255,0.2); transition: background 0.2s; }
-        .close-preview-x:hover { background: #e60023; }
+        .close-preview-x { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer; z-index: 10001; border: 1px solid rgba(255,255,255,0.2); }
     `;
 }
 
@@ -127,9 +126,6 @@ function initVoiceSearch() {
     };
 }
 
-/**
- * Global Close for Showroom
- */
 window.closeFittingRoom = () => {
     if (retryTimeout) clearTimeout(retryTimeout);
     tempCustomerPhoto = "";
@@ -186,13 +182,12 @@ window.promptShowroomChoice = (id) => {
 
 /**
  * Step 2: Show Upload Prompt
- * UI Fix: Maintain only ONE close icon (X) here.
+ * UI Update: Removed the redundant inner X icon.
  */
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:20px; position:relative;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
@@ -207,7 +202,6 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        // Rapid pre-processing for successful AI inference
         tempCustomerPhoto = await resizeImage(ev.target.result); 
         if (tempCustomerPhoto) window.startTryOn(); 
     }; 
@@ -216,15 +210,14 @@ window.handleCustomerUpload = (e) => {
 
 /**
  * Step 3: VTO Logic
- * Optimized for high-speed delivery and successful "wearing" output.
  */
 window.startTryOn = async () => {
     if (!tempCustomerPhoto) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    resDiv.innerHTML = `<div class="loader-container">
+    resDiv.innerHTML = `<div class="loader-container" style="padding:40px 0;">
         <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-        <p style="margin-top:20px; font-weight:800; color:#e60023; letter-spacing:1px;">STITCHING YOUR OUTFIT...</p>
+        <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
     </div>`;
 
     try {
@@ -242,7 +235,7 @@ window.startTryOn = async () => {
 
         if (result.success && result.image) {
             resDiv.innerHTML = `
-                <div style="position:relative; text-align:center;">
+                <div style="position:relative; text-align:center; padding:10px;">
                     <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                     <img src="data:image/jpeg;base64,${result.image}" style="width:100%; border-radius:15px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);">
                     <div style="display:flex; gap:12px; margin-top:20px;">
@@ -254,7 +247,7 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
-        retryTimeout = setTimeout(() => window.startTryOn(), 4000);
+        retryTimeout = setTimeout(() => window.startTryOn(), 5000);
     }
 };
 
@@ -335,7 +328,6 @@ async function resizeImage(b64) {
             canvas.width = w; canvas.height = h; 
             const ctx = canvas.getContext('2d'); 
             ctx.drawImage(img, 0, 0, w, h); 
-            // Strips header for engine and uses optimized quality
             res(canvas.toDataURL('image/jpeg', 0.40).split(',')[1]); 
         }; 
         img.src = b64; 
