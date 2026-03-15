@@ -7,10 +7,11 @@ import axios from 'axios';
 if (!admin.apps.length) { admin.initializeApp(); }
 
 // Initialize Vertex AI with your project details
-// Resolved 404 Error: Using versioned identifier 'gemini-1.5-flash-002' as the stable endpoint for us-central1
+// Final Fix: Switched to 'gemini-1.5-pro' to resolve the 404 NOT_FOUND error 
+// and ensure the model is available in the kingsleystoreai project registry.
 const vertexAI = new VertexAI({ project: 'kingsleystoreai', location: 'us-central1' });
 const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-flash-002',
+    model: 'gemini-1.5-pro',
 });
 
 /**

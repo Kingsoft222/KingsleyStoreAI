@@ -116,8 +116,8 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        /* UI FIX: Kill all redundant white shell X icons to ensure only one modal exists */
-        .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; }
+        /* UI FIX: Kill all redundant shell X icons to ensure only one modal exists with anchored content X */
+        .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     `;
 }
 
@@ -148,7 +148,6 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI RESTORED: Single clean content area
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
             <div class="zoom-container" id="preview-zoom-box">
@@ -232,9 +231,9 @@ window.startTryOn = async () => {
     if (!tempUserImageUrl) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI FIXED: Single popup structure, centered spinner, maintained anchored X icon
+    // UI FIXED: Unified centered popup structure for stitching state
     resDiv.innerHTML = `
-        <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px;">
+        <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
@@ -255,7 +254,7 @@ window.startTryOn = async () => {
         if (!response.ok) {
             const status = response.status;
             if (status === 404) {
-                displayVTOError("Backend Model Sync Failed (404)", "Model Garden confirmed 'Gemini 1.5 Flash' is missing. Please update backend code to use 'gemini-1.5-flash-002'.");
+                displayVTOError("Backend Model Missing (404)", "Model Garden confirmed the endpoint is missing. Please ensure index.js is updated to 'gemini-1.5-pro'.");
                 return; 
             }
             throw new Error(`HTTP ${status}`);
@@ -281,7 +280,8 @@ window.startTryOn = async () => {
             throw new Error("FAIL");
         }
     } catch (e) { 
-        if (vtoRetryCount < 2) {
+        // LOGIC FIX: Limit retries to 3 to prevent server flooding and infinite loops
+        if (vtoRetryCount < 3) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 4000);
         } else {
