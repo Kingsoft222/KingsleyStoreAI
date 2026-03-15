@@ -39,15 +39,15 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// Optimization: store local base64 to avoid download/upload delays for AI processing
+// Optimization: store local base64 to avoid download/upload delays for AI processing speed
 let localUserBase64 = "";
 
 window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
-// The environment provides the key at runtime for the Gemini API
-const apiKey = ""; 
+// The environment provides the key at runtime for the Gemini API call
+const geminiApiKey = ""; 
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
@@ -216,7 +216,7 @@ window.handleCustomerUpload = (e) => {
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
         const base64 = await resizeImage(ev.target.result);
-        localUserBase64 = base64.split(',')[1]; // Capture base64 for high-speed AI processing
+        localUserBase64 = base64.split(',')[1]; // Capture base64 for direct AI processing speed
         const fileName = `vto_temp/${Date.now()}.jpg`;
         const storageRef = sRef(storage, fileName);
         
@@ -237,6 +237,7 @@ window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // UI RESTORED: Your original loading structure with emerald coloring
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
@@ -245,11 +246,12 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        // High-fidelity prompt for exact clothing swap
-        const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a new clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, hair, body shape, and the entire background from Image 1 exactly as they are. Only change the clothing to match Image 2. Drape the new garment naturally and realistically on their body.";
+        // High-speed direct Gemini model call with assertive prompt
+        const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body.";
         
-        // Fetch the shop image base64 for fast direct processing
+        // Fetch cloth image base64 for direct processing
         const clothResp = await fetch(selectedCloth.imgUrl);
+        if (!clothResp.ok) throw new Error("CLOTH_FETCH_FAILED");
         const clothBlob = await clothResp.blob();
         const clothBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -270,13 +272,13 @@ window.startTryOn = async () => {
             }
         };
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${geminiApiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP_${response.status}`);
         
         const result = await response.json();
         const generatedBase64 = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -296,13 +298,14 @@ window.startTryOn = async () => {
                     </div>
                 </div>`;
         } else {
-            throw new Error("FAIL");
+            throw new Error("EMPTY_RESULT");
         }
     } catch (e) { 
         if (vtoRetryCount < 3) {
             vtoRetryCount++;
             setTimeout(() => window.startTryOn(), 3000);
         } else {
+            console.error("VTO error:", e.message);
             displayVTOError("AI Tailor is Busy", "The server is recovering from heavy load. Please try again shortly.");
         }
     }
