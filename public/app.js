@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Live Chat Initialization (Tawk.to) ---
+// --- Tawk.to Initialization & Professional Controls ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,9 +58,17 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Tawk.to API Callbacks for Professional Visibility
+// Ensure the default bubble is hidden to use our professional draggable head
 Tawk_API.onLoad = function(){
     Tawk_API.hideWidget();
+};
+Tawk_API.onChatMaximized = function(){
+    const head = document.getElementById('draggable-chat-head');
+    if(head) head.style.display = 'none';
+};
+Tawk_API.onChatMinimized = function(){
+    const head = document.getElementById('draggable-chat-head');
+    if(head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -68,36 +76,34 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Logic to bind to your existing menu icon at the top left corner (as per image)
+    // Target existing menu icon from your screenshot (top left corner)
     const findAndEnableMenu = () => {
-        // Broad search for the top-left icon based on visual position and common patterns
-        const menuBtn = document.querySelector('.menu-toggle') || 
-                        document.querySelector('#menu-btn') || 
-                        document.querySelector('.hamburger') ||
-                        document.querySelector('button[aria-label="Menu"]') ||
-                        Array.from(document.querySelectorAll('div, button, span')).find(el => {
-                            const rect = el.getBoundingClientRect();
-                            // Check if it's in the top-left corner area
-                            return rect.top < 60 && rect.left < 60 && rect.width > 0 && (
-                                el.innerText.includes('☰') || 
-                                el.innerHTML.includes('svg') || 
-                                el.innerHTML.includes('line')
-                            );
-                        });
+        const elements = document.querySelectorAll('button, div, span, i');
+        const menuBtn = Array.from(elements).find(el => {
+            const rect = el.getBoundingClientRect();
+            // Specifically looking for the element in the top left corner < 80px
+            const isTopLeft = rect.top < 80 && rect.left < 80 && rect.width > 0;
+            const hasIcon = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.classList.contains('fa-bars') || el.innerHTML.includes('line');
+            return isTopLeft && hasIcon;
+        });
 
         if (menuBtn) {
-            menuBtn.onclick = (e) => {
+            menuBtn.style.cursor = 'pointer';
+            // Use both click and touch to ensure mobile responsiveness
+            const openAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.openOptionsMenu();
             };
-            menuBtn.style.cursor = 'pointer';
+            menuBtn.onclick = openAction;
+            menuBtn.ontouchend = openAction;
         }
     };
 
     findAndEnableMenu();
-    // Retry finding the icon in case of delayed rendering
-    setTimeout(findAndEnableMenu, 1500);
+    // Re-check frequently during initial load to catch dynamically rendered elements
+    const menuInterval = setInterval(findAndEnableMenu, 500);
+    setTimeout(() => clearInterval(menuInterval), 5000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -145,36 +151,35 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Professional Draggable Chat Head System ---
+// --- Draggable Chat Head Implementation ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
-    chatHead.innerHTML = '🎧';
+    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
     chatHead.style = `
-        position: fixed; bottom: 30px; right: 20px; width: 65px; height: 65px;
-        background: #e60023; border-radius: 50%; display: none; align-items: center;
-        justify-content: center; font-size: 1.6rem; color: white; cursor: grab;
-        z-index: 100000; box-shadow: 0 10px 30px rgba(230,0,35,0.4); touch-action: none;
-        user-select: none; border: 3px solid rgba(255,255,255,0.2);
+        position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
+        background: #e60023; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; z-index: 999999; box-shadow: 0 8px 25px rgba(230,0,35,0.5);
+        cursor: grab; touch-action: none; user-select: none; border: 2px solid white;
     `;
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1.2rem; margin-bottom:5px;">✕</div><div style="font-size:0.7rem; font-weight:900;">CLOSE CHAT</div>';
+    closeZone.innerHTML = '<div style="font-size:1.5rem; margin-bottom:5px;">✕</div><div style="font-size:0.6rem; font-weight:900; letter-spacing:1px;">DROP TO CLOSE</div>';
     closeZone.style = `
-        position: fixed; bottom: -130px; left: 50%; transform: translateX(-50%);
-        width: 120px; height: 120px; background: rgba(0,0,0,0.9); color: white;
+        position: fixed; bottom: -150px; left: 50%; transform: translateX(-50%);
+        width: 130px; height: 130px; background: rgba(0,0,0,0.9); color: white;
         border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 99999; border: 3px solid #e60023; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        opacity: 0;
+        z-index: 999998; border: 3px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        opacity: 0; pointer-events: none;
     `;
 
     document.body.appendChild(chatHead);
     document.body.appendChild(closeZone);
 
-    let isDragging = false;
+    let active = false;
     let currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
 
     const dragStart = (e) => {
@@ -185,46 +190,41 @@ function initChatDraggable() {
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
         }
-        if (e.target === chatHead) {
-            isDragging = true;
+        if (e.target === chatHead || chatHead.contains(e.target)) {
+            active = true;
             chatHead.style.cursor = 'grabbing';
-            closeZone.style.bottom = '40px';
+            closeZone.style.bottom = '30px';
             closeZone.style.opacity = '1';
         }
     };
 
     const dragEnd = () => {
-        if (!isDragging) return;
+        if (!active) return;
         initialX = currentX;
         initialY = currentY;
-        isDragging = false;
+        active = false;
         chatHead.style.cursor = 'grab';
         
         const headRect = chatHead.getBoundingClientRect();
         const zoneRect = closeZone.getBoundingClientRect();
         
-        // Detect drop in proximity to zone center
-        const headCenterX = headRect.left + headRect.width / 2;
-        const headCenterY = headRect.top + headRect.height / 2;
-        const zoneCenterX = zoneRect.left + zoneRect.width / 2;
-        const zoneCenterY = zoneRect.top + zoneRect.height / 2;
+        const hCenter = { x: headRect.left + 30, y: headRect.top + 30 };
+        const zCenter = { x: zoneRect.left + 65, y: zoneRect.top + 65 };
         
-        const dist = Math.hypot(headCenterX - zoneCenterX, headCenterY - zoneCenterY);
+        const distance = Math.hypot(hCenter.x - zCenter.x, hCenter.y - zCenter.y);
 
-        if (dist < 100) {
-            if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
+        if (distance < 100) {
             chatHead.style.display = 'none';
-            // Reset position
-            xOffset = 0; yOffset = 0;
-            chatHead.style.transform = "translate3d(0,0,0)";
+            chatHead.setAttribute('data-closed', 'true');
+            if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
         }
 
-        closeZone.style.bottom = '-130px';
+        closeZone.style.bottom = '-150px';
         closeZone.style.opacity = '0';
     };
 
     const drag = (e) => {
-        if (isDragging) {
+        if (active) {
             e.preventDefault();
             const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
             const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
@@ -238,15 +238,16 @@ function initChatDraggable() {
     };
 
     chatHead.addEventListener("touchstart", dragStart, {passive: false});
-    chatHead.addEventListener("touchend", dragEnd);
-    chatHead.addEventListener("touchmove", drag, {passive: false});
+    document.addEventListener("touchend", dragEnd);
+    document.addEventListener("touchmove", drag, {passive: false});
 
     chatHead.addEventListener("mousedown", dragStart);
     document.addEventListener("mouseup", dragEnd);
     document.addEventListener("mousemove", drag);
     
-    chatHead.onclick = () => {
-        if (!isDragging) {
+    chatHead.onclick = (e) => {
+        // If the movement was negligible, consider it a tap
+        if (Math.abs(xOffset) < 5 && Math.abs(yOffset) < 5) {
             if (typeof Tawk_API !== 'undefined') Tawk_API.maximize();
         }
     };
@@ -278,7 +279,10 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     const head = document.getElementById('draggable-chat-head');
-    if (head) head.style.display = 'flex';
+    if (head) {
+        head.style.display = 'flex';
+        head.setAttribute('data-closed', 'false');
+    }
     if (typeof Tawk_API !== 'undefined') {
         Tawk_API.maximize();
         window.closeFittingRoom();
