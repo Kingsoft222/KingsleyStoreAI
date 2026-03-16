@@ -76,12 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Precision targeting for the menu icon in the top-left area
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            // Focus on the top-left quadrant (< 100px) where the menu icon sits
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
@@ -148,34 +146,30 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- High-Performance Draggable Launcher ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Aggressively suppress ANY Tawk launcher element while allowing the chat box itself
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Targeted suppression of native Tawk bubbles/badges/buttons */
+        /* Hide only the minimized pinned bubble launcher */
         .tawk-minimized, 
         .tawk-button, 
-        .tawk-badge, 
-        #tawk-bubble-container, 
-        iframe[title*="chat widget"], 
-        iframe[name^="tawk"] { 
+        #tawk-bubble-container,
+        iframe[title*="chat widget"] { 
+            display: none !important; 
             opacity: 0 !important; 
             visibility: hidden !important; 
             pointer-events: none !important; 
-            display: none !important; 
         }
         
-        /* Ensure the chat window stays visible when it is specifically maximized */
+        /* Keep the maximized chat window functional and visible */
         .tawk-maximized, 
-        iframe.tawk-maximized, 
-        iframe[title*="chat"].tawk-maximized { 
+        iframe.tawk-maximized { 
             display: block !important; 
             visibility: visible !important; 
             opacity: 1 !important; 
             pointer-events: auto !important; 
+            z-index: 2147483647 !important;
         }
         
         .dragging-now { 
@@ -247,7 +241,6 @@ function initChatDraggable() {
             chatHead.setAttribute('data-closed', 'true');
         }
 
-        // Professional Reset: Zone MUST disappear immediately
         closeZone.style.bottom = '-120px';
         closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
@@ -258,11 +251,9 @@ function initChatDraggable() {
             if (e.cancelable) e.preventDefault();
             const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
             const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-            
             const dx = clientX - initialX;
             const dy = clientY - initialY;
             dragDistance += Math.abs(dx - xOffset) + Math.abs(dy - yOffset);
-            
             xOffset = dx;
             yOffset = dy;
             chatHead.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
@@ -288,13 +279,10 @@ window.openOptionsMenu = () => {
     if (!modal) return;
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    
-    // Redesigned Professional Options List
     resDiv.innerHTML = `
         <div style="position:relative; padding:45px 25px; text-align:left; background:#000; border-radius:24px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; text-align:center; font-size:1.6rem; text-transform:uppercase;">Store Options</h2>
-            
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 22px; border-radius:15px; display:flex; align-items:center; cursor:pointer; active:scale-95 transition:0.2s;">
                     <div style="font-size:1.4rem; margin-right:15px; color:#e60023; display:flex; align-items:center;">🎧</div>
@@ -302,7 +290,6 @@ window.openOptionsMenu = () => {
                     <div style="color:#444; font-size:1.1rem;">›</div>
                 </div>
             </div>
-
             <div style="text-align:center; margin-top:50px; opacity:0.2;">
                 <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900;">VIRTUAL MALL ENCRYPTED</p>
             </div>
@@ -349,7 +336,7 @@ function applyDynamicThemeStyles() {
 
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
-    const SpeechRecognition = window.SpeechRecognition || window.webkit_search_recognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition || !micBtn) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
