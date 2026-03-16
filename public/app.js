@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Initialization & Professional Controls ---
+// --- Tawk.to Initialization & Control ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,7 +58,6 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Ensure the default bubble is hidden to use our professional draggable head
 Tawk_API.onLoad = function(){
     Tawk_API.hideWidget();
 };
@@ -76,20 +75,18 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Target existing menu icon from your screenshot (top left corner)
+    // Target existing top-left menu icon precisely
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            // Specifically looking for the element in the top left corner < 80px
             const isTopLeft = rect.top < 80 && rect.left < 80 && rect.width > 0;
-            const hasIcon = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.classList.contains('fa-bars') || el.innerHTML.includes('line');
+            const hasIcon = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIcon;
         });
 
         if (menuBtn) {
             menuBtn.style.cursor = 'pointer';
-            // Use both click and touch to ensure mobile responsiveness
             const openAction = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -101,9 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     findAndEnableMenu();
-    // Re-check frequently during initial load to catch dynamically rendered elements
-    const menuInterval = setInterval(findAndEnableMenu, 500);
-    setTimeout(() => clearInterval(menuInterval), 5000);
+    const menuInterval = setInterval(findAndEnableMenu, 1000);
+    setTimeout(() => clearInterval(menuInterval), 10000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -151,38 +147,40 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Draggable Chat Head Implementation ---
+// --- Professional Draggable Chat Logic ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
-    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
+    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 7V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>';
     chatHead.style = `
-        position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
-        background: #e60023; border-radius: 50%; display: flex; align-items: center;
-        justify-content: center; z-index: 999999; box-shadow: 0 8px 25px rgba(230,0,35,0.5);
+        position: fixed; bottom: 100px; right: 20px; width: 64px; height: 64px;
+        background: #e60023; border-radius: 50%; display: none; align-items: center;
+        justify-content: center; z-index: 1000000; box-shadow: 0 12px 30px rgba(0,0,0,0.3);
         cursor: grab; touch-action: none; user-select: none; border: 2px solid white;
     `;
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1.5rem; margin-bottom:5px;">✕</div><div style="font-size:0.6rem; font-weight:900; letter-spacing:1px;">DROP TO CLOSE</div>';
+    closeZone.innerHTML = '<div style="font-size:1.4rem;">✕</div><div style="font-size:0.6rem; font-weight:900;">CLOSE SUPPORT</div>';
     closeZone.style = `
-        position: fixed; bottom: -150px; left: 50%; transform: translateX(-50%);
-        width: 130px; height: 130px; background: rgba(0,0,0,0.9); color: white;
+        position: fixed; bottom: -160px; left: 50%; transform: translateX(-50%);
+        width: 140px; height: 140px; background: rgba(230,0,35,0.9); color: white;
         border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 999998; border: 3px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 999999; border: 3px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         opacity: 0; pointer-events: none;
     `;
 
     document.body.appendChild(chatHead);
     document.body.appendChild(closeZone);
 
-    let active = false;
+    let isDragging = false;
     let currentX, currentY, initialX, initialY, xOffset = 0, yOffset = 0;
+    let startTime;
 
     const dragStart = (e) => {
+        startTime = Date.now();
         if (e.type === "touchstart") {
             initialX = e.touches[0].clientX - xOffset;
             initialY = e.touches[0].clientY - yOffset;
@@ -190,8 +188,9 @@ function initChatDraggable() {
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
         }
+        
         if (e.target === chatHead || chatHead.contains(e.target)) {
-            active = true;
+            isDragging = true;
             chatHead.style.cursor = 'grabbing';
             closeZone.style.bottom = '30px';
             closeZone.style.opacity = '1';
@@ -199,32 +198,35 @@ function initChatDraggable() {
     };
 
     const dragEnd = () => {
-        if (!active) return;
+        if (!isDragging) return;
         initialX = currentX;
         initialY = currentY;
-        active = false;
+        isDragging = false;
         chatHead.style.cursor = 'grab';
         
         const headRect = chatHead.getBoundingClientRect();
         const zoneRect = closeZone.getBoundingClientRect();
         
-        const hCenter = { x: headRect.left + 30, y: headRect.top + 30 };
-        const zCenter = { x: zoneRect.left + 65, y: zoneRect.top + 65 };
-        
+        const hCenter = { x: headRect.left + 32, y: headRect.top + 32 };
+        const zCenter = { x: zoneRect.left + 70, y: zoneRect.top + 70 };
         const distance = Math.hypot(hCenter.x - zCenter.x, hCenter.y - zCenter.y);
 
-        if (distance < 100) {
+        if (distance < 110) {
             chatHead.style.display = 'none';
             chatHead.setAttribute('data-closed', 'true');
             if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
         }
 
-        closeZone.style.bottom = '-150px';
+        closeZone.style.bottom = '-160px';
         closeZone.style.opacity = '0';
+
+        if (Date.now() - startTime < 200 && Math.abs(xOffset) < 5 && Math.abs(yOffset) < 5) {
+            if (typeof Tawk_API !== 'undefined') Tawk_API.maximize();
+        }
     };
 
     const drag = (e) => {
-        if (active) {
+        if (isDragging) {
             e.preventDefault();
             const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
             const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
@@ -244,13 +246,6 @@ function initChatDraggable() {
     chatHead.addEventListener("mousedown", dragStart);
     document.addEventListener("mouseup", dragEnd);
     document.addEventListener("mousemove", drag);
-    
-    chatHead.onclick = (e) => {
-        // If the movement was negligible, consider it a tap
-        if (Math.abs(xOffset) < 5 && Math.abs(yOffset) < 5) {
-            if (typeof Tawk_API !== 'undefined') Tawk_API.maximize();
-        }
-    };
 }
 
 window.openOptionsMenu = () => {
@@ -259,20 +254,25 @@ window.openOptionsMenu = () => {
     
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    
     resDiv.innerHTML = `
-        <div style="position:relative; padding:30px 20px; text-align:center;">
+        <div style="position:relative; padding:40px 20px; text-align:left;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color:#e60023; font-weight:800; margin-bottom:25px; letter-spacing:-1px;">STORE OPTIONS</h2>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:30px; letter-spacing:-1px; text-align:center;">MENU</h2>
             
-            <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:20px; border-radius:15px; display:flex; align-items:center; gap:15px; cursor:pointer; margin-bottom:15px; transition:all 0.3s;">
-                <div style="font-size:1.5rem;">🎧</div>
-                <div style="text-align:left;">
-                    <h4 style="margin:0; color:white; font-size:1.1rem;">Chat Support</h4>
-                    <p style="margin:2px 0 0; color:#888; font-size:0.8rem;">Live help from our team</p>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 25px; border-radius:12px; display:flex; align-items:center; cursor:pointer; transition:all 0.2s active:scale-95;">
+                    <div style="font-size:1.4rem; margin-right:15px; display:flex; align-items:center;">🎧</div>
+                    <span style="color:white; font-weight:700; font-size:1rem; flex:1;">Chat Support</span>
+                    <div style="color:#444; font-size:1rem;">›</div>
                 </div>
+                
+                <!-- Future Options Template -->
             </div>
 
-            <p style="color:#444; font-size:0.7rem; margin-top:20px;">VIRTUAL MALL SECURE CONNECT</p>
+            <div style="text-align:center; margin-top:40px;">
+                <p style="color:#444; font-size:0.6rem; letter-spacing:2px; font-weight:900;">VIRTUAL MALL SECURE</p>
+            </div>
         </div>`;
     applyDynamicThemeStyles();
 };
