@@ -160,17 +160,20 @@ function initChatDraggable() {
         }
         .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
         
-        /* Sidebar transition and layout */
         #sidebar-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.5); z-index: 20000; display: none;
+            background: rgba(0,0,0,0.4); z-index: 20000; display: none;
         }
         #sidebar-drawer {
-            position: fixed; top: 0; left: -300px; width: 280px; height: 100%; 
+            position: fixed; top: 0; left: -320px; width: 300px; height: 100%; 
             background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column;
         }
         #sidebar-drawer.open { left: 0; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; transition: 0.2s; color: #1f1f1f; text-decoration: none; }
+        .sidebar-item:hover { background: #f8f9fa; }
+        .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
+        .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
     `;
     document.head.appendChild(style);
 
@@ -207,7 +210,6 @@ function initChatDraggable() {
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
         if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
-            if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
         }
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
@@ -237,37 +239,63 @@ function initChatDraggable() {
     };
 }
 
-// --- Sidebar Menu (Gemini Style Redesign) ---
+// --- Sidebar Menu (Verified Store List Redesign) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
     
-    // Use the existing modal to hold the sidebar logic
     modal.style.display = 'block'; 
     modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif;">
-                <!-- Brand Space -->
-                <div style="padding: 24px 20px 10px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f;">
-                    <span style="color:#e60023;">S</span>tore Options
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif; overflow-y: auto;">
+                <!-- Sidebar Header -->
+                <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
+                    <span><span style="color:#e60023;">S</span>tore Options</span>
+                    <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
 
-                <!-- Main Actions -->
-                <div style="display: flex; flex-direction: column; margin-top: 15px;">
-                    <!-- Chat Support - The First and Only Option -->
-                    <div onclick="window.openChatSupport()" style="display: flex; align-items: center; gap: 16px; padding: 16px 24px; cursor: pointer; background: #f0f4f9; border-radius: 0 30px 30px 0; margin-right: 12px; transition: 0.2s;">
+                <!-- Action List -->
+                <div style="display: flex; flex-direction: column; margin-top: 10px;">
+                    <!-- 1. Chat Support -->
+                    <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
                         <span style="font-size: 1.3rem;">🎧</span>
-                        <span style="font-weight: 600; font-size: 1rem; color: #0b57d0; flex: 1;">Chat Support</span>
+                        <span style="flex: 1;">Chat Support</span>
                     </div>
+
+                    <!-- 2. Verified Store Section -->
+                    <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">
+                        Verified store <span style="color: #0b57d0;">✔️</span>
+                    </div>
+
+                    <!-- Luxury Wears Category -->
+                    <div class="sidebar-category">Luxury Wears</div>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">
+                        <span style="font-size: 1.2rem;">💎</span>
+                        <span>Stella Wears</span>
+                    </a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">
+                        <span style="font-size: 1.2rem;">👗</span>
+                        <span>IFY FASHION</span>
+                    </a>
+
+                    <!-- Bespoke Native Category -->
+                    <div class="sidebar-category">Bespoke Native</div>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">
+                        <span style="font-size: 1.2rem;">🧵</span>
+                        <span>ADIVICHI FASHION</span>
+                    </a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">
+                        <span style="font-size: 1.2rem;">👔</span>
+                        <span>TOMMY BEST FASHION</span>
+                    </a>
                 </div>
 
-                <!-- Footer spacer -->
-                <div style="flex: 1;"></div>
+                <div style="flex: 1; min-height: 50px;"></div>
                 
-                <div style="padding: 20px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;">
+                <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;">
                     <p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p>
                 </div>
             </div>
@@ -295,8 +323,9 @@ function applyDynamicThemeStyles() {
         .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
+        .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
     `;
@@ -315,10 +344,7 @@ function initVoiceSearch() {
 window.closeFittingRoom = () => { 
     vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; 
     const modal = document.getElementById('fitting-room-modal'); 
-    if (modal) {
-        modal.style.display = 'none'; 
-        modal.style.background = 'rgba(0,0,0,0.8)'; // Restore default background for VTO
-    }
+    if (modal) { modal.style.display = 'none'; modal.style.background = 'rgba(0,0,0,0.8)'; }
 };
 
 window.promptShowroomChoice = (id) => {
@@ -334,13 +360,28 @@ window.promptShowroomChoice = (id) => {
             </div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
-                <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:15px;">₦${selectedCloth.price.toLocaleString()}</p>
+                <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
+                <p style="color:#888; font-size:0.7rem; margin-bottom:15px;">Tap to zoom & move to inspect</p>
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
             </div>
         </div>`;
+    
     const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
-    const handlePan = (e) => { if (!img.classList.contains('zoomed')) return; const rect = container.getBoundingClientRect(); const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0); const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0); const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100; img.style.transformOrigin = `${Math.min(Math.max(x, 0), 100)}% ${Math.min(Math.max(y, 0), 100)}%`; };
-    container.onclick = (e) => { if (e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); container.style.cursor = img.classList.contains('zoomed') ? 'zoom-out' : 'zoom-in'; if (img.classList.contains('zoomed')) handlePan(e); };
+    const handlePan = (e) => {
+        if (!img.classList.contains('zoomed')) return;
+        const rect = container.getBoundingClientRect();
+        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100;
+        img.style.transformOrigin = `${Math.min(Math.max(x, 0), 100)}% ${Math.min(Math.max(y, 0), 100)}%`;
+    };
+    
+    container.onclick = (e) => {
+        if (e.target.classList.contains('close-preview-x')) return;
+        img.classList.toggle('zoomed');
+        container.style.cursor = img.classList.contains('zoomed') ? 'zoom-out' : 'zoom-in';
+        if (img.classList.contains('zoomed')) handlePan(e);
+    };
     container.onmousemove = handlePan; container.ontouchmove = handlePan;
     applyDynamicThemeStyles();
 };
