@@ -152,12 +152,38 @@ document.addEventListener('DOMContentLoaded', () => {
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Suppress native bubble icons via CSS
+    // Aggressively suppress ANY Tawk launcher element while allowing the chat box itself
     const style = document.createElement('style');
     style.innerHTML = `
-        .tawk-minimized, .tawk-button, iframe[title*="chat"] { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
-        .tawk-maximized { visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; }
-        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        /* Targeted suppression of native Tawk bubbles/badges/buttons */
+        .tawk-minimized, 
+        .tawk-button, 
+        .tawk-badge, 
+        #tawk-bubble-container, 
+        iframe[title*="chat widget"], 
+        iframe[name^="tawk"] { 
+            opacity: 0 !important; 
+            visibility: hidden !important; 
+            pointer-events: none !important; 
+            display: none !important; 
+        }
+        
+        /* Ensure the chat window stays visible when it is specifically maximized */
+        .tawk-maximized, 
+        iframe.tawk-maximized, 
+        iframe[title*="chat"].tawk-maximized { 
+            display: block !important; 
+            visibility: visible !important; 
+            opacity: 1 !important; 
+            pointer-events: auto !important; 
+        }
+        
+        .dragging-now { 
+            opacity: 0.7; 
+            transform: scale(1.1); 
+            transition: none !important; 
+            cursor: grabbing !important; 
+        }
     `;
     document.head.appendChild(style);
 
