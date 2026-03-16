@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Professional Integration ---
+// --- Tawk.to Professional Control ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,7 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Hide default widget elements so only our draggable head is used as a launcher
+// CRITICAL: Aggressively hide native widget pinned icon
 Tawk_API.onLoad = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
@@ -69,6 +69,7 @@ Tawk_API.onChatMaximized = function(){
 Tawk_API.onChatMinimized = function(){
     const head = document.getElementById('draggable-chat-head');
     if(head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -78,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Robust targeting for existing top-left menu icon
     const findAndEnableMenu = () => {
-        const elements = document.querySelectorAll('button, div, span, i, svg');
+        const elements = document.querySelectorAll('button, div, span, i, svg, nav');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
@@ -99,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     findAndEnableMenu();
-    setInterval(findAndEnableMenu, 2000);
+    setInterval(findAndEnableMenu, 2500);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -147,17 +148,18 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- High-Performance Draggable Launcher Engine ---
+// --- Draggable Launcher & Native Suppression ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Aggressively suppress ANY Tawk launcher bubble while keeping the chat window alive
+    // Aggressively target and hide ALL Tawk.to launcher elements
     const style = document.createElement('style');
     style.innerHTML = `
+        /* Hide all Tawk launchers while maintaining window visibility when maximized */
         .tawk-minimized, 
         .tawk-button, 
-        .tawk-badge,
-        #tawk-bubble-container,
+        .tawk-badge, 
+        #tawk-bubble-container, 
         iframe[title*="chat widget"], 
         iframe[name^="tawk-chat"] { 
             display: none !important; 
@@ -166,7 +168,6 @@ function initChatDraggable() {
             pointer-events: none !important; 
         }
         
-        /* Ensure the actual chat window remains functional when launched */
         .tawk-maximized, 
         iframe.tawk-maximized,
         iframe[title*="chat window"] { 
@@ -177,14 +178,15 @@ function initChatDraggable() {
             z-index: 2147483647 !important;
         }
         
-        .dragging-now { 
-            opacity: 0.7; 
-            transform: scale(1.1); 
-            transition: none !important; 
-            cursor: grabbing !important; 
-        }
+        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
     `;
     document.head.appendChild(style);
+
+    // Continuous suppression interval to catch late-loading elements
+    setInterval(() => {
+        const tawkItems = document.querySelectorAll('.tawk-minimized, .tawk-button, iframe[title*="chat widget"]');
+        tawkItems.forEach(el => el.style.setProperty('display', 'none', 'important'));
+    }, 1000);
 
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
@@ -220,7 +222,6 @@ function initChatDraggable() {
         
         if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
-            if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
         }
 
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
@@ -247,7 +248,9 @@ function initChatDraggable() {
     document.addEventListener("mousemove", drag);
     
     chatHead.onclick = () => {
-        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
+        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+            Tawk_API.maximize();
+        }
     };
 }
 
