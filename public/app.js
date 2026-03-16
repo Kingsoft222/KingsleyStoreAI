@@ -58,7 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Hide default widget elements so only our draggable launcher is active
+// Suppression engine for native Tawk elements
 Tawk_API.onLoad = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
@@ -146,27 +146,31 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Draggable Chat Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Aggressive suppression of native Tawk elements
     const style = document.createElement('style');
     style.innerHTML = `
+        /* Precision Hide pinned native bubble */
         .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, iframe[title*="chat widget"], iframe[name^="tawk"] { 
-            display: none !important; 
-            opacity: 0 !important; 
-            visibility: hidden !important; 
-            pointer-events: none !important; 
+            display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; 
         }
         .tawk-maximized, iframe.tawk-maximized { 
-            display: block !important; 
-            visibility: visible !important; 
-            opacity: 1 !important; 
-            pointer-events: auto !important; 
-            z-index: 2147483647 !important;
+            display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 2147483647 !important;
         }
-        .is-dragging { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        
+        /* Sidebar transition and layout */
+        #sidebar-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 20000; display: none;
+        }
+        #sidebar-drawer {
+            position: fixed; top: 0; left: -300px; width: 280px; height: 100%; 
+            background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+        }
+        #sidebar-drawer.open { left: 0; }
     `;
     document.head.appendChild(style);
 
@@ -191,7 +195,7 @@ function initChatDraggable() {
         const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
         initialX = clientX - xOffset; initialY = clientY - yOffset;
         if (e.target === chatHead || chatHead.contains(e.target)) {
-            isDragging = true; chatHead.classList.add('is-dragging');
+            isDragging = true; chatHead.classList.add('dragging-now');
             closeZone.style.display = 'flex';
             setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
         }
@@ -199,7 +203,7 @@ function initChatDraggable() {
 
     const dragEnd = () => {
         if (!isDragging) return;
-        isDragging = false; chatHead.classList.remove('is-dragging');
+        isDragging = false; chatHead.classList.remove('dragging-now');
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
         if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
@@ -233,63 +237,39 @@ function initChatDraggable() {
     };
 }
 
-// --- Sidebar Menu (Gemini Style) ---
+// --- Sidebar Menu (Gemini Style Redesign) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
     
-    modal.style.display = 'flex';
+    // Use the existing modal to hold the sidebar logic
+    modal.style.display = 'block'; 
+    modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Exact sidebar design based on uploaded image
     resDiv.innerHTML = `
-        <div style="background: #f8f9fa; min-height: 100vh; width: 100%; text-align: left; padding: 0; font-family: 'Google Sans', sans-serif;">
-            <!-- Header Search Bar -->
-            <div style="padding: 20px 15px;">
-                <div style="background: white; border-radius: 30px; border: 1px solid #dadce0; padding: 12px 20px; display: flex; align-items: center; gap: 12px;">
-                    <span style="color: #5f6368; font-size: 1.2rem;">🔍</span>
-                    <input type="text" placeholder="Search for chats" style="border: none; outline: none; width: 100%; font-size: 1rem; color: #3c4043;">
+        <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif;">
+                <!-- Brand Space -->
+                <div style="padding: 24px 20px 10px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f;">
+                    <span style="color:#e60023;">S</span>tore Options
                 </div>
-            </div>
 
-            <!-- Main Actions -->
-            <div style="padding: 0 15px 20px;">
-                <div style="display: flex; align-items: center; gap: 15px; padding: 15px 10px; border-radius: 12px; cursor: pointer;">
-                    <span style="font-size: 1.3rem;">📝</span>
-                    <span style="font-weight: 500; color: #3c4043; flex: 1;">New chat</span>
-                    <div style="width: 40px; height: 40px; border: 1px solid #dadce0; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                        <span style="font-size: 1.2rem;">🖼️</span>
+                <!-- Main Actions -->
+                <div style="display: flex; flex-direction: column; margin-top: 15px;">
+                    <!-- Chat Support - The First and Only Option -->
+                    <div onclick="window.openChatSupport()" style="display: flex; align-items: center; gap: 16px; padding: 16px 24px; cursor: pointer; background: #f0f4f9; border-radius: 0 30px 30px 0; margin-right: 12px; transition: 0.2s;">
+                        <span style="font-size: 1.3rem;">🎧</span>
+                        <span style="font-weight: 600; font-size: 1rem; color: #0b57d0; flex: 1;">Chat Support</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- List Sections -->
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-                <!-- My Stuff Section -->
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; cursor: pointer; color: #3c4043;">
-                    <span style="font-weight: 500; font-size: 1.1rem;">My stuff</span>
-                    <span style="color: #5f6368;">›</span>
-                </div>
+                <!-- Footer spacer -->
+                <div style="flex: 1;"></div>
                 
-                <!-- Gems Section -->
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; cursor: pointer; color: #3c4043;">
-                    <span style="font-weight: 500; font-size: 1.1rem;">Gems</span>
-                    <span style="color: #5f6368;">›</span>
+                <div style="padding: 20px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;">
+                    <p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p>
                 </div>
-
-                <!-- Chats Header -->
-                <div style="padding: 25px 25px 10px; font-size: 1rem; font-weight: 500; color: #3c4043;">Chats</div>
-
-                <!-- Chat Support Item (Real Action) -->
-                <div onclick="window.openChatSupport()" style="display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: rgba(0, 168, 132, 0.05); cursor: pointer; transition: background 0.2s;">
-                    <span style="font-size: 1.2rem;">🎧</span>
-                    <span style="font-weight: 500; color: #3c4043; flex: 1;">Chat Support</span>
-                </div>
-            </div>
-
-            <!-- Footer Close -->
-            <div style="position: absolute; top: 15px; right: 15px; cursor: pointer; padding: 10px;" onclick="window.closeFittingRoom()">
-                <span style="font-size: 1.4rem; color: #5f6368;">✕</span>
             </div>
         </div>`;
 };
@@ -297,7 +277,10 @@ window.openOptionsMenu = () => {
 window.openChatSupport = () => {
     const head = document.getElementById('draggable-chat-head');
     if (head) { head.style.display = 'flex'; head.setAttribute('data-closed', 'false'); }
-    if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) { Tawk_API.maximize(); window.closeFittingRoom(); }
+    if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+        Tawk_API.maximize();
+        window.closeFittingRoom();
+    }
 };
 
 function applyDynamicThemeStyles() {
@@ -329,7 +312,14 @@ function initVoiceSearch() {
     recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
 }
 
-window.closeFittingRoom = () => { vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; const modal = document.getElementById('fitting-room-modal'); if (modal) modal.style.display = 'none'; };
+window.closeFittingRoom = () => { 
+    vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; 
+    const modal = document.getElementById('fitting-room-modal'); 
+    if (modal) {
+        modal.style.display = 'none'; 
+        modal.style.background = 'rgba(0,0,0,0.8)'; // Restore default background for VTO
+    }
+};
 
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
