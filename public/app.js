@@ -60,7 +60,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 
 // Control native widget elements
 Tawk_API.onLoad = function(){
-    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
+    if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 Tawk_API.onChatMaximized = function(){
     const head = document.getElementById('draggable-chat-head');
@@ -151,20 +151,34 @@ function initChatDraggable() {
 
     const style = document.createElement('style');
     style.innerHTML = `
-        .tawk-minimized, .tawk-button, #tawk-bubble-container, iframe[title*="chat widget"] { 
+        /* Targeted suppression of ONLY the native minimized pinned bubble */
+        .tawk-minimized, 
+        .tawk-button, 
+        .tawk-badge,
+        #tawk-bubble-container,
+        iframe[title*="chat widget"] { 
             display: none !important; 
             opacity: 0 !important; 
             visibility: hidden !important; 
             pointer-events: none !important; 
         }
-        .tawk-maximized, iframe.tawk-maximized { 
+        
+        /* Ensure the actual chat window remains fully functional */
+        .tawk-maximized, 
+        iframe.tawk-maximized { 
             display: block !important; 
             visibility: visible !important; 
             opacity: 1 !important; 
             pointer-events: auto !important; 
             z-index: 2147483647 !important;
         }
-        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        
+        .dragging-now { 
+            opacity: 0.7; 
+            transform: scale(1.1); 
+            transition: none !important; 
+            cursor: grabbing !important; 
+        }
     `;
     document.head.appendChild(style);
 
@@ -175,8 +189,8 @@ function initChatDraggable() {
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1rem; line-height:1;">✕</div><div style="font-size:0.45rem; font-weight:900; margin-top:2px;">CLOSE</div>';
-    closeZone.style = `position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%); width: 80px; height: 80px; background: rgba(0,0,0,0.9); color: white; border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2147483646; border: 2.5px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; pointer-events: none;`;
+    closeZone.innerHTML = '<div style="font-size:0.9rem; line-height:1;">✕</div><div style="font-size:0.4rem; font-weight:900; margin-top:2px;">CLOSE</div>';
+    closeZone.style = `position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%); width: 75px; height: 75px; background: rgba(0,0,0,0.9); color: white; border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2147483646; border: 2px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; pointer-events: none;`;
 
     document.body.appendChild(chatHead);
     document.body.appendChild(closeZone);
@@ -199,9 +213,14 @@ function initChatDraggable() {
         if (!isDragging) return;
         isDragging = false; chatHead.classList.remove('dragging-now');
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
-        if (Math.hypot((hRect.left + 31) - (zRect.left + 40), (hRect.top + 31) - (zRect.top + 40)) < 85) {
+        
+        // Accurate overlap detection
+        if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
+            if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
         }
+
+        // Guaranteed cleanup of close zone
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
     };
@@ -226,7 +245,9 @@ function initChatDraggable() {
     document.addEventListener("mousemove", drag);
     
     chatHead.onclick = () => {
-        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
+        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+            Tawk_API.maximize();
+        }
     };
 }
 
@@ -284,8 +305,14 @@ function initVoiceSearch() {
     if (!SpeechRecognition || !micBtn) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
-    micBtn.onclick = () => { micBtn.style.color = "#e60023"; recognition.start(); };
-    recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
+    micBtn.onclick = () => { 
+        try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {}
+    };
+    recognition.onresult = (e) => { 
+        document.getElementById('ai-input').value = e.results[0][0].transcript; 
+        micBtn.style.color = "#5f6368"; 
+        window.executeSearch(); 
+    };
 }
 
 window.closeFittingRoom = () => { vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; const modal = document.getElementById('fitting-room-modal'); if (modal) modal.style.display = 'none'; };
@@ -379,7 +406,7 @@ window.addToCart = () => {
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-    const total = cart.reduce((s, i) => s + i.price, 0);
+    const total = cart.reduce((s, i) => s + (i.price || 0), 0);
     try {
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { whatsappClicks: increment(1), totalRevenue: increment(total), lastSaleID: orderId });
         await set(dbRef(db, `receipts/${orderId}`), { storeId: currentStoreId, items: cart, total: total, date: new Date().toLocaleString(), verifiedHost: window.location.hostname });
