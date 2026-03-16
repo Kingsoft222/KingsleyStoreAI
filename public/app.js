@@ -58,7 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Control native widget behavior
+// Hide default widget elements so only our draggable head is used as a launcher
 Tawk_API.onLoad = function(){
     Tawk_API.hideWidget();
 };
@@ -76,14 +76,15 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Enable the existing top-left menu icon
+    // Precision targeting for the menu icon in the top-left area
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
+            // Focus on the top-left quadrant (< 100px) where the menu icon sits
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
-            const hasIcon = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
-            return isTopLeft && hasIcon;
+            const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
+            return isTopLeft && hasIconContent;
         });
 
         if (menuBtn) {
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.openOptionsMenu();
             };
             menuBtn.onclick = openAction;
-            menuBtn.ontouchend = openAction;
+            menuBtn.addEventListener('touchstart', openAction, { passive: false });
         }
     };
 
@@ -147,15 +148,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Professional Draggable Chat Launcher Engine ---
+// --- High-Performance Draggable Launcher ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Suppress default tawk elements
+    // Suppress native bubble icons via CSS
     const style = document.createElement('style');
     style.innerHTML = `
-        #tawk-container, .tawk-minimized, .tawk-button, iframe[title*="chat"] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
-        .is-dragging { opacity: 0.8; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        .tawk-minimized, .tawk-button, iframe[title*="chat"] { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+        .tawk-maximized { visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; }
+        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
     `;
     document.head.appendChild(style);
 
@@ -163,20 +165,20 @@ function initChatDraggable() {
     chatHead.id = 'draggable-chat-head';
     chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 7V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>';
     chatHead.style = `
-        position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
+        position: fixed; bottom: 120px; right: 20px; width: 62px; height: 62px;
         background: #00a884; border-radius: 50%; display: flex; align-items: center;
-        justify-content: center; z-index: 9999999; box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        justify-content: center; z-index: 2147483647; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         cursor: grab; touch-action: none; user-select: none; border: 2.5px solid white;
     `;
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1.1rem; line-height:1;">✕</div><div style="font-size:0.5rem; font-weight:900;">CLOSE</div>';
+    closeZone.innerHTML = '<div style="font-size:1rem; line-height:1;">✕</div><div style="font-size:0.45rem; font-weight:900; margin-top:2px;">CLOSE</div>';
     closeZone.style = `
         position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%);
         width: 80px; height: 80px; background: rgba(0,0,0,0.9); color: white;
         border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 9999998; border: 2px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 2147483646; border: 2.5px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         opacity: 0; pointer-events: none;
     `;
 
@@ -196,7 +198,7 @@ function initChatDraggable() {
         
         if (e.target === chatHead || chatHead.contains(e.target)) {
             isDragging = true;
-            chatHead.classList.add('is-dragging');
+            chatHead.classList.add('dragging-now');
             closeZone.style.display = 'flex';
             setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
         }
@@ -205,22 +207,21 @@ function initChatDraggable() {
     const dragEnd = () => {
         if (!isDragging) return;
         isDragging = false;
-        chatHead.classList.remove('is-dragging');
+        chatHead.classList.remove('dragging-now');
         
         const hRect = chatHead.getBoundingClientRect();
         const zRect = closeZone.getBoundingClientRect();
         const dist = Math.hypot(
-            (hRect.left + 30) - (zRect.left + 40),
-            (hRect.top + 30) - (zRect.top + 40)
+            (hRect.left + 31) - (zRect.left + 40),
+            (hRect.top + 31) - (zRect.top + 40)
         );
 
         if (dist < 85) {
             chatHead.style.display = 'none';
             chatHead.setAttribute('data-closed', 'true');
-            if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
         }
 
-        // Professional Reset: Ensure zone disappears
+        // Professional Reset: Zone MUST disappear immediately
         closeZone.style.bottom = '-120px';
         closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
@@ -259,23 +260,25 @@ function initChatDraggable() {
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
-    
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    
+    // Redesigned Professional Options List
     resDiv.innerHTML = `
         <div style="position:relative; padding:45px 25px; text-align:left; background:#000; border-radius:24px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; text-align:center; font-size:1.6rem; text-transform:uppercase;">Store Options</h2>
             
             <div style="display:flex; flex-direction:column; gap:12px;">
-                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 22px; border-radius:15px; display:flex; align-items:center; cursor:pointer; transition:transform 0.2s;">
+                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 22px; border-radius:15px; display:flex; align-items:center; cursor:pointer; active:scale-95 transition:0.2s;">
                     <div style="font-size:1.4rem; margin-right:15px; color:#e60023; display:flex; align-items:center;">🎧</div>
                     <span style="color:white; font-weight:700; font-size:1rem; flex:1;">Chat Support</span>
                     <div style="color:#444; font-size:1.1rem;">›</div>
                 </div>
             </div>
+
             <div style="text-align:center; margin-top:50px; opacity:0.2;">
-                <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900; text-transform:uppercase;">Secure End-to-End</p>
+                <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900;">VIRTUAL MALL ENCRYPTED</p>
             </div>
         </div>`;
     applyDynamicThemeStyles();
@@ -556,7 +559,7 @@ window.checkoutWhatsApp = async () => {
         await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId, items: cart, total: total, date: orderDate, verifiedHost: window.location.hostname
         });
-        const waUrl = `https://wa.me/${storeData.phone.replace('+', '')}?text=🛡️ *ORDER* ID: *${orderId}*`;
+        const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=🛡️ *ORDER* ID: *${orderId}*`;
         cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI();
         window.location.assign(waUrl);
     } catch(e) { alert("Sync failed."); }
