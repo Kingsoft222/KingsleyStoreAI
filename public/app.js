@@ -239,7 +239,7 @@ function initChatDraggable() {
     };
 }
 
-// --- Sidebar Menu (Verified Store List Redesign) ---
+// --- Sidebar Menu (Verified Stores List Redesign) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
@@ -265,9 +265,9 @@ window.openOptionsMenu = () => {
                         <span style="flex: 1;">Chat Support</span>
                     </div>
 
-                    <!-- 2. Verified Store Section -->
+                    <!-- 2. Verified Stores Section -->
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">
-                        Verified store <span style="color: #0b57d0;">✔️</span>
+                        Verified stores <span style="color: #0b57d0;">✔️</span>
                     </div>
 
                     <!-- Luxury Wears Category -->
