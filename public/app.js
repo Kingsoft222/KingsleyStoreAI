@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Professional Control ---
+// --- Tawk.to Professional Integration ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,6 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
+// Control native widget behavior
 Tawk_API.onLoad = function(){
     Tawk_API.hideWidget();
 };
@@ -75,9 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // targeting top left menu icon (Stella Wears area)
+    // Enable the existing top-left menu icon
     const findAndEnableMenu = () => {
-        const elements = document.querySelectorAll('button, div, span, i, nav');
+        const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
@@ -93,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.openOptionsMenu();
             };
             menuBtn.onclick = openAction;
-            menuBtn.addEventListener('touchstart', openAction, { passive: false });
+            menuBtn.ontouchend = openAction;
         }
     };
 
@@ -146,15 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Draggable Support Icon ---
+// --- Professional Draggable Chat Launcher Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Force-Hide native tawk bubble with CSS
+    // Suppress default tawk elements
     const style = document.createElement('style');
     style.innerHTML = `
-        #tawk-container, .tawk-minimized, .tawk-button, iframe[title*="chat"] { display: none !important; pointer-events: none !important; visibility: hidden !important; }
-        .head-active { opacity: 0.7; transform: scale(1.1) !important; cursor: grabbing !important; }
+        #tawk-container, .tawk-minimized, .tawk-button, iframe[title*="chat"] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+        .is-dragging { opacity: 0.8; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
     `;
     document.head.appendChild(style);
 
@@ -164,19 +165,19 @@ function initChatDraggable() {
     chatHead.style = `
         position: fixed; bottom: 100px; right: 20px; width: 60px; height: 60px;
         background: #00a884; border-radius: 50%; display: flex; align-items: center;
-        justify-content: center; z-index: 9999999; box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        cursor: grab; touch-action: none; user-select: none; border: 2px solid white; transition: transform 0.1s;
+        justify-content: center; z-index: 9999999; box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+        cursor: grab; touch-action: none; user-select: none; border: 2.5px solid white;
     `;
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1.2rem;">✕</div><div style="font-size:0.5rem; font-weight:900;">CLOSE</div>';
+    closeZone.innerHTML = '<div style="font-size:1.1rem; line-height:1;">✕</div><div style="font-size:0.5rem; font-weight:900;">CLOSE</div>';
     closeZone.style = `
-        position: fixed; bottom: -150px; left: 50%; transform: translateX(-50%);
-        width: 90px; height: 90px; background: rgba(0,0,0,0.9); color: white;
+        position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%);
+        width: 80px; height: 80px; background: rgba(0,0,0,0.9); color: white;
         border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center;
         z-index: 9999998; border: 2px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        opacity: 0;
+        opacity: 0; pointer-events: none;
     `;
 
     document.body.appendChild(chatHead);
@@ -184,11 +185,10 @@ function initChatDraggable() {
 
     let isDragging = false;
     let initialX, initialY, xOffset = 0, yOffset = 0;
-    let moveThreshold = 12;
-    let dragHasHappened = false;
+    let dragDistance = 0;
 
     const dragStart = (e) => {
-        dragHasHappened = false;
+        dragDistance = 0;
         const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
         initialX = clientX - xOffset;
@@ -196,31 +196,32 @@ function initChatDraggable() {
         
         if (e.target === chatHead || chatHead.contains(e.target)) {
             isDragging = true;
-            chatHead.classList.add('head-active');
+            chatHead.classList.add('is-dragging');
             closeZone.style.display = 'flex';
-            setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 10);
+            setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
         }
     };
 
     const dragEnd = () => {
         if (!isDragging) return;
         isDragging = false;
-        chatHead.classList.remove('head-active');
+        chatHead.classList.remove('is-dragging');
         
         const hRect = chatHead.getBoundingClientRect();
         const zRect = closeZone.getBoundingClientRect();
         const dist = Math.hypot(
-            (hRect.left + 30) - (zRect.left + 45),
-            (hRect.top + 30) - (zRect.top + 45)
+            (hRect.left + 30) - (zRect.left + 40),
+            (hRect.top + 30) - (zRect.top + 40)
         );
 
-        if (dist < 90) {
+        if (dist < 85) {
             chatHead.style.display = 'none';
             chatHead.setAttribute('data-closed', 'true');
             if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
         }
 
-        closeZone.style.bottom = '-150px';
+        // Professional Reset: Ensure zone disappears
+        closeZone.style.bottom = '-120px';
         closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
     };
@@ -230,9 +231,13 @@ function initChatDraggable() {
             if (e.cancelable) e.preventDefault();
             const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
             const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-            xOffset = clientX - initialX;
-            yOffset = clientY - initialY;
-            if (Math.abs(xOffset) > moveThreshold || Math.abs(yOffset) > moveThreshold) dragHasHappened = true;
+            
+            const dx = clientX - initialX;
+            const dy = clientY - initialY;
+            dragDistance += Math.abs(dx - xOffset) + Math.abs(dy - yOffset);
+            
+            xOffset = dx;
+            yOffset = dy;
             chatHead.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
         }
     };
@@ -245,7 +250,7 @@ function initChatDraggable() {
     document.addEventListener("mousemove", drag);
     
     chatHead.onclick = () => {
-        if (!dragHasHappened) {
+        if (dragDistance < 15) {
             if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
         }
     };
@@ -258,21 +263,19 @@ window.openOptionsMenu = () => {
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="position:relative; padding:40px 25px; text-align:left; background:#000; border-radius:24px;">
+        <div style="position:relative; padding:45px 25px; text-align:left; background:#000; border-radius:24px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; text-align:center; font-size:1.6rem; text-transform:uppercase; letter-spacing:1px;">Options</h2>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; text-align:center; font-size:1.6rem; text-transform:uppercase;">Store Options</h2>
             
             <div style="display:flex; flex-direction:column; gap:12px;">
-                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 20px; border-radius:12px; display:flex; align-items:center; cursor:pointer; active:scale-95 transition:0.2s;">
-                    <div style="font-size:1.3rem; margin-right:15px; color:#e60023; display:flex; align-items:center;">🎧</div>
-                    <span style="color:white; font-weight:700; font-size:0.95rem; flex:1;">Chat Support</span>
+                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 22px; border-radius:15px; display:flex; align-items:center; cursor:pointer; transition:transform 0.2s;">
+                    <div style="font-size:1.4rem; margin-right:15px; color:#e60023; display:flex; align-items:center;">🎧</div>
+                    <span style="color:white; font-weight:700; font-size:1rem; flex:1;">Chat Support</span>
                     <div style="color:#444; font-size:1.1rem;">›</div>
                 </div>
-                <!-- Reserved for future options -->
             </div>
-
-            <div style="text-align:center; margin-top:50px; opacity:0.3;">
-                <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900;">VIRTUAL MALL PRO</p>
+            <div style="text-align:center; margin-top:50px; opacity:0.2;">
+                <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900; text-transform:uppercase;">Secure End-to-End</p>
             </div>
         </div>`;
     applyDynamicThemeStyles();
@@ -284,7 +287,7 @@ window.openChatSupport = () => {
         head.style.display = 'flex';
         head.setAttribute('data-closed', 'false');
     }
-    if (typeof Tawk_API !== 'undefined') {
+    if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
         Tawk_API.maximize();
         window.closeFittingRoom();
     }
@@ -553,7 +556,7 @@ window.checkoutWhatsApp = async () => {
         await set(dbRef(db, `receipts/${orderId}`), {
             storeId: currentStoreId, items: cart, total: total, date: orderDate, verifiedHost: window.location.hostname
         });
-        const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=🛡️ *ORDER* ID: *${orderId}*`;
+        const waUrl = `https://wa.me/${storeData.phone.replace('+', '')}?text=🛡️ *ORDER* ID: *${orderId}*`;
         cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI();
         window.location.assign(waUrl);
     } catch(e) { alert("Sync failed."); }
