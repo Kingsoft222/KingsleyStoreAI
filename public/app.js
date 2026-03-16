@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Professional Control ---
+// --- Tawk.to Professional Integration ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,7 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// CRITICAL: Aggressively hide native widget pinned icon
+// Hide default widget elements so only our draggable launcher is active
 Tawk_API.onLoad = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
@@ -69,7 +69,6 @@ Tawk_API.onChatMaximized = function(){
 Tawk_API.onChatMinimized = function(){
     const head = document.getElementById('draggable-chat-head');
     if(head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
-    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,9 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Robust targeting for existing top-left menu icon
     const findAndEnableMenu = () => {
-        const elements = document.querySelectorAll('button, div, span, i, svg, nav');
+        const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
@@ -100,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     findAndEnableMenu();
-    setInterval(findAndEnableMenu, 2500);
+    setInterval(findAndEnableMenu, 2000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -148,45 +146,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Draggable Launcher & Native Suppression ---
+// --- Draggable Chat Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Aggressively target and hide ALL Tawk.to launcher elements
+    // Aggressive suppression of native Tawk elements
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Hide all Tawk launchers while maintaining window visibility when maximized */
-        .tawk-minimized, 
-        .tawk-button, 
-        .tawk-badge, 
-        #tawk-bubble-container, 
-        iframe[title*="chat widget"], 
-        iframe[name^="tawk-chat"] { 
+        .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, iframe[title*="chat widget"], iframe[name^="tawk"] { 
             display: none !important; 
             opacity: 0 !important; 
             visibility: hidden !important; 
             pointer-events: none !important; 
         }
-        
-        .tawk-maximized, 
-        iframe.tawk-maximized,
-        iframe[title*="chat window"] { 
+        .tawk-maximized, iframe.tawk-maximized { 
             display: block !important; 
             visibility: visible !important; 
             opacity: 1 !important; 
             pointer-events: auto !important; 
             z-index: 2147483647 !important;
         }
-        
-        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
+        .is-dragging { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
     `;
     document.head.appendChild(style);
-
-    // Continuous suppression interval to catch late-loading elements
-    setInterval(() => {
-        const tawkItems = document.querySelectorAll('.tawk-minimized, .tawk-button, iframe[title*="chat widget"]');
-        tawkItems.forEach(el => el.style.setProperty('display', 'none', 'important'));
-    }, 1000);
 
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
@@ -209,7 +191,7 @@ function initChatDraggable() {
         const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
         initialX = clientX - xOffset; initialY = clientY - yOffset;
         if (e.target === chatHead || chatHead.contains(e.target)) {
-            isDragging = true; chatHead.classList.add('dragging-now');
+            isDragging = true; chatHead.classList.add('is-dragging');
             closeZone.style.display = 'flex';
             setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
         }
@@ -217,13 +199,12 @@ function initChatDraggable() {
 
     const dragEnd = () => {
         if (!isDragging) return;
-        isDragging = false; chatHead.classList.remove('dragging-now');
+        isDragging = false; chatHead.classList.remove('is-dragging');
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
-        
         if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
+            if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
         }
-
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
     };
@@ -248,33 +229,69 @@ function initChatDraggable() {
     document.addEventListener("mousemove", drag);
     
     chatHead.onclick = () => {
-        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
-            Tawk_API.maximize();
-        }
+        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
     };
 }
 
+// --- Sidebar Menu (Gemini Style) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
+    
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    
+    // Exact sidebar design based on uploaded image
     resDiv.innerHTML = `
-        <div style="position:relative; padding:45px 25px; text-align:left; background:#000; border-radius:24px;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; text-align:center; font-size:1.6rem; text-transform:uppercase;">Store Options</h2>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 22px; border-radius:14px; display:flex; align-items:center; cursor:pointer; active:scale-95 transition:0.2s;">
-                    <div style="font-size:1.4rem; margin-right:15px; color:#e60023;">🎧</div>
-                    <span style="color:white; font-weight:700; font-size:1rem; flex:1;">Chat Support</span>
-                    <div style="color:#444; font-size:1.1rem;">›</div>
+        <div style="background: #f8f9fa; min-height: 100vh; width: 100%; text-align: left; padding: 0; font-family: 'Google Sans', sans-serif;">
+            <!-- Header Search Bar -->
+            <div style="padding: 20px 15px;">
+                <div style="background: white; border-radius: 30px; border: 1px solid #dadce0; padding: 12px 20px; display: flex; align-items: center; gap: 12px;">
+                    <span style="color: #5f6368; font-size: 1.2rem;">🔍</span>
+                    <input type="text" placeholder="Search for chats" style="border: none; outline: none; width: 100%; font-size: 1rem; color: #3c4043;">
                 </div>
             </div>
-            <div style="text-align:center; margin-top:50px; opacity:0.2;">
-                <p style="color:white; font-size:0.6rem; letter-spacing:4px; font-weight:900;">VIRTUAL MALL ENCRYPTED</p>
+
+            <!-- Main Actions -->
+            <div style="padding: 0 15px 20px;">
+                <div style="display: flex; align-items: center; gap: 15px; padding: 15px 10px; border-radius: 12px; cursor: pointer;">
+                    <span style="font-size: 1.3rem;">📝</span>
+                    <span style="font-weight: 500; color: #3c4043; flex: 1;">New chat</span>
+                    <div style="width: 40px; height: 40px; border: 1px solid #dadce0; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.2rem;">🖼️</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Sections -->
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <!-- My Stuff Section -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; cursor: pointer; color: #3c4043;">
+                    <span style="font-weight: 500; font-size: 1.1rem;">My stuff</span>
+                    <span style="color: #5f6368;">›</span>
+                </div>
+                
+                <!-- Gems Section -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; cursor: pointer; color: #3c4043;">
+                    <span style="font-weight: 500; font-size: 1.1rem;">Gems</span>
+                    <span style="color: #5f6368;">›</span>
+                </div>
+
+                <!-- Chats Header -->
+                <div style="padding: 25px 25px 10px; font-size: 1rem; font-weight: 500; color: #3c4043;">Chats</div>
+
+                <!-- Chat Support Item (Real Action) -->
+                <div onclick="window.openChatSupport()" style="display: flex; align-items: center; gap: 15px; padding: 15px 25px; background: rgba(0, 168, 132, 0.05); cursor: pointer; transition: background 0.2s;">
+                    <span style="font-size: 1.2rem;">🎧</span>
+                    <span style="font-weight: 500; color: #3c4043; flex: 1;">Chat Support</span>
+                </div>
+            </div>
+
+            <!-- Footer Close -->
+            <div style="position: absolute; top: 15px; right: 15px; cursor: pointer; padding: 10px;" onclick="window.closeFittingRoom()">
+                <span style="font-size: 1.4rem; color: #5f6368;">✕</span>
             </div>
         </div>`;
-    applyDynamicThemeStyles();
 };
 
 window.openChatSupport = () => {
@@ -345,18 +362,15 @@ window.proceedToUpload = () => {
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
-            <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo<br><span style="font-weight:400; font-size:0.8rem; color:#888;">(Head to toe for best results)</span></p>
+            <p class="theme-subtext" style="font-weight:600; margin-bottom:25px; line-height:1.4;">Upload a clear full-body photo</p>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
             <button id="vto-upload-btn" onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.1rem;">SELECT FROM GALLERY</button>
-            <button onclick="window.promptShowroomChoice('${selectedCloth.id}')" style="background:transparent; color:#888; border:none; padding:12px; margin-top:20px; width:100%; font-weight:bold;">Go Back</button>
         </div>`;
     applyDynamicThemeStyles();
 };
 
 window.handleCustomerUpload = (e) => { 
     const file = e.target.files[0]; if (!file) return;
-    const btn = document.getElementById('vto-upload-btn');
-    if(btn) { btn.innerText = "PREPARING PHOTO..."; btn.disabled = true; }
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
         const base64 = await resizeImage(ev.target.result); localUserBase64 = base64.split(',')[1]; window.startTryOn(); 
@@ -367,7 +381,7 @@ window.handleCustomerUpload = (e) => {
 window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="rotating-dots" style="display:flex; gap:8px;"><div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate;"></div><div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate 0.2s;"></div><div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate 0.4s;"></div></div><p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p></div><style> @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } } </style>`;
+    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase;">Stitching your outfit...</p></div>`;
     try {
         const clothUrl = selectedCloth.imgUrl;
         let clothBase64;
@@ -380,7 +394,7 @@ window.startTryOn = async () => {
             const blob = await resp.blob();
             clothBase64 = await new Promise((res) => { const r = new FileReader(); r.onloadend = () => res(r.result.split(',')[1]); r.readAsDataURL(blob); });
         }
-        const payload = { contents: [{ parts: [{ text: "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body." }, { inlineData: { mimeType: "image/jpeg", data: localUserBase64 } }, { inlineData: { mimeType: "image/jpeg", data: clothBase64 } }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } };
+        const payload = { contents: [{ parts: [{ text: "High-Fidelity Virtual Try-On Task" }, { inlineData: { mimeType: "image/jpeg", data: localUserBase64 } }, { inlineData: { mimeType: "image/jpeg", data: clothBase64 } }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } };
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${geminiApiKey || firebaseConfig.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const resultData = await response.json();
         const generatedBase64 = resultData.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -397,7 +411,7 @@ window.startTryOn = async () => {
 window.addToCart = () => {
     if(!selectedCloth) return; cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); 
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:4rem; margin-bottom:20px;">🛍️</div><h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2><button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button></div>`;
+    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:white; margin-bottom:25px; font-weight:900;">IN YOUR BAG!</h2><button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-bottom:12px; font-size:1.1rem;">CHECKOUT NOW</button></div>`;
 };
 
 window.checkoutWhatsApp = async () => {
