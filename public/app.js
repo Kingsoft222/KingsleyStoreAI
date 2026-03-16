@@ -40,19 +40,28 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// Optimization: store local base64 to avoid download/upload delays for AI processing speed
 let localUserBase64 = "";
-
 window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
-// The environment provides the key at runtime for the Gemini API call
 const geminiApiKey = ""; 
+
+// --- Live Chat Initialization (Tawk.to) ---
+var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+(function(){
+    var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
+    s1.async = true;
+    s1.src = 'https://embed.tawk.to/69b74e7289dbc51c38ca3a16/default';
+    s1.charset = 'UTF-8';
+    s1.setAttribute('crossorigin', '*');
+    s0.parentNode.insertBefore(s1, s0);
+})();
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
+    injectOptionsMenu();
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -99,6 +108,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initVoiceSearch();
 });
+
+// --- Dynamic Menu Injection ---
+function injectOptionsMenu() {
+    const header = document.querySelector('nav') || document.querySelector('header') || document.body;
+    const storeLabel = document.getElementById('store-name-display');
+    
+    if (storeLabel && !document.getElementById('options-trigger')) {
+        const btn = document.createElement('div');
+        btn.id = 'options-trigger';
+        btn.innerHTML = '☰';
+        btn.style = 'cursor:pointer; font-size:1.5rem; margin-right:15px; display:inline-block; vertical-align:middle;';
+        btn.onclick = window.openOptionsMenu;
+        storeLabel.parentNode.insertBefore(btn, storeLabel);
+    }
+}
+
+window.openOptionsMenu = () => {
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const resDiv = document.getElementById('ai-fitting-result');
+    resDiv.innerHTML = `
+        <div style="position:relative; padding:30px 20px; text-align:center;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <h2 style="color:#e60023; font-weight:800; margin-bottom:25px; letter-spacing:-1px;">STORE OPTIONS</h2>
+            
+            <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:20px; border-radius:15px; display:flex; align-items:center; gap:15px; cursor:pointer; margin-bottom:15px; transition:all 0.3s;">
+                <div style="font-size:1.5rem;">🎧</div>
+                <div style="text-align:left;">
+                    <h4 style="margin:0; color:white; font-size:1.1rem;">Chat Support</h4>
+                    <p style="margin:2px 0 0; color:#888; font-size:0.8rem;">Live help from our team</p>
+                </div>
+            </div>
+
+            <p style="color:#444; font-size:0.7rem; margin-top:20px;">VIRTUAL MALL SECURE CONNECT</p>
+        </div>`;
+    applyDynamicThemeStyles();
+};
+
+window.openChatSupport = () => {
+    if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+        Tawk_API.maximize();
+        window.closeFittingRoom();
+    } else {
+        alert("Connecting to support engine...");
+    }
+};
 
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -217,19 +271,13 @@ window.handleCustomerUpload = (e) => {
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
         const base64 = await resizeImage(ev.target.result);
-        localUserBase64 = base64.split(',')[1]; // Capture base64 for high-speed direct engine
+        localUserBase64 = base64.split(',')[1]; 
+        
+        window.startTryOn(); 
+
         const fileName = `vto_temp/${Date.now()}.jpg`;
         const storageRef = sRef(storage, fileName);
-        
-        try {
-            await uploadString(storageRef, base64, 'data_url');
-            tempUserImageUrl = await getDownloadURL(storageRef);
-            vtoRetryCount = 0;
-            window.startTryOn(); 
-        } catch (err) {
-            console.error("Upload failed", err);
-            if(btn) { btn.innerText = "RETRY SELECTING PHOTO"; btn.disabled = false; }
-        }
+        uploadString(storageRef, base64, 'data_url').catch(err => console.error("History sync fail", err));
     }; 
     reader.readAsDataURL(file); 
 };
@@ -238,21 +286,23 @@ window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // UI RESTORED: Unified loading structure with emerald coloring
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <div class="rotating-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="rotating-dots" style="display:flex; gap:8px;">
+                <div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate;"></div>
+                <div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate 0.2s;"></div>
+                <div class="dot" style="width:12px; height:12px; background:#e60023; border-radius:50%; animation: pulse 1s infinite alternate 0.4s;"></div>
+            </div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; letter-spacing:1px; text-transform:uppercase;">Stitching your outfit...</p>
-        </div>`;
+        </div>
+        <style> @keyframes pulse { from { opacity: 0.3; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } } </style>`;
 
     try {
         const prompt = "High-Fidelity Virtual Try-On Task: Image 1 is a person. Image 2 is a specific clothing garment. Generate a single, photorealistic image where the person from Image 1 is wearing the exact clothing garment from Image 2. CRITICAL: You must keep the person's face, identity, body pose, hair, and the entire background from Image 1 exactly as they appear. Only change the clothing to match Image 2. Drape the garment naturally and realistically on their body.";
         
-        // CORS FIXED: Using Firebase SDK getBlob which uses authenticated pathways to bypass Fetch/CORS origin blocks
         let clothBase64;
         try {
-            // Extract storage path if it's a firebase URL, otherwise use as-is
             let path = selectedCloth.imgUrl;
             if (path.includes('firebasestorage.googleapis.com')) {
                 const decodedUrl = decodeURIComponent(path.split('/o/')[1].split('?')[0]);
@@ -264,7 +314,6 @@ window.startTryOn = async () => {
                     reader.readAsDataURL(blob);
                 });
             } else {
-                // Fallback for non-firebase images (e.g. Unsplash) using canvas proxy
                 const img = new Image();
                 img.setAttribute('crossOrigin', 'anonymous');
                 clothBase64 = await new Promise((resolve, reject) => {
@@ -280,7 +329,6 @@ window.startTryOn = async () => {
                 });
             }
         } catch (e) {
-            // Final fallback to raw fetch if SDK fails
             const clothResp = await fetch(selectedCloth.imgUrl, { mode: 'cors' });
             const clothBlob = await clothResp.blob();
             clothBase64 = await new Promise((resolve) => {
