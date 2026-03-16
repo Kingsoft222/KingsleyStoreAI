@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Initialization & Control ---
+// --- Tawk.to Initialization & Professional Control ---
 var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
@@ -58,6 +58,7 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
+// CRITICAL: Hide default Tawk.to bubble to use our professional draggable head
 Tawk_API.onLoad = function(){
     Tawk_API.hideWidget();
 };
@@ -75,12 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
-    // Target existing top-left menu icon precisely
+    // Robust Top-Left Menu Targeting
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            const isTopLeft = rect.top < 80 && rect.left < 80 && rect.width > 0;
+            const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
             const hasIcon = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIcon;
         });
@@ -99,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     findAndEnableMenu();
     const menuInterval = setInterval(findAndEnableMenu, 1000);
-    setTimeout(() => clearInterval(menuInterval), 10000);
+    setTimeout(() => clearInterval(menuInterval), 15000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -147,28 +148,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Professional Draggable Chat Logic ---
+// --- Draggable Chat Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
+    // Create custom professional head (Replacing dummy red icon)
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
-    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30" fill="white"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 7V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>';
+    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="32" height="32" fill="white"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 7V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>';
     chatHead.style = `
-        position: fixed; bottom: 100px; right: 20px; width: 64px; height: 64px;
-        background: #e60023; border-radius: 50%; display: none; align-items: center;
-        justify-content: center; z-index: 1000000; box-shadow: 0 12px 30px rgba(0,0,0,0.3);
-        cursor: grab; touch-action: none; user-select: none; border: 2px solid white;
+        position: fixed; bottom: 100px; right: 20px; width: 66px; height: 66px;
+        background: #075e54; border-radius: 50%; display: none; align-items: center;
+        justify-content: center; z-index: 9999999; box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+        cursor: grab; touch-action: none; user-select: none; border: 3px solid white;
     `;
     
     const closeZone = document.createElement('div');
     closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:1.4rem;">✕</div><div style="font-size:0.6rem; font-weight:900;">CLOSE SUPPORT</div>';
+    closeZone.innerHTML = '<div style="font-size:1.8rem; margin-bottom:5px;">✕</div><div style="font-size:0.65rem; font-weight:900; letter-spacing:1px;">DROP TO CLOSE</div>';
     closeZone.style = `
-        position: fixed; bottom: -160px; left: 50%; transform: translateX(-50%);
-        width: 140px; height: 140px; background: rgba(230,0,35,0.9); color: white;
+        position: fixed; bottom: -180px; left: 50%; transform: translateX(-50%);
+        width: 150px; height: 150px; background: rgba(0,0,0,0.9); color: white;
         border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 999999; border: 3px solid white; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 9999998; border: 4px solid #e60023; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         opacity: 0; pointer-events: none;
     `;
 
@@ -192,7 +194,7 @@ function initChatDraggable() {
         if (e.target === chatHead || chatHead.contains(e.target)) {
             isDragging = true;
             chatHead.style.cursor = 'grabbing';
-            closeZone.style.bottom = '30px';
+            closeZone.style.bottom = '40px';
             closeZone.style.opacity = '1';
         }
     };
@@ -207,19 +209,20 @@ function initChatDraggable() {
         const headRect = chatHead.getBoundingClientRect();
         const zoneRect = closeZone.getBoundingClientRect();
         
-        const hCenter = { x: headRect.left + 32, y: headRect.top + 32 };
-        const zCenter = { x: zoneRect.left + 70, y: zoneRect.top + 70 };
+        const hCenter = { x: headRect.left + 33, y: headRect.top + 33 };
+        const zCenter = { x: zoneRect.left + 75, y: zoneRect.top + 75 };
         const distance = Math.hypot(hCenter.x - zCenter.x, hCenter.y - zCenter.y);
 
-        if (distance < 110) {
+        if (distance < 120) {
             chatHead.style.display = 'none';
             chatHead.setAttribute('data-closed', 'true');
             if (typeof Tawk_API !== 'undefined') Tawk_API.hideWidget();
         }
 
-        closeZone.style.bottom = '-160px';
+        closeZone.style.bottom = '-180px';
         closeZone.style.opacity = '0';
 
+        // Tap detection
         if (Date.now() - startTime < 200 && Math.abs(xOffset) < 5 && Math.abs(yOffset) < 5) {
             if (typeof Tawk_API !== 'undefined') Tawk_API.maximize();
         }
@@ -255,23 +258,26 @@ window.openOptionsMenu = () => {
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // Professional List Design for support and future options
     resDiv.innerHTML = `
-        <div style="position:relative; padding:40px 20px; text-align:left;">
+        <div style="position:relative; padding:45px 25px; text-align:left;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:30px; letter-spacing:-1px; text-align:center;">MENU</h2>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:35px; letter-spacing:-1px; text-align:center; font-size:1.8rem;">STORE MENU</h2>
             
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:18px 25px; border-radius:12px; display:flex; align-items:center; cursor:pointer; transition:all 0.2s active:scale-95;">
-                    <div style="font-size:1.4rem; margin-right:15px; display:flex; align-items:center;">🎧</div>
-                    <span style="color:white; font-weight:700; font-size:1rem; flex:1;">Chat Support</span>
-                    <div style="color:#444; font-size:1rem;">›</div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <!-- Chat Support Option -->
+                <div onclick="window.openChatSupport()" style="background:#111; border:1px solid #333; padding:20px 25px; border-radius:14px; display:flex; align-items:center; cursor:pointer; transition:transform 0.2s;">
+                    <div style="font-size:1.5rem; margin-right:18px; display:flex; align-items:center; color:#e60023;">🎧</div>
+                    <span style="color:white; font-weight:700; font-size:1.1rem; flex:1;">Chat Support</span>
+                    <div style="color:#666; font-size:1.2rem;">›</div>
                 </div>
                 
-                <!-- Future Options Template -->
+                <!-- Future Options Reserved Area -->
+                <div style="height:1px; background:#222; margin:10px 0;"></div>
             </div>
 
-            <div style="text-align:center; margin-top:40px;">
-                <p style="color:#444; font-size:0.6rem; letter-spacing:2px; font-weight:900;">VIRTUAL MALL SECURE</p>
+            <div style="text-align:center; margin-top:50px;">
+                <p style="color:#555; font-size:0.65rem; letter-spacing:3px; font-weight:900; text-transform:uppercase;">Virtual Mall Ecosystem</p>
             </div>
         </div>`;
     applyDynamicThemeStyles();
