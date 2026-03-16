@@ -58,10 +58,22 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
+// Tawk.to API Callbacks for Professional Visibility
+Tawk_API.onLoad = function(){
+    Tawk_API.hideWidget();
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
-    injectOptionsMenu();
+    initChatDraggable(); // Initialize professional chat closure system
+    
+    // Logic to bind to your existing menu icon at the top left corner
+    const menuBtn = document.querySelector('.menu-toggle') || document.querySelector('#menu-btn') || document.querySelector('.hamburger');
+    if (menuBtn) {
+        menuBtn.onclick = window.openOptionsMenu;
+        menuBtn.style.cursor = 'pointer';
+    }
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -109,23 +121,114 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Dynamic Menu Injection ---
-function injectOptionsMenu() {
-    const header = document.querySelector('nav') || document.querySelector('header') || document.body;
-    const storeLabel = document.getElementById('store-name-display');
+// --- Professional Draggable Chat Head System ---
+function initChatDraggable() {
+    const chatHead = document.createElement('div');
+    chatHead.id = 'draggable-chat-head';
+    chatHead.innerHTML = '🎧';
+    chatHead.style = `
+        position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px;
+        background: #e60023; border-radius: 50%; display: none; align-items: center;
+        justify-content: center; font-size: 1.5rem; color: white; cursor: grab;
+        z-index: 100000; box-shadow: 0 8px 25px rgba(0,0,0,0.4); touch-action: none;
+        transition: transform 0.2s;
+    `;
     
-    if (storeLabel && !document.getElementById('options-trigger')) {
-        const btn = document.createElement('div');
-        btn.id = 'options-trigger';
-        btn.innerHTML = '☰';
-        btn.style = 'cursor:pointer; font-size:1.5rem; margin-right:15px; display:inline-block; vertical-align:middle;';
-        btn.onclick = window.openOptionsMenu;
-        storeLabel.parentNode.insertBefore(btn, storeLabel);
+    const closeZone = document.createElement('div');
+    closeZone.id = 'chat-close-zone';
+    closeZone.innerHTML = '✕ Close Support';
+    closeZone.style = `
+        position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+        width: 200px; height: 60px; background: rgba(0,0,0,0.8); color: white;
+        border-radius: 30px; display: flex; align-items: center; justify-content: center;
+        font-weight: 800; border: 2px dashed #e60023; z-index: 99999;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    `;
+
+    document.body.appendChild(chatHead);
+    document.body.appendChild(closeZone);
+
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+    let xOffset = 0;
+    let yOffset = 0;
+
+    const dragStart = (e) => {
+        if (e.type === "touchstart") {
+            initialX = e.touches[0].clientX - xOffset;
+            initialY = e.touches[0].clientY - yOffset;
+        } else {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+        }
+        if (e.target === chatHead) {
+            isDragging = true;
+            chatHead.style.transition = 'none';
+            closeZone.style.bottom = '40px';
+        }
+    };
+
+    const dragEnd = (e) => {
+        initialX = currentX;
+        initialY = currentY;
+        isDragging = false;
+        
+        // Check if dropped in close zone
+        const headRect = chatHead.getBoundingClientRect();
+        const zoneRect = closeZone.getBoundingClientRect();
+        
+        if (headRect.bottom > zoneRect.top && headRect.left < zoneRect.right && headRect.right > zoneRect.left) {
+            Tawk_API.hideWidget();
+            chatHead.style.display = 'none';
+        }
+
+        chatHead.style.transition = 'transform 0.2s';
+        closeZone.style.bottom = '-100px';
+    };
+
+    const drag = (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            if (e.type === "touchmove") {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+            } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+            }
+            xOffset = currentX;
+            yOffset = currentY;
+            setTranslate(currentX, currentY, chatHead);
+        }
+    };
+
+    function setTranslate(xPos, yPos, el) {
+        el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
     }
+
+    chatHead.addEventListener("touchstart", dragStart, false);
+    chatHead.addEventListener("touchend", dragEnd, false);
+    chatHead.addEventListener("touchmove", drag, false);
+
+    chatHead.addEventListener("mousedown", dragStart, false);
+    chatHead.addEventListener("mouseup", dragEnd, false);
+    chatHead.addEventListener("mousemove", drag, false);
+    
+    chatHead.onclick = () => {
+        if (!isDragging) {
+            Tawk_API.maximize();
+        }
+    };
 }
 
 window.openOptionsMenu = () => {
-    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const modal = document.getElementById('fitting-room-modal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="position:relative; padding:30px 20px; text-align:center;">
@@ -146,11 +249,11 @@ window.openOptionsMenu = () => {
 };
 
 window.openChatSupport = () => {
-    if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+    const head = document.getElementById('draggable-chat-head');
+    if (head) head.style.display = 'flex';
+    if (typeof Tawk_API !== 'undefined') {
         Tawk_API.maximize();
         window.closeFittingRoom();
-    } else {
-        alert("Connecting to support engine...");
     }
 };
 
@@ -197,7 +300,8 @@ window.closeFittingRoom = () => {
     vtoRetryCount = 0;
     tempUserImageUrl = "";
     localUserBase64 = "";
-    document.getElementById('fitting-room-modal').style.display = 'none';
+    const modal = document.getElementById('fitting-room-modal');
+    if (modal) modal.style.display = 'none';
 };
 
 window.promptShowroomChoice = (id) => {
