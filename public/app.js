@@ -58,9 +58,9 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Control native widget elements
+// Hide default widget elements so only our draggable head is used as a launcher
 Tawk_API.onLoad = function(){
-    if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 Tawk_API.onChatMaximized = function(){
     const head = document.getElementById('draggable-chat-head');
@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initChatDraggable(); 
     
+    // Robust targeting for existing top-left menu icon
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -146,26 +147,29 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
+// --- High-Performance Draggable Launcher Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
+    // Aggressively suppress ANY Tawk launcher bubble while keeping the chat window alive
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Targeted suppression of ONLY the native minimized pinned bubble */
         .tawk-minimized, 
         .tawk-button, 
         .tawk-badge,
         #tawk-bubble-container,
-        iframe[title*="chat widget"] { 
+        iframe[title*="chat widget"], 
+        iframe[name^="tawk-chat"] { 
             display: none !important; 
             opacity: 0 !important; 
             visibility: hidden !important; 
             pointer-events: none !important; 
         }
         
-        /* Ensure the actual chat window remains fully functional */
+        /* Ensure the actual chat window remains functional when launched */
         .tawk-maximized, 
-        iframe.tawk-maximized { 
+        iframe.tawk-maximized,
+        iframe[title*="chat window"] { 
             display: block !important; 
             visibility: visible !important; 
             opacity: 1 !important; 
@@ -214,13 +218,11 @@ function initChatDraggable() {
         isDragging = false; chatHead.classList.remove('dragging-now');
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
         
-        // Accurate overlap detection
         if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
             if (Tawk_API && Tawk_API.hideWidget) Tawk_API.hideWidget();
         }
 
-        // Guaranteed cleanup of close zone
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
     };
@@ -245,9 +247,7 @@ function initChatDraggable() {
     document.addEventListener("mousemove", drag);
     
     chatHead.onclick = () => {
-        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
-            Tawk_API.maximize();
-        }
+        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
     };
 }
 
@@ -305,14 +305,8 @@ function initVoiceSearch() {
     if (!SpeechRecognition || !micBtn) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
-    micBtn.onclick = () => { 
-        try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {}
-    };
-    recognition.onresult = (e) => { 
-        document.getElementById('ai-input').value = e.results[0][0].transcript; 
-        micBtn.style.color = "#5f6368"; 
-        window.executeSearch(); 
-    };
+    micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} };
+    recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
 }
 
 window.closeFittingRoom = () => { vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; const modal = document.getElementById('fitting-room-modal'); if (modal) modal.style.display = 'none'; };
