@@ -47,8 +47,19 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Professional Integration ---
-var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
+// --- Tawk.to Custom Control API ---
+var Tawk_API = Tawk_API || {};
+Tawk_API.onLoad = function(){
+    Tawk_API.hideWidget(); // Hide widget by default as requested
+};
+Tawk_API.onChatMaximized = function(){
+    if (Tawk_API.showWidget) Tawk_API.showWidget();
+};
+Tawk_API.onChatMinimized = function(){
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
+};
+
+// Main Embed Script
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
     s1.async = true;
@@ -57,17 +68,6 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s1.setAttribute('crossorigin', '*');
     s0.parentNode.insertBefore(s1, s0);
 })();
-
-// Suppression engine for native Tawk elements to keep screen icon-free
-Tawk_API.onLoad = function(){
-    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
-};
-Tawk_API.onChatMaximized = function(){
-    if (Tawk_API.showWidget) Tawk_API.showWidget();
-};
-Tawk_API.onChatMinimized = function(){
-    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
-};
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
@@ -151,7 +151,7 @@ function initGlobalSuppression() {
         /* Remove dummy icons permanently */
         #draggable-chat-head, #chat-close-zone { display: none !important; }
         
-        /* Precision Hide pinned native Tawk bubble */
+        /* Precision Hide pinned native Tawk bubble launcher */
         .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, iframe[title*="chat widget"], iframe[name^="tawk"] { 
             display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; 
         }
@@ -175,6 +175,14 @@ function initGlobalSuppression() {
         .sidebar-item:hover { background: #f8f9fa; }
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
+
+        /* Restored Processing Animation Styles */
+        .rotating-dots { display: flex; gap: 8px; justify-content: center; }
+        .dot { width: 12px; height: 12px; background: #e60023; border-radius: 50%; animation: pulse 1.5s infinite ease-in-out; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        .dot:nth-child(4) { animation-delay: 0.6s; }
+        @keyframes pulse { 0%, 100% { transform: scale(0.5); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } }
     `;
     document.head.appendChild(style);
 }
@@ -188,6 +196,9 @@ window.openOptionsMenu = () => {
     modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     
+    // Support Agent Icon (SVG for mouthpiece precision)
+    const agentIcon = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22zM19 14h-1v-2c0-3.31-2.69-6-6-6S6 8.69 6 12v2H5c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v-1.5c0-2.48 2.02-4.5 4.5-4.5h3c.83 0 1.5.67 1.5 1.5v1.5h1c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2z"/></svg>`;
+
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
             <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif; overflow-y: auto;">
@@ -197,9 +208,9 @@ window.openOptionsMenu = () => {
                 </div>
 
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
-                    <!-- 1. Chat Support -->
+                    <!-- 1. Chat Support with Professional Agent Icon -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
-                        <span style="font-size: 1.3rem;">🎧</span>
+                        <span style="color: #0b57d0;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
 
@@ -242,7 +253,7 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
-        Tawk_API.showWidget();
+        Tawk_API.showWidget(); // Unhide temporarily to allow maximize
         Tawk_API.maximize();
         window.closeFittingRoom();
     }
@@ -349,7 +360,20 @@ window.handleCustomerUpload = (e) => {
 window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase;">Stitching your outfit...</p></div>`;
+    
+    // Restored circular processing icon logic
+    resDiv.innerHTML = `
+        <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div class="rotating-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px;">Stitching your outfit...</p>
+        </div>`;
+
     try {
         const clothUrl = selectedCloth.imgUrl;
         let clothBase64;
