@@ -11,7 +11,7 @@ import {
     getStorage, 
     ref as sRef, 
     uploadString, 
-    getDownloadURL,
+    getDownloadURL, 
     getBlob
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { 
@@ -47,19 +47,21 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Custom Control API ---
+// --- Tawk.to Professional Integration with Auto-Hide Logic ---
 var Tawk_API = Tawk_API || {};
 Tawk_API.onLoad = function(){
-    Tawk_API.hideWidget(); // Hide widget by default as requested
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 Tawk_API.onChatMaximized = function(){
     if (Tawk_API.showWidget) Tawk_API.showWidget();
 };
 Tawk_API.onChatMinimized = function(){
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget(); // Auto-hide when not in use/minimized
+};
+Tawk_API.onChatHidden = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 
-// Main Embed Script
 (function(){
     var s1 = document.createElement("script"), s0 = document.getElementsByTagName("script")[0];
     s1.async = true;
@@ -148,15 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalSuppression() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Remove dummy icons permanently */
-        #draggable-chat-head, #chat-close-zone { display: none !important; }
-        
-        /* Precision Hide pinned native Tawk bubble launcher */
-        .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, iframe[title*="chat widget"], iframe[name^="tawk"] { 
+        /* Remove dummy icons and force-hide all native tawk launchers on all devices */
+        #draggable-chat-head, #chat-close-zone,
+        .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, 
+        [id^="tawk-chat-container"], iframe[title*="chat widget"], iframe[name^="tawk"] { 
             display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; 
         }
         
-        /* Allow only functional chat window */
+        /* Allow only maximized chat window to override suppression */
         .tawk-maximized, iframe.tawk-maximized, iframe[title*="chat window"] { 
             display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 2147483647 !important;
         }
@@ -176,18 +177,21 @@ function initGlobalSuppression() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        /* Restored Processing Animation Styles */
-        .rotating-dots { display: flex; gap: 8px; justify-content: center; }
-        .dot { width: 12px; height: 12px; background: #e60023; border-radius: 50%; animation: pulse 1.5s infinite ease-in-out; }
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-        .dot:nth-child(4) { animation-delay: 0.6s; }
-        @keyframes pulse { 0%, 100% { transform: scale(0.5); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } }
+        /* Professional Circular Spinner */
+        .circular-loader {
+            border: 4px solid rgba(230, 0, 35, 0.1);
+            border-top: 4px solid #e60023;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            animation: spin-loader 1s linear infinite;
+        }
+        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
 
-// --- Sidebar Menu Redesign ---
+// --- Sidebar Menu (Verified Store List with Categories) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
@@ -196,8 +200,8 @@ window.openOptionsMenu = () => {
     modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Support Agent Icon (SVG for mouthpiece precision)
-    const agentIcon = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22zM19 14h-1v-2c0-3.31-2.69-6-6-6S6 8.69 6 12v2H5c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1v-1.5c0-2.48 2.02-4.5 4.5-4.5h3c.83 0 1.5.67 1.5 1.5v1.5h1c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2z"/></svg>`;
+    // Support Agent Icon: Resized Professional Human with headset and mouthpiece
+    const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
@@ -208,13 +212,12 @@ window.openOptionsMenu = () => {
                 </div>
 
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
-                    <!-- 1. Chat Support with Professional Agent Icon -->
+                    <!-- Chat Support Action -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
-                        <span style="color: #0b57d0;">${agentIcon}</span>
+                        <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
 
-                    <!-- 2. Verified Store Section -->
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">
                         Verified store <span style="color: #0b57d0;">✔️</span>
                     </div>
@@ -243,7 +246,6 @@ window.openOptionsMenu = () => {
                 </div>
 
                 <div style="flex: 1; min-height: 50px;"></div>
-                
                 <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;">
                     <p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p>
                 </div>
@@ -253,7 +255,7 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
-        Tawk_API.showWidget(); // Unhide temporarily to allow maximize
+        Tawk_API.showWidget(); 
         Tawk_API.maximize();
         window.closeFittingRoom();
     }
@@ -361,16 +363,11 @@ window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Restored circular processing icon logic
+    // Circular Loader for processing
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <div class="rotating-dots">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
+            <div class="circular-loader"></div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px;">Stitching your outfit...</p>
         </div>`;
 
