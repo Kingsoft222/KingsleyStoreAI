@@ -278,18 +278,18 @@ window.openOptionsMenu = () => {
                     </a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">
                         <span style="font-size: 1.2rem;">👗</span>
-                        <span>IFY FASHION</span>
+                        <span>Ify Fashion</span>
                     </a>
 
                     <!-- Bespoke Native Category -->
                     <div class="sidebar-category">Bespoke Native</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">
                         <span style="font-size: 1.2rem;">🧵</span>
-                        <span>ADIVICHI FASHION</span>
+                        <span>Adivichi Fashion</span>
                     </a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">
                         <span style="font-size: 1.2rem;">👔</span>
-                        <span>TOMMY BEST FASHION</span>
+                        <span>Tommy Best Fashion</span>
                     </a>
                 </div>
 
