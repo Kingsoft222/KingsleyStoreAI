@@ -58,23 +58,21 @@ var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
     s0.parentNode.insertBefore(s1, s0);
 })();
 
-// Suppression engine for native Tawk elements
+// Suppression engine for native Tawk elements to keep screen icon-free
 Tawk_API.onLoad = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 Tawk_API.onChatMaximized = function(){
-    const head = document.getElementById('draggable-chat-head');
-    if(head) head.style.display = 'none';
+    if (Tawk_API.showWidget) Tawk_API.showWidget();
 };
 Tawk_API.onChatMinimized = function(){
-    const head = document.getElementById('draggable-chat-head');
-    if(head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
-    initChatDraggable(); 
+    initGlobalSuppression(); 
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -146,19 +144,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-function initChatDraggable() {
-    if (document.getElementById('draggable-chat-head')) return;
-
+// --- UI Cleanup & Native Icon Suppression ---
+function initGlobalSuppression() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Precision Hide pinned native bubble */
+        /* Remove dummy icons permanently */
+        #draggable-chat-head, #chat-close-zone { display: none !important; }
+        
+        /* Precision Hide pinned native Tawk bubble */
         .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, iframe[title*="chat widget"], iframe[name^="tawk"] { 
             display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; 
         }
-        .tawk-maximized, iframe.tawk-maximized { 
+        
+        /* Allow only functional chat window */
+        .tawk-maximized, iframe.tawk-maximized, iframe[title*="chat window"] { 
             display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 2147483647 !important;
         }
-        .dragging-now { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
         
         #sidebar-overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -176,70 +177,9 @@ function initChatDraggable() {
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
     `;
     document.head.appendChild(style);
-
-    const chatHead = document.createElement('div');
-    chatHead.id = 'draggable-chat-head';
-    chatHead.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="white"><path d="M21 6h-2v9H6v2c0 .55.45 1 1 1h11l4 4V7c0-.55-.45-1-1-1zm-4 7V3c0-.55-.45-1-1-1H3c-.55 0-1 .45-1 1v14l4-4h10c.55 0 1-.45 1-1z"/></svg>';
-    chatHead.style = `position: fixed; bottom: 120px; right: 20px; width: 62px; height: 62px; background: #00a884; border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 2147483647; box-shadow: 0 10px 30px rgba(0,0,0,0.3); cursor: grab; touch-action: none; user-select: none; border: 2.5px solid white;`;
-    
-    const closeZone = document.createElement('div');
-    closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:0.9rem; line-height:1;">✕</div><div style="font-size:0.4rem; font-weight:900; margin-top:2px;">CLOSE</div>';
-    closeZone.style = `position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%); width: 75px; height: 75px; background: rgba(0,0,0,0.9); color: white; border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2147483646; border: 2px solid #e60023; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); opacity: 0; pointer-events: none;`;
-
-    document.body.appendChild(chatHead);
-    document.body.appendChild(closeZone);
-
-    let isDragging = false, initialX, initialY, xOffset = 0, yOffset = 0, dragDistance = 0;
-
-    const dragStart = (e) => {
-        dragDistance = 0;
-        const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-        const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-        initialX = clientX - xOffset; initialY = clientY - yOffset;
-        if (e.target === chatHead || chatHead.contains(e.target)) {
-            isDragging = true; chatHead.classList.add('dragging-now');
-            closeZone.style.display = 'flex';
-            setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
-        }
-    };
-
-    const dragEnd = () => {
-        if (!isDragging) return;
-        isDragging = false; chatHead.classList.remove('dragging-now');
-        const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
-        if (Math.hypot((hRect.left + 31) - (zRect.left + 37), (hRect.top + 31) - (zRect.top + 37)) < 80) {
-            chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
-        }
-        closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
-        setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
-    };
-
-    const drag = (e) => {
-        if (isDragging) {
-            if (e.cancelable) e.preventDefault();
-            const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-            const dx = clientX - initialX, dy = clientY - initialY;
-            dragDistance += Math.abs(dx - xOffset) + Math.abs(dy - yOffset);
-            xOffset = dx; yOffset = dy;
-            chatHead.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
-        }
-    };
-
-    chatHead.addEventListener("touchstart", dragStart, {passive: false});
-    document.addEventListener("touchend", dragEnd);
-    document.addEventListener("touchmove", drag, {passive: false});
-    chatHead.addEventListener("mousedown", dragStart);
-    document.addEventListener("mouseup", dragEnd);
-    document.addEventListener("mousemove", drag);
-    
-    chatHead.onclick = () => {
-        if (dragDistance < 15 && typeof Tawk_API !== 'undefined' && Tawk_API.maximize) Tawk_API.maximize();
-    };
 }
 
-// --- Sidebar Menu (Verified Stores List Redesign) ---
+// --- Sidebar Menu Redesign ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
@@ -251,13 +191,11 @@ window.openOptionsMenu = () => {
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
             <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif; overflow-y: auto;">
-                <!-- Sidebar Header -->
                 <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
                     <span><span style="color:#e60023;">S</span>tore Options</span>
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
 
-                <!-- Action List -->
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
                     <!-- 1. Chat Support -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
@@ -265,9 +203,9 @@ window.openOptionsMenu = () => {
                         <span style="flex: 1;">Chat Support</span>
                     </div>
 
-                    <!-- 2. Verified Stores Section -->
+                    <!-- 2. Verified Store Section -->
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">
-                        Verified stores <span style="color: #0b57d0;">✔️</span>
+                        Verified store <span style="color: #0b57d0;">✔️</span>
                     </div>
 
                     <!-- Luxury Wears Category -->
@@ -278,7 +216,7 @@ window.openOptionsMenu = () => {
                     </a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">
                         <span style="font-size: 1.2rem;">👗</span>
-                        <span>Ify Fashion</span>
+                        <span>IFY FASHION</span>
                     </a>
 
                     <!-- Bespoke Native Category -->
@@ -303,9 +241,8 @@ window.openOptionsMenu = () => {
 };
 
 window.openChatSupport = () => {
-    const head = document.getElementById('draggable-chat-head');
-    if (head) { head.style.display = 'flex'; head.setAttribute('data-closed', 'false'); }
     if (typeof Tawk_API !== 'undefined' && Tawk_API.maximize) {
+        Tawk_API.showWidget();
         Tawk_API.maximize();
         window.closeFittingRoom();
     }
