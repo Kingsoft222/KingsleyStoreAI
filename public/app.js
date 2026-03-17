@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Tawk.to Professional Integration with Auto-Hide Logic ---
+// --- Tawk.to Professional Integration with Smart-Hide Logic ---
 var Tawk_API = Tawk_API || {};
 Tawk_API.onLoad = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
@@ -56,7 +56,7 @@ Tawk_API.onChatMaximized = function(){
     if (Tawk_API.showWidget) Tawk_API.showWidget();
 };
 Tawk_API.onChatMinimized = function(){
-    if (Tawk_API.hideWidget) Tawk_API.hideWidget(); // Auto-hide when not in use/minimized
+    if (Tawk_API.hideWidget) Tawk_API.hideWidget(); 
 };
 Tawk_API.onChatHidden = function(){
     if (Tawk_API.hideWidget) Tawk_API.hideWidget();
@@ -105,7 +105,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const searchInput = document.getElementById('ai-input');
-            if (searchInput) searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+                
+                // --- The "Smart Hide" Logic Implementation ---
+                searchInput.addEventListener('focus', () => {
+                    if (typeof Tawk_API !== 'undefined' && Tawk_API.hideWidget) Tawk_API.hideWidget();
+                });
+                searchInput.addEventListener('blur', () => {
+                    // Respect global suppression: only "show" if it was already intentionally active
+                    if (typeof Tawk_API !== 'undefined' && Tawk_API.showWidget && !Tawk_API.isChatMaximized()) {
+                        Tawk_API.showWidget(); 
+                        Tawk_API.hideWidget(); // Double-check hide to prevent icon popup
+                    }
+                });
+            }
             
             const container = document.getElementById('quick-search-container');
             if (container) {
@@ -151,13 +165,14 @@ function initGlobalSuppression() {
     const style = document.createElement('style');
     style.innerHTML = `
         /* Remove dummy icons and force-hide all native tawk launchers on all devices */
-        #draggable-chat-head, #chat-close-zone,
+        #draggable-chat-head, #chat-close-zone { display: none !important; }
+        
         .tawk-minimized, .tawk-button, .tawk-badge, #tawk-bubble-container, 
-        [id^="tawk-chat-container"], iframe[title*="chat widget"], iframe[name^="tawk"] { 
+        [id^="tawk-chat-container"], [class*="tawk-button"], iframe[title*="chat widget"], iframe[name^="tawk"] { 
             display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; 
         }
         
-        /* Allow only maximized chat window to override suppression */
+        /* Allow only functional chat window when explicitly maximized */
         .tawk-maximized, iframe.tawk-maximized, iframe[title*="chat window"] { 
             display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; z-index: 2147483647 !important;
         }
@@ -200,7 +215,7 @@ window.openOptionsMenu = () => {
     modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Support Agent Icon: Resized Professional Human with headset and mouthpiece
+    // Support Agent Icon: Human with headset and mouthpiece resized
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     resDiv.innerHTML = `
@@ -230,7 +245,7 @@ window.openOptionsMenu = () => {
                     </a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">
                         <span style="font-size: 1.2rem;">👗</span>
-                        <span>IFY FASHION</span>
+                        <span>Ify Fashion</span>
                     </a>
 
                     <!-- Bespoke Native Category -->
@@ -363,7 +378,6 @@ window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
     
-    // Circular Loader for processing
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
