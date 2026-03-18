@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Integration ---
+// --- Chatway Professional Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -136,10 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Draggable Launcher Engine ---
+// --- High-Performance Draggable Launcher Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
+    // Resized Agent Icon SVG with Mouthpiece as per instruction
     const agentIcon = `<svg viewBox="0 0 24 24" width="34" height="34" fill="white"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     const chatHead = document.createElement('div');
@@ -220,10 +221,17 @@ function initChatDraggable() {
 function initGlobalSuppression() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Remove dummy icons and hide native Chatway bubble */
-        #chat-close-zone, .tawk-minimized, .tawk-button, .tawk-badge, .chatway-widget-container, #chatway-widget-container, iframe[title*="Chatway"] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
-        .chatway-is-opened .chatway-widget-container, .chatway-opened #chatway-widget-container { display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important; }
-        .is-dragging { opacity: 0.8 !important; transform: scale(1.1) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; transition: none !important; }
+        /* Precision suppression of Chatway/Tawk native bubbles */
+        .chatway-widget-container, #chatway-widget-container, iframe[title*="Chatway"], .tawk-minimized, .tawk-button, .tawk-badge { 
+            display: none !important; opacity: 0 !important; visibility: hidden !important; 
+        }
+        
+        .chatway-is-opened .chatway-widget-container, .chatway-opened #chatway-widget-container, .tawk-maximized { 
+            display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important;
+        }
+
+        .is-dragging { opacity: 0.8 !important; transform: scale(1.1) translate3d(0,0,0) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; transition: none !important; }
+        
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -256,7 +264,7 @@ window.openOptionsMenu = () => {
                         <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
-                    <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified stores <span style="color: #0b57d0;">✔️</span></div>
+                    <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified store <span style="color: #0b57d0;">✔️</span></div>
                     <div class="sidebar-category">Luxury Wears</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>Ify Fashion</span></a>
