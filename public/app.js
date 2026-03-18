@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    initChatwayDraggableEngine(); // New Draggable Logic for Native Chatway
+    initChatwayDraggableEngine(); 
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -93,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide for keyboard space
                 searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
                 searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
             }
@@ -137,15 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Chatway Draggable & Position Logic ---
+// --- Chatway Draggable & Permanent Position Logic ---
 function initChatwayDraggableEngine() {
-    // We observe the DOM for Chatway's container and apply dragging logic to its launcher
     const observer = new MutationObserver(() => {
         const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
         if (widget && !widget.getAttribute('data-draggable-init')) {
             widget.setAttribute('data-draggable-init', 'true');
             
-            // Set initial position above store ads
+            // Critical positioning above store ads
             widget.style.bottom = '450px';
             widget.style.right = '20px';
             widget.style.position = 'fixed';
@@ -161,13 +159,10 @@ function initChatwayDraggableEngine() {
             let yOffset = 0;
 
             const dragStart = (e) => {
-                if (e.type === "touchstart") {
-                    initialX = e.touches[0].clientX - xOffset;
-                    initialY = e.touches[0].clientY - yOffset;
-                } else {
-                    initialX = e.clientX - xOffset;
-                    initialY = e.clientY - yOffset;
-                }
+                const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+                initialX = clientX - xOffset;
+                initialY = clientY - yOffset;
                 if (e.target.closest('#chatway-widget-container')) {
                     isDragging = true;
                 }
@@ -182,13 +177,10 @@ function initChatwayDraggableEngine() {
             const drag = (e) => {
                 if (isDragging) {
                     e.preventDefault();
-                    if (e.type === "touchmove") {
-                        currentX = e.touches[0].clientX - initialX;
-                        currentY = e.touches[0].clientY - initialY;
-                    } else {
-                        currentX = e.clientX - initialX;
-                        currentY = e.clientY - initialY;
-                    }
+                    const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+                    currentX = clientX - initialX;
+                    currentY = clientY - initialY;
                     xOffset = currentX;
                     yOffset = currentY;
                     widget.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
@@ -210,8 +202,8 @@ function initChatwayDraggableEngine() {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of Dummy Floating Icons */
-        #draggable-chat-head, #chat-close-zone { display: none !important; }
+        /* Permanent Removal of any previous custom floating heads or dummy icons */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], [class*="headphones"] { display: none !important; }
         
         /* Sidebar layout and categorization */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
@@ -222,19 +214,19 @@ function initGlobalUIStyles() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        /* Professional Circular Spinner */
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 1s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
 
-// --- Sidebar Menu (Verified Store List) ---
+// --- Sidebar Menu ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
     modal.style.display = 'block'; modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
+    
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     resDiv.innerHTML = `
@@ -245,7 +237,7 @@ window.openOptionsMenu = () => {
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
-                    <!-- Chat Support Link -->
+                    <!-- Chat Support Action -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
                         <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
@@ -255,11 +247,11 @@ window.openOptionsMenu = () => {
                     
                     <div class="sidebar-category">Luxury Wears</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>Ify Fashion</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>IFY FASHION</span></a>
                     
                     <div class="sidebar-category">Bespoke Native</div>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>Adivichi Fashion</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>Tommy Best Fashion</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></a>
                 </div>
                 <div style="flex: 1;"></div>
                 <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;"><p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p></div>
@@ -269,9 +261,7 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (window.chatway && window.chatway.open) { 
-        window.chatway.show(); 
-        window.chatway.open(); 
-        window.closeFittingRoom(); 
+        window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); 
     }
 };
 
@@ -309,14 +299,11 @@ window.closeFittingRoom = () => {
     vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; 
     const modal = document.getElementById('fitting-room-modal'); 
     if (modal) { modal.style.display = 'none'; modal.style.background = 'rgba(0,0,0,0.8)'; }
-    // Restore Chatway Visibility if it was hidden for inspection
     if (window.chatway) window.chatway.show();
 };
 
 window.promptShowroomChoice = (id) => {
-    // Hide Chatway during high-fidelity inspection
     if (window.chatway) window.chatway.hide();
-
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
