@@ -59,8 +59,8 @@ const geminiApiKey = "";
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
-    initGlobalSuppression(); 
-    initChatDraggable(); 
+    initGlobalUIStyles(); 
+    initChatwayDraggableEngine(); // New Draggable Logic for Native Chatway
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -93,8 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+                // Smart Hide for keyboard space
                 searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
-                searchInput.addEventListener('blur', () => { if (window.chatway) { window.chatway.show(); setTimeout(() => { if (window.chatway && !document.body.classList.contains('chatway-opened')) window.chatway.hide(); }, 50); } });
+                searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
             }
             
             const container = document.getElementById('quick-search-container');
@@ -136,102 +137,83 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- High-Performance Draggable Launcher Engine ---
-function initChatDraggable() {
-    if (document.getElementById('draggable-chat-head')) return;
+// --- Chatway Draggable & Position Logic ---
+function initChatwayDraggableEngine() {
+    // We observe the DOM for Chatway's container and apply dragging logic to its launcher
+    const observer = new MutationObserver(() => {
+        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
+        if (widget && !widget.getAttribute('data-draggable-init')) {
+            widget.setAttribute('data-draggable-init', 'true');
+            
+            // Set initial position above store ads
+            widget.style.bottom = '450px';
+            widget.style.right = '20px';
+            widget.style.position = 'fixed';
+            widget.style.zIndex = '2147483647';
+            widget.style.touchAction = 'none';
 
-    // Resized Agent Icon SVG with Mouthpiece as per instruction
-    const agentIcon = `<svg viewBox="0 0 24 24" width="34" height="34" fill="white"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
 
-    const chatHead = document.createElement('div');
-    chatHead.id = 'draggable-chat-head';
-    chatHead.innerHTML = agentIcon;
-    chatHead.style = `
-        position: fixed; bottom: 450px; right: 20px; width: 64px; height: 64px;
-        background: #0b57d0; border-radius: 50%; display: flex; align-items: center;
-        justify-content: center; z-index: 2147483647; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        cursor: grab; touch-action: none; user-select: none; border: 2.5px solid white;
-    `;
-    
-    const closeZone = document.createElement('div');
-    closeZone.id = 'chat-close-zone';
-    closeZone.innerHTML = '<div style="font-size:0.9rem; line-height:1;">✕</div><div style="font-size:0.4rem; font-weight:900; margin-top:2px;">CLOSE</div>';
-    closeZone.style = `
-        position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%);
-        width: 80px; height: 80px; background: rgba(0,0,0,0.9); color: white;
-        border-radius: 50%; display: none; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 2147483646; border: 2px solid #e60023; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        opacity: 0; pointer-events: none;
-    `;
+            const dragStart = (e) => {
+                if (e.type === "touchstart") {
+                    initialX = e.touches[0].clientX - xOffset;
+                    initialY = e.touches[0].clientY - yOffset;
+                } else {
+                    initialX = e.clientX - xOffset;
+                    initialY = e.clientY - yOffset;
+                }
+                if (e.target.closest('#chatway-widget-container')) {
+                    isDragging = true;
+                }
+            };
 
-    document.body.appendChild(chatHead);
-    document.body.appendChild(closeZone);
+            const dragEnd = () => {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+            };
 
-    let isDragging = false, initialX, initialY, xOffset = 0, yOffset = 0, dragDistance = 0;
+            const drag = (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                    if (e.type === "touchmove") {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    widget.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+                }
+            };
 
-    const dragStart = (e) => {
-        dragDistance = 0;
-        const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-        const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-        initialX = clientX - xOffset; 
-        initialY = clientY - yOffset;
-        
-        if (e.target === chatHead || chatHead.contains(e.target)) {
-            isDragging = true; 
-            chatHead.classList.add('is-dragging');
-            closeZone.style.display = 'flex';
-            setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
+            document.addEventListener("touchstart", dragStart, false);
+            document.addEventListener("touchend", dragEnd, false);
+            document.addEventListener("touchmove", drag, { passive: false });
+            document.addEventListener("mousedown", dragStart, false);
+            document.addEventListener("mouseup", dragEnd, false);
+            document.addEventListener("mousemove", drag, false);
         }
-    };
+    });
 
-    const dragEnd = () => {
-        if (!isDragging) return;
-        isDragging = false; 
-        chatHead.classList.remove('is-dragging');
-        const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
-        if (Math.hypot((hRect.left + 32) - (zRect.left + 40), (hRect.top + 32) - (zRect.top + 40)) < 85) {
-            chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
-        }
-        closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
-        setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
-    };
-
-    const drag = (e) => {
-        if (isDragging) {
-            if (e.cancelable) e.preventDefault();
-            const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-            const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-            const dx = clientX - initialX, dy = clientY - initialY;
-            dragDistance += Math.abs(dx - xOffset) + Math.abs(dy - yOffset);
-            xOffset = dx; yOffset = dy;
-            chatHead.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
-        }
-    };
-
-    chatHead.addEventListener("touchstart", dragStart, {passive: false});
-    document.addEventListener("touchend", dragEnd);
-    document.addEventListener("touchmove", drag, {passive: false});
-    chatHead.addEventListener("mousedown", dragStart);
-    document.addEventListener("mouseup", dragEnd);
-    document.addEventListener("mousemove", drag);
-    
-    chatHead.onclick = () => { if (dragDistance < 15) window.openChatSupport(); };
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
-function initGlobalSuppression() {
+function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Precision suppression of Chatway/Tawk native bubbles */
-        .chatway-widget-container, #chatway-widget-container, iframe[title*="Chatway"], .tawk-minimized, .tawk-button, .tawk-badge { 
-            display: none !important; opacity: 0 !important; visibility: hidden !important; 
-        }
+        /* Permanent Removal of Dummy Floating Icons */
+        #draggable-chat-head, #chat-close-zone { display: none !important; }
         
-        .chatway-is-opened .chatway-widget-container, .chatway-opened #chatway-widget-container, .tawk-maximized { 
-            display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important;
-        }
-
-        .is-dragging { opacity: 0.8 !important; transform: scale(1.1) translate3d(0,0,0) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; transition: none !important; }
-        
+        /* Sidebar layout and categorization */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -239,12 +221,15 @@ function initGlobalSuppression() {
         .sidebar-item:hover { background: #f8f9fa; }
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
+
+        /* Professional Circular Spinner */
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 1s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
 
+// --- Sidebar Menu (Verified Store List) ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
@@ -260,14 +245,18 @@ window.openOptionsMenu = () => {
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
+                    <!-- Chat Support Link -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
                         <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
+
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified store <span style="color: #0b57d0;">✔️</span></div>
+                    
                     <div class="sidebar-category">Luxury Wears</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>Ify Fashion</span></a>
+                    
                     <div class="sidebar-category">Bespoke Native</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>Adivichi Fashion</span></a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>Tommy Best Fashion</span></a>
@@ -279,7 +268,11 @@ window.openOptionsMenu = () => {
 };
 
 window.openChatSupport = () => {
-    if (window.chatway && window.chatway.open) { window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); }
+    if (window.chatway && window.chatway.open) { 
+        window.chatway.show(); 
+        window.chatway.open(); 
+        window.closeFittingRoom(); 
+    }
 };
 
 function applyDynamicThemeStyles() {
@@ -316,13 +309,14 @@ window.closeFittingRoom = () => {
     vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; 
     const modal = document.getElementById('fitting-room-modal'); 
     if (modal) { modal.style.display = 'none'; modal.style.background = 'rgba(0,0,0,0.8)'; }
-    const head = document.getElementById('draggable-chat-head');
-    if (head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
+    // Restore Chatway Visibility if it was hidden for inspection
+    if (window.chatway) window.chatway.show();
 };
 
 window.promptShowroomChoice = (id) => {
-    const head = document.getElementById('draggable-chat-head');
-    if (head) head.style.display = 'none';
+    // Hide Chatway during high-fidelity inspection
+    if (window.chatway) window.chatway.hide();
+
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
