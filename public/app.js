@@ -143,7 +143,7 @@ function initChatwayDraggableEngine() {
         if (widget && !widget.getAttribute('data-draggable-init')) {
             widget.setAttribute('data-draggable-init', 'true');
             
-            // Critical positioning above store ads
+            // Set initial position above store ads
             widget.style.bottom = '450px';
             widget.style.right = '20px';
             widget.style.position = 'fixed';
@@ -151,8 +151,8 @@ function initChatwayDraggableEngine() {
             widget.style.touchAction = 'none';
 
             let isDragging = false;
-            let currentX;
-            let currentY;
+            let currentX = 0;
+            let currentY = 0;
             let initialX;
             let initialY;
             let xOffset = 0;
@@ -161,9 +161,11 @@ function initChatwayDraggableEngine() {
             const dragStart = (e) => {
                 const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
                 const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-                initialX = clientX - xOffset;
-                initialY = clientY - yOffset;
-                if (e.target.closest('#chatway-widget-container')) {
+                
+                // Detection for Chatway launcher interaction
+                if (e.target.closest('#chatway-widget-container') || e.target.closest('.chatway-widget-container')) {
+                    initialX = clientX - xOffset;
+                    initialY = clientY - yOffset;
                     isDragging = true;
                 }
             };
@@ -205,7 +207,12 @@ function initGlobalUIStyles() {
         /* Permanent Removal of any previous custom floating heads or dummy icons */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], [class*="headphones"] { display: none !important; }
         
-        /* Sidebar layout and categorization */
+        /* Force position for Chatway via CSS fallback */
+        #chatway-widget-container, .chatway-widget-container {
+            bottom: 450px !important;
+            right: 20px !important;
+        }
+
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -220,13 +227,11 @@ function initGlobalUIStyles() {
     document.head.appendChild(style);
 }
 
-// --- Sidebar Menu ---
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
     modal.style.display = 'block'; modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
-    
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     resDiv.innerHTML = `
@@ -237,18 +242,14 @@ window.openOptionsMenu = () => {
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column; margin-top: 10px;">
-                    <!-- Chat Support Action -->
                     <div onclick="window.openChatSupport()" class="sidebar-item sidebar-active">
                         <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
-
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified store <span style="color: #0b57d0;">✔️</span></div>
-                    
                     <div class="sidebar-category">Luxury Wears</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>IFY FASHION</span></a>
-                    
                     <div class="sidebar-category">Bespoke Native</div>
                     <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></a>
                     <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></a>
@@ -287,8 +288,9 @@ function applyDynamicThemeStyles() {
 
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
+    if (!micBtn) return;
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition || !micBtn) return;
+    if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
     micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} };
