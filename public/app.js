@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalSuppression(); 
-    initChatDraggable(); // Restore Draggable Engine
+    initChatDraggable(); 
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -91,7 +91,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const searchInput = document.getElementById('ai-input');
-            if (searchInput) searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+                searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
+                searchInput.addEventListener('blur', () => { if (window.chatway) { window.chatway.show(); setTimeout(() => { if (window.chatway && !document.body.classList.contains('chatway-opened')) window.chatway.hide(); }, 50); } });
+            }
             
             const container = document.getElementById('quick-search-container');
             if (container) {
@@ -132,18 +136,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- High-Performance Draggable Launcher Engine ---
+// --- Draggable Launcher Engine ---
 function initChatDraggable() {
     if (document.getElementById('draggable-chat-head')) return;
 
-    // Resized Agent Icon SVG
-    const agentIcon = `<svg viewBox="0 0 24 24" width="32" height="32" fill="white"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
+    const agentIcon = `<svg viewBox="0 0 24 24" width="34" height="34" fill="white"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
     const chatHead = document.createElement('div');
     chatHead.id = 'draggable-chat-head';
     chatHead.innerHTML = agentIcon;
     chatHead.style = `
-        position: fixed; bottom: 120px; right: 20px; width: 62px; height: 62px;
+        position: fixed; bottom: 450px; right: 20px; width: 64px; height: 64px;
         background: #0b57d0; border-radius: 50%; display: flex; align-items: center;
         justify-content: center; z-index: 2147483647; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         cursor: grab; touch-action: none; user-select: none; border: 2.5px solid white;
@@ -169,9 +172,12 @@ function initChatDraggable() {
         dragDistance = 0;
         const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-        initialX = clientX - xOffset; initialY = clientY - yOffset;
+        initialX = clientX - xOffset; 
+        initialY = clientY - yOffset;
+        
         if (e.target === chatHead || chatHead.contains(e.target)) {
-            isDragging = true; chatHead.classList.add('is-dragging');
+            isDragging = true; 
+            chatHead.classList.add('is-dragging');
             closeZone.style.display = 'flex';
             setTimeout(() => { closeZone.style.bottom = '40px'; closeZone.style.opacity = '1'; }, 20);
         }
@@ -179,13 +185,12 @@ function initChatDraggable() {
 
     const dragEnd = () => {
         if (!isDragging) return;
-        isDragging = false; chatHead.classList.remove('is-dragging');
+        isDragging = false; 
+        chatHead.classList.remove('is-dragging');
         const hRect = chatHead.getBoundingClientRect(), zRect = closeZone.getBoundingClientRect();
-        
-        if (Math.hypot((hRect.left + 31) - (zRect.left + 40), (hRect.top + 31) - (zRect.top + 40)) < 80) {
+        if (Math.hypot((hRect.left + 32) - (zRect.left + 40), (hRect.top + 32) - (zRect.top + 40)) < 85) {
             chatHead.style.display = 'none'; chatHead.setAttribute('data-closed', 'true');
         }
-
         closeZone.style.bottom = '-120px'; closeZone.style.opacity = '0';
         setTimeout(() => { if(!isDragging) closeZone.style.display = 'none'; }, 300);
     };
@@ -209,48 +214,24 @@ function initChatDraggable() {
     document.addEventListener("mouseup", dragEnd);
     document.addEventListener("mousemove", drag);
     
-    chatHead.onclick = () => {
-        if (dragDistance < 15) window.openChatSupport();
-    };
+    chatHead.onclick = () => { if (dragDistance < 15) window.openChatSupport(); };
 }
 
 function initGlobalSuppression() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Force-hide native Chatway launcher */
-        .chatway-widget-container, #chatway-widget-container, iframe[title*="Chatway"] { 
-            display: none !important; opacity: 0 !important; visibility: hidden !important; 
-        }
-        
-        /* Allow expanded window */
-        .chatway-is-opened .chatway-widget-container, .chatway-opened #chatway-widget-container { 
-            display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important;
-        }
-
-        .is-dragging { opacity: 0.7; transform: scale(1.1); transition: none !important; cursor: grabbing !important; }
-        
-        #sidebar-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.4); z-index: 20000; display: none;
-        }
-        #sidebar-drawer {
-            position: fixed; top: 0; left: -320px; width: 300px; height: 100%; 
-            background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column;
-        }
+        /* Remove dummy icons and hide native Chatway bubble */
+        #chat-close-zone, .tawk-minimized, .tawk-button, .tawk-badge, .chatway-widget-container, #chatway-widget-container, iframe[title*="Chatway"] { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+        .chatway-is-opened .chatway-widget-container, .chatway-opened #chatway-widget-container { display: block !important; opacity: 1 !important; visibility: visible !important; z-index: 2147483647 !important; }
+        .is-dragging { opacity: 0.8 !important; transform: scale(1.1) !important; box-shadow: 0 20px 40px rgba(0,0,0,0.4) !important; transition: none !important; }
+        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; transition: 0.2s; color: #1f1f1f; text-decoration: none; }
         .sidebar-item:hover { background: #f8f9fa; }
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
-
-        .circular-loader {
-            border: 4px solid rgba(230, 0, 35, 0.1);
-            border-top: 4px solid #e60023;
-            border-radius: 50%;
-            width: 45px; height: 45px;
-            animation: spin-loader 1s linear infinite;
-        }
+        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 1s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
@@ -259,8 +240,7 @@ function initGlobalSuppression() {
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
-    modal.style.display = 'block'; 
-    modal.style.background = 'transparent';
+    modal.style.display = 'block'; modal.style.background = 'transparent';
     const resDiv = document.getElementById('ai-fitting-result');
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
 
@@ -276,30 +256,22 @@ window.openOptionsMenu = () => {
                         <span style="color: #0b57d0; display: flex; align-items: center;">${agentIcon}</span>
                         <span style="flex: 1;">Chat Support</span>
                     </div>
-                    <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">
-                        Verified store <span style="color: #0b57d0;">✔️</span>
-                    </div>
+                    <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified stores <span style="color: #0b57d0;">✔️</span></div>
                     <div class="sidebar-category">Luxury Wears</div>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item"><span style="font-size: 1.2rem;">💎</span><span>Stella Wears</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item"><span style="font-size: 1.2rem;">👗</span><span>Ify Fashion</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>Ify Fashion</span></a>
                     <div class="sidebar-category">Bespoke Native</div>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item"><span style="font-size: 1.2rem;">🧵</span><span>Adivichi Fashion</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item"><span style="font-size: 1.2rem;">👔</span><span>Tommy Best Fashion</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>Adivichi Fashion</span></a>
+                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>Tommy Best Fashion</span></a>
                 </div>
                 <div style="flex: 1;"></div>
-                <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;">
-                    <p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p>
-                </div>
+                <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;"><p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p></div>
             </div>
         </div>`;
 };
 
 window.openChatSupport = () => {
-    if (window.chatway && window.chatway.open) {
-        window.chatway.show();
-        window.chatway.open();
-        window.closeFittingRoom();
-    }
+    if (window.chatway && window.chatway.open) { window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); }
 };
 
 function applyDynamicThemeStyles() {
@@ -318,7 +290,7 @@ function applyDynamicThemeStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 10005; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-        .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+        .modal-close-btn, .close-modal, .modal-header .close, .modal-content > .close, #fitting-room-modal > span:first-child, .close-btn { display: none !important; }
     `;
 }
 
@@ -336,19 +308,20 @@ window.closeFittingRoom = () => {
     vtoRetryCount = 0; tempUserImageUrl = ""; localUserBase64 = ""; 
     const modal = document.getElementById('fitting-room-modal'); 
     if (modal) { modal.style.display = 'none'; modal.style.background = 'rgba(0,0,0,0.8)'; }
+    const head = document.getElementById('draggable-chat-head');
+    if (head && head.getAttribute('data-closed') !== 'true') head.style.display = 'flex';
 };
 
 window.promptShowroomChoice = (id) => {
+    const head = document.getElementById('draggable-chat-head');
+    if (head) head.style.display = 'none';
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
-            <div class="zoom-container" id="preview-zoom-box">
-                <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
-            </div>
+            <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
@@ -356,7 +329,6 @@ window.promptShowroomChoice = (id) => {
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
             </div>
         </div>`;
-    
     const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
     const handlePan = (e) => {
         if (!img.classList.contains('zoomed')) return;
@@ -366,13 +338,7 @@ window.promptShowroomChoice = (id) => {
         const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100;
         img.style.transformOrigin = `${Math.min(Math.max(x, 0), 100)}% ${Math.min(Math.max(y, 0), 100)}%`;
     };
-    
-    container.onclick = (e) => {
-        if (e.target.classList.contains('close-preview-x')) return;
-        img.classList.toggle('zoomed');
-        container.style.cursor = img.classList.contains('zoomed') ? 'zoom-out' : 'zoom-in';
-        if (img.classList.contains('zoomed')) handlePan(e);
-    };
+    container.onclick = (e) => { if (e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); if (img.classList.contains('zoomed')) handlePan(e); };
     container.onmousemove = handlePan; container.ontouchmove = handlePan;
     applyDynamicThemeStyles();
 };
@@ -403,12 +369,7 @@ window.handleCustomerUpload = (e) => {
 window.startTryOn = async () => {
     if (!localUserBase64 || !selectedCloth) return;
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <div class="circular-loader"></div>
-            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px;">Stitching your outfit...</p>
-        </div>`;
+    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; width:100%;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="circular-loader"></div><p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px;">Stitching your outfit...</p></div>`;
     try {
         const clothUrl = selectedCloth.imgUrl;
         let clothBase64;
