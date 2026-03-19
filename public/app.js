@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Professional Integration ---
+// --- Chatway Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Unified Menu Button Logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -141,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// Render logic to ensure lists are NOT "dummy" and are interactive
+// Logic to ensure product lists are fully interactive
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
@@ -156,10 +155,8 @@ window.renderProducts = (items) => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Removal of dummy icons */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Interactive Product Card Fixes */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
@@ -171,7 +168,6 @@ function initGlobalUIStyles() {
             position: relative;
             z-index: 50;
         }
-        .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; height: auto; }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
@@ -264,6 +260,7 @@ window.closeFittingRoom = () => {
     if (window.chatway) window.chatway.show();
 };
 
+// High-Fidelity Showroom with Zoom and Pan Restoration
 window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     const clothId = String(id);
@@ -274,7 +271,10 @@ window.promptShowroomChoice = (id) => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
-            <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
+            <div class="zoom-container" id="preview-zoom-box">
+                <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+                <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
+            </div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.4rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
@@ -383,7 +383,6 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Explicit interactive card mapping
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
