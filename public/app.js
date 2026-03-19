@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Efficient Menu Button logic with high priority
+    // Efficient Menu Button logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -94,9 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic
-                searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
-                searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
+                // Smart Hide Logic for Chatway (Handled via API to avoid layout shifts)
+                searchInput.onfocus = () => { if (window.chatway && window.chatway.hide) window.chatway.hide(); };
+                searchInput.onblur = () => { if (window.chatway && window.chatway.show) window.chatway.show(); };
             }
             
             const container = document.getElementById('quick-search-container');
@@ -141,23 +141,23 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent removal of all previous custom launchers to keep UI clean */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
+        /* Permanent Removal of dummy heads or blue support icons */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Interactive Search Results Styling */
+        /* Interactive Search Card Fix - Absolute priority for tapping */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 12px; 
             padding: 10px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
             cursor: pointer !important; 
             pointer-events: auto !important; 
-            transition: transform 0.2s ease;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 10;
         }
-        .result-card:hover { transform: translateY(-3px); }
-        .result-card img { pointer-events: none; border-radius: 8px; margin-bottom: 8px; }
+        .result-card:hover { transform: translateY(-2px); }
+        .result-card img { pointer-events: none; border-radius: 8px; width: 100%; object-fit: cover; }
 
-        /* Sidebar and UI layout */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -166,7 +166,6 @@ function initGlobalUIStyles() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        /* Smooth Professional Loader */
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
@@ -194,11 +193,11 @@ window.openOptionsMenu = () => {
                     </div>
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified store <span style="color: #0b57d0;">✔️</span></div>
                     <div class="sidebar-category">Luxury Wears</div>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=ifeomaezema1791" class="sidebar-item">👗<span>IFY FASHION</span></a>
+                    <a href="?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
+                    <a href="?store=ifeomaezema1791" class="sidebar-item">👗<span>IFY FASHION</span></a>
                     <div class="sidebar-category">Bespoke Native</div>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=adivichi" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></a>
-                    <a href="https://kingsley-store-ai.vercel.app/?store=thomasmongim" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></a>
+                    <a href="?store=adivichi" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></a>
+                    <a href="?store=thomasmongim" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></a>
                 </div>
                 <div style="flex: 1;"></div>
                 <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;"><p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p></div>
@@ -209,7 +208,7 @@ window.openOptionsMenu = () => {
 window.openChatSupport = () => {
     if (window.chatway) { 
         window.chatway.show(); 
-        window.chatway.open(); 
+        if (window.chatway.open) window.chatway.open(); 
         window.closeFittingRoom(); 
     }
 };
@@ -367,12 +366,12 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Ensure window.promptShowroomChoice is accessible
+    // Interactive Map - Ensuring window context is correct
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
-            <h4 class="cart-item-name">${item.name}</h4>
-            <p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p>
+            <h4 class="cart-item-name" style="color:#000 !important;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:bold;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
