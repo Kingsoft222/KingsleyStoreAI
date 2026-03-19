@@ -60,8 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    initChatwayObserver();
     
+    // Efficient Menu Button Logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -71,7 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return isTopLeft && hasIconContent;
         });
 
-        if (menuBtn) {
+        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
+            menuBtn.setAttribute('data-menu-active', 'true');
             menuBtn.style.cursor = 'pointer';
             const openAction = (e) => {
                 e.preventDefault();
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     findAndEnableMenu();
-    setInterval(findAndEnableMenu, 2000);
+    setInterval(findAndEnableMenu, 3000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -93,9 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic for Search
-                searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
-                searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
+                // Smart Hide for Keyboard Space
+                searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
+                searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
             
             const container = document.getElementById('quick-search-container');
@@ -132,38 +133,18 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
             gIndex++; 
         }
-    }, 3000);
+    }, 4000);
 
     initVoiceSearch();
 });
 
-// Logic to force Chatway above store ads as soon as it appears
-function initChatwayObserver() {
-    const observer = new MutationObserver(() => {
-        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
-        if (widget) {
-            widget.style.setProperty('bottom', '450px', 'important');
-            widget.style.setProperty('right', '20px', 'important');
-            widget.style.setProperty('position', 'fixed', 'important');
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-}
-
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of custom heads/icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+        /* Permanent Removal of all dummy icons and custom launchers */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Force Chatway Positioning above store ads */
-        #chatway-widget-container, .chatway-widget-container, div[id^="chatway-"] { 
-            bottom: 450px !important; 
-            right: 20px !important; 
-            position: fixed !important;
-            z-index: 2147483647 !important;
-        }
-
+        /* Sidebar Layout */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -172,6 +153,7 @@ function initGlobalUIStyles() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
+        /* Smooth Circular Loader */
         .circular-loader { 
             border: 4px solid rgba(230, 0, 35, 0.1); 
             border-top: 4px solid #e60023; 
@@ -218,7 +200,7 @@ window.openOptionsMenu = () => {
 };
 
 window.openChatSupport = () => {
-    if (window.chatway && window.chatway.open) { 
+    if (window.chatway) { 
         window.chatway.show(); 
         window.chatway.open(); 
         window.closeFittingRoom(); 
@@ -234,7 +216,7 @@ function applyDynamicThemeStyles() {
     styleTag.innerHTML = `
         #dynamic-greeting, #store-name-display, .summary-text, .theme-subtext, .theme-p { color: ${adaptiveTextColor} !important; }
         #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
-        .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 5; position: relative; }
+        .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
@@ -248,10 +230,9 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
-    // Fix: Using correct SpeechRecognition reference to prevent connection errors
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return;
+    const recognition = new SpeechRec();
     recognition.lang = 'en-NG';
     micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} };
     recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
@@ -267,8 +248,6 @@ window.closeFittingRoom = () => {
 window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
-    if (!selectedCloth) return;
-    
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
@@ -282,6 +261,7 @@ window.promptShowroomChoice = (id) => {
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
             </div>
         </div>`;
+    
     const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
     const handlePan = (e) => {
         if (!img.classList.contains('zoomed')) return;
@@ -382,16 +362,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Logic overhaul: Mapping directly to the global prompt function with escaped string literal IDs
-    results.innerHTML = filtered.map(item => {
-        const itemIdStr = String(item.id).replace(/'/g, "\\'");
-        return `
-        <div class="result-card" onclick="event.preventDefault(); window.promptShowroomChoice('${itemIdStr}')" style="cursor:pointer !important; -webkit-tap-highlight-color: transparent;">
-            <img src="${item.imgUrl}" style="pointer-events:none; width: 100%; border-radius: 8px;">
-            <h4 class="cart-item-name" style="pointer-events:none;">${item.name}</h4>
-            <p style="color:#e60023; font-weight:bold; pointer-events:none;">₦${item.price.toLocaleString()}</p>
-        </div>`;
-    }).join('');
+    results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4 class="cart-item-name">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
 };
 
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
