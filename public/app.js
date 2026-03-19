@@ -47,14 +47,15 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Professional Integration ---
-(function() {
+// --- Chatway Dynamic Page Injection ---
+const injectChatSupport = () => {
+    if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
-    s.id = "chatway";
+    s.id = "chatway-script";
     s.async = true;
     s.src = "https://cdn.chatway.app/widget.js?id=govCX46EKb8v";
     document.head.appendChild(s);
-})();
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
@@ -88,10 +89,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
                 searchInput.oninput = window.executeSearch;
-                searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
-                searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
 
+            // Restore Store Front Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -113,11 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
-                if (greetingEl) {
-                    greetingEl.innerText = window.activeGreetings[0];
-                    greetingEl.style.display = 'block';
-                }
-            } else if (greetingEl) { greetingEl.style.display = 'none'; }
+                if (greetingEl) { greetingEl.innerText = window.activeGreetings[0]; greetingEl.style.display = 'block'; }
+            }
 
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
@@ -152,46 +149,56 @@ window.renderProducts = (items) => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
+        /* Permanent removal of global widget layers */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Fixed Sizing and 2-Column Grid Harmonization */
-        #ai-results, #product-list, #main-catalog {
+        /* Harmonized 2-Column Grid with Push-Up Logic */
+        #ai-results {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+            padding: 10px !important;
+            width: 100% !important;
+            position: relative;
+            z-index: 8000 !important;
+            background: transparent;
+            margin-bottom: 20px;
+        }
+
+        #product-list, #main-catalog {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            z-index: 1000 !important;
-            position: relative;
         }
 
-        /* Interactivity Shield: Ensure items respond to taps, not background widget layers */
+        /* Interactivity Shield */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
             padding: 10px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
             cursor: pointer !important; 
-            pointer-events: all !important; 
+            pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
-            z-index: 5000 !important; 
+            z-index: 7000 !important; 
             overflow: hidden;
         }
-        .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* High-Fidelity Showroom & Zoom */
+        /* High-Fidelity Showroom & 4-Way Pan */
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
-        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
 
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
@@ -215,7 +222,7 @@ window.openOptionsMenu = () => {
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column;">
-                    <div onclick="window.openChatSupport()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
+                    <div onclick="window.openChatPage()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
                     
                     <div class="sidebar-category">Luxury Wears</div>
                     <div onclick="window.location.assign('?store=kingss1')" class="sidebar-item">💎<span>Stella Wears</span></div>
@@ -225,14 +232,30 @@ window.openOptionsMenu = () => {
                     <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
                     <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
                     
-                    <div style="flex: 1;"></div>
-                    <div style="padding: 24px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800;">VIRTUAL MALL AI</div>
+                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
                 </div>
             </div>
         </div>`;
 };
 
-window.openChatSupport = () => { if (window.chatway) { window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); } };
+// Internal Popup Page for Chat Support
+window.openChatPage = () => {
+    injectChatSupport();
+    const modal = document.getElementById('fitting-room-modal');
+    const resDiv = document.getElementById('ai-fitting-result');
+    modal.style.display = 'flex';
+    resDiv.innerHTML = `
+        <div style="height: 100vh; width: 100vw; background: #fff; position: relative; overflow: hidden; animation: fadeIn 0.3s ease;">
+            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; left: 20px; z-index: 30000; background: #000; color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">✕</div>
+            <div style="padding: 120px 20px; text-align: center;">
+                <div class="circular-loader" style="margin: 0 auto 30px;"></div>
+                <h2 style="font-weight: 900; color: #111; font-size: 1.6rem; letter-spacing: -1px;">SUPPORT PAGE</h2>
+                <p style="color: #666; font-weight: 500; line-height: 1.5; max-width: 250px; margin: 0 auto;">Our official chat agent will appear at the bottom of this page.</p>
+                <button onclick="window.closeFittingRoom()" style="margin-top: 40px; background: #f1f1f1; border: none; padding: 15px 30px; border-radius: 30px; font-weight: 700; color: #333; cursor: pointer;">Return to Mall</button>
+            </div>
+        </div>`;
+    if (window.chatway) { window.chatway.show(); window.chatway.open(); }
+};
 
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
@@ -240,12 +263,12 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Interactive Grid Binding Restoration
+    // Pushed Up Interactive Grid
     results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}">
-            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
-            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
+            <img src="${item.imgUrl}" style="pointer-events:none;">
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
@@ -317,7 +340,12 @@ function initVoiceSearch() {
     recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); };
 }
 
-window.closeFittingRoom = () => { const modal = document.getElementById('fitting-room-modal'); if (modal) modal.style.display = 'none'; if (window.chatway) window.chatway.show(); };
+window.closeFittingRoom = () => { 
+    const modal = document.getElementById('fitting-room-modal'); 
+    if (modal) modal.style.display = 'none'; 
+    if (window.chatway) { window.chatway.close(); window.chatway.hide(); } 
+};
+
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
