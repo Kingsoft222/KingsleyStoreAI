@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
 
-            // Restore Store Front Ads (Banners)
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -151,7 +150,6 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Harmonized 2-Column Grid (Push Search Results Above) */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -159,8 +157,9 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             position: relative;
-            z-index: 100 !important;
+            z-index: 1000 !important;
             background: transparent;
+            margin-bottom: 20px;
         }
 
         #product-list, #main-catalog {
@@ -172,7 +171,6 @@ function initGlobalUIStyles() {
             box-sizing: border-box !important;
         }
 
-        /* Interactivity Shield */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
@@ -188,7 +186,6 @@ function initGlobalUIStyles() {
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* High-Fidelity Showroom Components */
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
@@ -197,7 +194,8 @@ function initGlobalUIStyles() {
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; }
+        .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
 
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -211,18 +209,27 @@ window.openOptionsMenu = () => {
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
+    
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; font-family: 'Google Sans', sans-serif;">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff;">
                 <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
                     <span>Store Options</span>
                     <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
-                <div style="display: flex; flex-direction: column; margin-top: 10px;">
+                <div style="display: flex; flex-direction: column;">
                     <div onclick="window.openChatSupport()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
+                    
                     <div class="sidebar-category">Luxury Wears</div>
                     <div onclick="window.location.assign('?store=kingss1')" class="sidebar-item">💎<span>Stella Wears</span></div>
                     <div onclick="window.location.assign('?store=ifeomaezema1791')" class="sidebar-item">👗<span>IFY FASHION</span></div>
+                    
+                    <div class="sidebar-category">Bespoke Native</div>
+                    <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
+                    
+                    <div style="flex: 1;"></div>
+                    <div style="padding: 24px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800;">VIRTUAL MALL AI</div>
                 </div>
             </div>
         </div>`;
@@ -236,7 +243,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Forced priority click binding for search results
+    // Mapping interactive click cards with forced high priority
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}">
@@ -265,8 +272,8 @@ window.promptShowroomChoice = (id) => {
     const handlePan = (e) => {
         if (!img.classList.contains('zoomed')) return;
         const rect = container.getBoundingClientRect();
-        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches[0].clientX);
+        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches[0].clientY);
         const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100;
         img.style.transformOrigin = `${x}% ${y}%`;
     };
