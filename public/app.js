@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Efficient Menu Button logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -94,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic for Chatway (Handled via API to avoid layout shifts)
                 searchInput.onfocus = () => { if (window.chatway && window.chatway.hide) window.chatway.hide(); };
                 searchInput.onblur = () => { if (window.chatway && window.chatway.show) window.chatway.show(); };
             }
@@ -141,10 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of dummy heads or blue support icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
+        /* Permanent Removal of all dummy elements */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Interactive Search Card Fix - Absolute priority for tapping */
+        /* Interactive Search Result Cards */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 12px; 
@@ -152,10 +150,10 @@ function initGlobalUIStyles() {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
             cursor: pointer !important; 
             pointer-events: auto !important; 
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            transition: 0.2s; 
             z-index: 10;
         }
-        .result-card:hover { transform: translateY(-2px); }
+        .result-card:active { transform: scale(0.98); }
         .result-card img { pointer-events: none; border-radius: 8px; width: 100%; object-fit: cover; }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
@@ -366,7 +364,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Interactive Map - Ensuring window context is correct
+    // Interactive Map
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
