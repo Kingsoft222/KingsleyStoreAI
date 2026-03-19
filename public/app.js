@@ -139,11 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of any previous custom floating heads or dummy icons */
+        /* Permanent Removal of custom heads/icons */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Force Chatway to stay fixed above store ads using strict positioning */
-        /* This covers both the ID and the dynamic container class */
+        /* Force Chatway Positioning above store ads */
         #chatway-widget-container, .chatway-widget-container, div[id^="chatway-"] { 
             bottom: 450px !important; 
             right: 20px !important; 
@@ -163,8 +162,7 @@ function initGlobalUIStyles() {
             border: 4px solid rgba(230, 0, 35, 0.1); 
             border-top: 4px solid #e60023; 
             border-radius: 50%; 
-            width: 45px; 
-            height: 45px; 
+            width: 45px; height: 45px; 
             animation: spin-loader 0.8s linear infinite; 
         }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -207,9 +205,7 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (window.chatway && window.chatway.open) { 
-        window.chatway.show(); 
-        window.chatway.open(); 
-        window.closeFittingRoom(); 
+        window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); 
     }
 };
 
@@ -254,6 +250,8 @@ window.closeFittingRoom = () => {
 window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
+    if (!selectedCloth) return;
+    
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
@@ -367,7 +365,13 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    results.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4 class="cart-item-name">${item.name}</h4><p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p></div>`).join('');
+    // Restore Interaction: Explicitly bind promptShowroomChoice to the window and wrap ID in standard quotes
+    results.innerHTML = filtered.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer;">
+            <img src="${item.imgUrl}" style="pointer-events:none;">
+            <h4 class="cart-item-name">${item.name}</h4>
+            <p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p>
+        </div>`).join('');
 };
 
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
