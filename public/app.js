@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection (Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Greeting state restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -77,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
-            menuBtn.style.cursor = 'pointer';
+            menuBtn.classList.add('fixed-sidebar-icon');
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
     };
@@ -96,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Restore Store Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -147,7 +145,7 @@ window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
             <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; font-size:0.9rem;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
@@ -159,37 +157,47 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL FLOW: Header scrolls away naturally */
+        /* RESTORE ORIGINAL FLOW: No Fixed Overlapping Headers */
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon Restoration: Top Right corner absolute positioning */
-        #cart-icon, .cart-container, #cart-count-parent, [class*="shopping-cart"] {
+        /* Cart Icon: Permanent Top Right Position Fix */
+        [id*="cart-icon"], .cart-container, #cart-count-parent {
             position: fixed !important;
-            top: 25px !important;
-            right: 25px !important;
-            z-index: 25000 !important;
+            top: 20px !important;
+            right: 20px !important;
+            left: auto !important;
+            z-index: 21000 !important;
             display: block !important;
         }
         
-        /* SEARCH RESULTS: Professional Tucking with internal scrolling */
+        .fixed-sidebar-icon {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 20000 !important;
+        }
+
+        /* SEARCH VIEWPORT DOCKING: Tucked and Scrollable */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
-            padding: 15px !important;
+            padding: 10px !important;
             width: 100% !important;
             max-height: 55vh !important; 
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch;
-            position: relative !important;
-            margin-bottom: 20px !important;
-            z-index: 5000 !important;
+            position: absolute !important;
+            bottom: 95px !important;
+            left: 0 !important;
+            z-index: 15000 !important;
             background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
         }
 
         #product-list, #main-catalog {
@@ -199,35 +207,25 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            margin-top: 15px;
+            margin-top: 20px;
         }
 
-        .result-card { 
-            background: #ffffff !important; 
-            border-radius: 14px; 
-            padding: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
-            cursor: pointer !important; 
-            pointer-events: auto !important; 
-            transition: transform 0.2s ease; 
-        }
-
-        /* MODAL: SINGLE PROFESSIONAL LAYER - FLATTENED */
+        /* SINGLE PROFESSIONAL MODAL - REMOVED 2-IN-1 NESTING */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 30000; align-items: center; justify-content: center;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            z-index: 40000; align-items: center; justify-content: center;
         }
 
-        .modal-body-content {
+        .modal-body-unified {
             background: #fff;
-            width: 88%;
+            width: 90%;
             max-width: 380px; 
             border-radius: 28px;
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 40px 90px rgba(0,0,0,0.6);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
@@ -243,10 +241,10 @@ function initGlobalUIStyles() {
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 45vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 40000; border: 1.5px solid rgba(255,255,255,0.3); }
+        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 50000; border: 1.5px solid rgba(255,255,255,0.3); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
@@ -289,8 +287,8 @@ window.openChatPage = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
     resDiv.innerHTML = `
-        <div class="modal-body-content" style="max-width: 480px; padding: 50px 20px;">
-            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 15px; right: 20px; z-index: 40000; color: #ccc; font-size: 1.5rem; cursor: pointer;">✕</div>
+        <div class="modal-body-unified" style="max-width: 480px; padding: 50px 20px;">
+            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 15px; right: 20px; z-index: 50000; color: #ccc; font-size: 1.5rem; cursor: pointer;">✕</div>
             <div class="dotted-spinner" style="margin-bottom: 25px;"></div>
             <h2 style="font-weight: 900; color: #111; font-size: 1.7rem; letter-spacing: -1px; margin-bottom: 5px;">SUPPORT CENTER</h2>
             <p style="color: #666; font-weight: 500; font-size: 0.95rem; line-height: 1.5; max-width: 290px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait...</p>
@@ -306,7 +304,7 @@ window.executeSearch = () => {
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
             <img src="${item.imgUrl}">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:8px; font-size:0.8rem;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1rem;">₦${item.price.toLocaleString()}</p>
@@ -325,8 +323,8 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="modal-body-content">
-            <h2 style="font-weight:900; font-size:1.1rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+        <div class="modal-body-unified">
+            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
@@ -351,7 +349,7 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="modal-body-content" style="padding:40px 20px;">
+        <div class="modal-body-unified" style="padding:40px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.3rem;">FINISH YOUR LOOK</h2>
@@ -371,9 +369,9 @@ window.startTryOn = async () => {
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     
     resDiv.innerHTML = `
-        <div class="modal-body-content" style="padding:45px 20px;">
+        <div class="modal-body-unified" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
+            <h2 style="font-weight:900; font-size:1.25rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
             <p style="margin-top:20px; font-weight:700; color:#e60023; font-size:0.75rem; text-transform:uppercase;">PREPARING YOUR AI PREVIEW...</p>
