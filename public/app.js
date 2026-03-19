@@ -63,48 +63,24 @@ document.addEventListener('DOMContentLoaded', () => {
     ensureCartIconExists();
     
     const greetingEl = document.getElementById('dynamic-greeting');
-    if (greetingEl) greetingEl.innerText = "Loading greetings...";
-
-    const findAndEnableMenu = () => {
-        const elements = document.querySelectorAll('button, div, span, i, svg');
-        const menuBtn = Array.from(elements).find(el => {
-            const rect = el.getBoundingClientRect();
-            // Target the top-left quadrant for the menu icon
-            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
-            const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
-            return isTopLeft && hasIconContent;
-        });
-
-        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
-            menuBtn.setAttribute('data-menu-active', 'true');
-            menuBtn.classList.add('scrollable-sidebar-icon');
-            menuBtn.style.pointerEvents = 'auto';
-            menuBtn.style.cursor = 'pointer';
-            menuBtn.style.zIndex = '20000';
-            // Explicitly set the click listener for tap responsiveness
-            menuBtn.onclick = (e) => { 
-                e.preventDefault(); 
-                e.stopPropagation();
-                window.openOptionsMenu(); 
-            };
-        }
-    };
-
-    findAndEnableMenu();
-    setInterval(findAndEnableMenu, 1500);
-
+    
+    // Core Data Sync Restoration
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            const rawStoreName = data.storeName || "STORE";
-            document.getElementById('store-name-display').innerText = rawStoreName;
+            // Restore Brand Identity
+            const nameEl = document.getElementById('store-name-display');
+            if (nameEl) nameEl.innerText = data.storeName || "STORE";
+            
+            const imgEl = document.getElementById('owner-img');
+            if (imgEl && data.profileImage) imgEl.src = data.profileImage;
+
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
                 searchInput.oninput = window.executeSearch;
             }
             
-            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
@@ -126,6 +102,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Sidebar Enabling Logic
+    const findAndEnableMenu = () => {
+        const elements = document.querySelectorAll('button, div, span, i, svg');
+        const menuBtn = Array.from(elements).find(el => {
+            const rect = el.getBoundingClientRect();
+            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
+            const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
+            return isTopLeft && hasIconContent;
+        });
+
+        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
+            menuBtn.setAttribute('data-menu-active', 'true');
+            menuBtn.classList.add('scrollable-sidebar-icon');
+            menuBtn.style.pointerEvents = 'auto';
+            menuBtn.style.cursor = 'pointer';
+            menuBtn.style.zIndex = '15000';
+            menuBtn.onclick = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                window.openOptionsMenu(); 
+            };
+        }
+    };
+
+    findAndEnableMenu();
+    setInterval(findAndEnableMenu, 1000);
+
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el && window.activeGreetings.length > 1) { 
@@ -140,6 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
+    if (items.length === 0) {
+        listContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 0;">No matching styles found.</p>`;
+        return;
+    }
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
@@ -153,7 +160,7 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL NATURAL SCROLLING: EVERYTHING SCROLLS */
+        /* RESTORE ORIGINAL NATURAL SCROLLING */
         body { overflow-x: hidden; overflow-y: auto; padding-top: 0; min-height: 100vh; position: relative; }
         
         #owner-img, #store-name-display, #dynamic-greeting {
@@ -166,7 +173,7 @@ function initGlobalUIStyles() {
             position: absolute !important;
             top: 20px !important;
             right: 20px !important;
-            z-index: 20000 !important;
+            z-index: 15000 !important;
             background: #fff;
             padding: 8px;
             border-radius: 12px;
@@ -175,19 +182,19 @@ function initGlobalUIStyles() {
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Sidebar Icon: Top-Left quadrant, scrolling naturally */
+        /* Sidebar Icon: Top-Left, scrolling naturally */
         .scrollable-sidebar-icon {
             position: absolute !important;
             top: 20px !important;
             left: 20px !important;
-            z-index: 20000 !important;
+            z-index: 15000 !important;
             background: #fff !important;
             padding: 8px !important;
             border-radius: 12px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH RESULTS: Natural flow inside viewport, branding stays visible while scrolling */
+        /* SEARCH RESULTS: Part of natural scroll flow */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -196,14 +203,12 @@ function initGlobalUIStyles() {
             width: 100% !important;
             position: relative !important;
             margin-top: 20px !important;
-            margin-bottom: 20px !important;
             z-index: 500 !important;
             background: transparent;
-            max-height: none !important;
-            overflow: visible !important;
+            min-height: 50px;
         }
 
-        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER - NO 2-IN-1Display */
+        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -218,7 +223,7 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
@@ -248,7 +253,6 @@ function initGlobalUIStyles() {
 }
 
 const ensureCartIconExists = () => {
-    // Only one cart icon on the right
     if (document.getElementById('cart-icon-wrapper')) return;
     const cartDiv = document.createElement('div');
     cartDiv.id = 'cart-icon-wrapper';
@@ -267,7 +271,7 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">BAG IS EMPTY</h2><p style="color:#666;">Choose products to add them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">BAG IS EMPTY</h2><p style="color:#666;">Choose items to see them here.</p></div>`;
         return;
     }
 
@@ -296,7 +300,7 @@ window.openCart = () => {
 
 window.handleOrder = () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡️ *ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
+    const msg = `🛡️ *VERIFIED ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
     window.open(waUrl, '_blank');
     cart = [];
@@ -310,23 +314,15 @@ window.executeSearch = () => {
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     
-    // Exact word matching to prevent scattered tags
+    // Precise Search Check
     const filtered = storeCatalog.filter(c => {
         const name = c.name.toLowerCase();
         const tags = c.tags ? c.tags.toLowerCase() : "";
-        // Match specific word boundary for precision
-        const matchName = new RegExp('\\b' + query + '\\b').test(name);
-        const matchTags = new RegExp('\\b' + query + '\\b').test(tags);
-        return matchName || matchTags;
+        return name.includes(query) || tags.includes(query);
     });
     
     results.style.display = 'grid';
-    results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}">
-            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:8px; font-size:0.8rem;">${item.name}</h4>
-            <p style="color:#e60023 !important; font-weight:800; font-size:1rem;">₦${item.price.toLocaleString()}</p>
-        </div>`).join('');
+    window.renderProducts(filtered); // Re-use the same render function
 };
 
 window.promptShowroomChoice = (id) => {
@@ -340,15 +336,14 @@ window.promptShowroomChoice = (id) => {
 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    // REMOVED 2-IN-1: Single card layer
     resDiv.innerHTML = `
         <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.2rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:1rem;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.1rem; margin-bottom:12px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase; width:100%;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase;">Wear it! ✨</button>
             </div>
         </div>`;
     
