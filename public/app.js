@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Integration ---
+// --- Chatway Professional Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Unified Menu Button Logic
+    // Optimized Menu Button Finder
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return isTopLeft && hasIconContent;
         });
 
-        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
-            menuBtn.setAttribute('data-menu-active', 'true');
+        if (menuBtn && !menuBtn.getAttribute('data-menu-enabled')) {
+            menuBtn.setAttribute('data-menu-enabled', 'true');
             menuBtn.style.cursor = 'pointer';
             const openAction = (e) => {
                 e.preventDefault();
@@ -94,9 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic
-                searchInput.onfocus = () => { if (window.chatway && window.chatway.hide) window.chatway.hide(); };
-                searchInput.onblur = () => { if (window.chatway && window.chatway.show) window.chatway.show(); };
+                // Smart Hide Logic for Chatway
+                searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
+                searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
             
             const container = document.getElementById('quick-search-container');
@@ -141,10 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent removal of previous dummy chat elements */
+        /* Permanent Removal of all dummy elements */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Interactive Search Card Fix */
+        /* Interactive Search Result Cards */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 12px; 
@@ -155,10 +155,10 @@ function initGlobalUIStyles() {
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             z-index: 10;
         }
-        .result-card:hover { transform: translateY(-2px); }
+        .result-card:active { transform: scale(0.98); }
         .result-card img { pointer-events: none; border-radius: 8px; width: 100%; object-fit: cover; }
 
-        /* Sidebar Layout and Categorization */
+        /* Sidebar UI */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -234,9 +234,9 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRec) return;
+    const recognition = new SpeechRec();
     recognition.lang = 'en-NG';
     micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} };
     recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; micBtn.style.color = "#5f6368"; window.executeSearch(); };
@@ -367,7 +367,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Mapping interactive click cards
+    // Clean interactive card mapping
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
