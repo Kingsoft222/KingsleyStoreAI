@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            // Look for icons in the top-left area
+            // Original top-left quadrant search
             const isTopLeft = rect.top < 150 && rect.left < 150 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
-            menuBtn.classList.add('fixed-sidebar-icon');
+            menuBtn.classList.add('scrollable-sidebar-icon');
             menuBtn.style.pointerEvents = 'auto';
             menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { 
@@ -152,66 +152,62 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* ORIGINAL FLOW RESTORED */
+        /* NATURAL PAGE FLOW: Everything scrolls together */
+        body { overflow-x: hidden; overflow-y: auto; }
+        
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon: Pinned Top Left near sidebar */
+        /* Cart Icon: Top Right aligned opposite sidebar, scrolls with page */
         #cart-icon-wrapper {
-            position: fixed !important;
+            position: absolute !important;
             top: 20px !important;
-            left: 75px !important; /* Spaced to be next to sidebar icon */
-            z-index: 45000 !important;
+            right: 20px !important;
+            z-index: 1000 !important;
             background: #fff;
             padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
 
-        .fixed-sidebar-icon {
-            position: fixed !important;
+        /* Sidebar Icon: Top Left, scrolls with page */
+        .scrollable-sidebar-icon {
+            position: absolute !important;
             top: 20px !important;
             left: 20px !important;
-            z-index: 45000 !important;
+            z-index: 1000 !important;
             background: #fff !important;
             padding: 8px !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH VIEWPORT: Tucked, docked, and strictly scrollable */
+        /* SEARCH VIEWPORT: Docked naturally, scrolls with the page */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 15px !important;
             width: 100% !important;
-            max-height: 55vh !important; 
-            overflow-y: auto !important;
-            position: fixed !important;
-            bottom: 100px !important;
-            left: 0 !important;
-            z-index: 15000 !important;
-            background: #fff;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
-            border-top-left-radius: 30px;
-            border-top-right-radius: 30px;
-            pointer-events: auto !important;
-            -webkit-overflow-scrolling: touch;
+            position: relative !important;
+            margin-top: 20px !important;
+            margin-bottom: 20px !important;
+            z-index: 500 !important;
+            background: transparent;
         }
 
-        /* SINGLE PROFESSIONAL MODAL LAYER - NO NESTING */
+        /* MODAL: SINGLE PROFESSIONAL LAYER - NO DOUBLE SURFACE */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
             z-index: 50000; align-items: center; justify-content: center;
         }
 
-        .modal-body-flat {
+        .modal-body-unified {
             background: #fff;
             width: 90%;
             max-width: 380px; 
@@ -219,12 +215,12 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 40px 90px rgba(0,0,0,0.6);
-            animation: modalPop 0.3s ease;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+            animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             text-align: center;
         }
 
-        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .dotted-spinner {
             width: 50px; height: 50px;
@@ -238,7 +234,12 @@ function initGlobalUIStyles() {
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 45vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
+        .close-preview-x { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
+
+        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
+        #sidebar-drawer.open { left: 0; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
     document.head.appendChild(style);
 }
@@ -262,36 +263,36 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">CART IS EMPTY</h2><p style="color:#666;">Add products to see them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-unified" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR CART IS EMPTY</h2><p style="color:#666;">Choose items to see them here.</p></div>`;
         return;
     }
 
     const cartHtml = cart.map((item, idx) => `
-        <div style="display:flex; align-items:center; gap:12px; background:#f5f5f5; padding:8px; border-radius:12px; margin-bottom:8px; position:relative;">
-            <img src="${item.imgUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:12px; background:#f7f7f7; padding:10px; border-radius:12px; margin-bottom:10px; position:relative;">
+            <img src="${item.imgUrl}" style="width:55px; height:55px; object-fit:cover; border-radius:8px;">
             <div style="text-align:left;">
-                <h4 style="font-size:0.8rem; font-weight:800; margin:0;">${item.name}</h4>
+                <h4 style="font-size:0.85rem; font-weight:800; margin:0;">${item.name}</h4>
                 <p style="color:#e60023; font-weight:800; margin:0;">₦${item.price.toLocaleString()}</p>
             </div>
-            <button onclick="window.removeFromCart(${idx}); window.openCart();" style="position:absolute; right:10px; background:none; border:none; color:#bbb; font-size:1.1rem; cursor:pointer;">✕</button>
+            <button onclick="window.removeFromCart(${idx}); window.openCart();" style="position:absolute; right:10px; background:none; border:none; color:#ccc; font-size:1.2rem; cursor:pointer;">✕</button>
         </div>`).join('');
 
     const total = cart.reduce((s, i) => s + i.price, 0);
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="max-height:80vh; overflow-y:auto;">
+        <div class="modal-body-unified" style="max-height:85vh; overflow-y:auto;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:15px;">MY CART</h2>
+            <h2 style="font-weight:900; font-size:1.3rem; margin-bottom:20px;">SHOPPING CART</h2>
             <div>${cartHtml}</div>
-            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <div style="display:flex; justify-content:space-between; font-weight:900; margin-bottom:15px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
-                <button onclick="window.handleOrder()" style="background:#25D366; color:white; width:100%; padding:15px; border-radius:12px; font-weight:900; border:none; cursor:pointer;">ORDER ON WHATSAPP</button>
+            <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
+                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; margin-bottom:20px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
+                <button onclick="window.handleOrder()" style="background:#25D366; color:white; width:100%; padding:18px; border-radius:15px; font-weight:900; border:none; cursor:pointer;">CHECKOUT ON WHATSAPP</button>
             </div>
         </div>`;
 };
 
 window.handleOrder = () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡️ *VERIFIED ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
+    const msg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
     window.open(waUrl, '_blank');
     cart = [];
@@ -325,10 +326,10 @@ window.promptShowroomChoice = (id) => {
 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    // ONLY ONE LAYER - NO NESTING
+    // REMOVED DOUBLE WRAPPER: Single clean card
     resDiv.innerHTML = `
-        <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.1rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+        <div class="modal-body-unified">
+            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
@@ -353,7 +354,7 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="padding:40px 20px;">
+        <div class="modal-body-unified" style="padding:40px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.3rem;">FINISH YOUR LOOK</h2>
@@ -373,7 +374,7 @@ window.startTryOn = async () => {
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="padding:45px 20px;">
+        <div class="modal-body-unified" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
