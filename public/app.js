@@ -109,11 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // Greetings Restoration
             const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
-                if (greetingEl) { greetingEl.innerText = window.activeGreetings[0]; greetingEl.style.display = 'block'; }
-            }
+                if (greetingEl) {
+                    greetingEl.innerText = window.activeGreetings[0];
+                    greetingEl.style.display = 'block';
+                }
+            } else if (greetingEl) { greetingEl.style.display = 'none'; }
 
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
@@ -150,27 +154,19 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        #ai-results {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 12px !important;
-            padding: 10px !important;
-            width: 100% !important;
-            position: relative;
-            z-index: 1000 !important;
-            background: transparent;
-            margin-bottom: 20px;
-        }
-
-        #product-list, #main-catalog {
+        /* Fixed Sizing and 2-Column Grid Harmonization */
+        #ai-results, #product-list, #main-catalog {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
+            z-index: 1000 !important;
+            position: relative;
         }
 
+        /* Interactivity Shield: Ensure items respond to taps, not background widget layers */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
@@ -180,12 +176,13 @@ function initGlobalUIStyles() {
             pointer-events: all !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
-            z-index: 500 !important; 
+            z-index: 5000 !important; 
             overflow: hidden;
         }
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
+        /* High-Fidelity Showroom & Zoom */
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
@@ -243,7 +240,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Mapping interactive click cards with forced high priority
+    // Interactive Grid Binding Restoration
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}">
