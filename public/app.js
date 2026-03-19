@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
-            menuBtn.style.cursor = 'pointer';
+            menuBtn.classList.add('fixed-sidebar-icon');
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
     };
@@ -146,27 +146,34 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL FLOW: Natural Scrolling, No Overlap */
+        /* RESTORE ORIGINAL FLOW: Natural scrolling, no fixed overlap mess */
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon: Permanent Top Right Fix */
+        /* Cart Icon Restoration: Permanent Top Right Position */
         #cart-icon-wrapper {
             position: fixed !important;
             top: 20px !important;
             right: 20px !important;
-            z-index: 40000 !important;
-            background: rgba(255,255,255,0.9);
+            z-index: 45000 !important;
+            background: #fff;
             padding: 10px;
             border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* SEARCH VIEWPORT DOCKING: Tucked and Scrollable */
+        .fixed-sidebar-icon {
+            position: fixed !important;
+            top: 25px !important;
+            left: 20px !important;
+            z-index: 40000 !important;
+        }
+
+        /* SEARCH VIEWPORT TUCKING: DOCKED ABOVE SEARCH BAR, SCROLLABLE */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -175,18 +182,18 @@ function initGlobalUIStyles() {
             width: 100% !important;
             max-height: 55vh !important; 
             overflow-y: auto !important;
-            position: absolute !important;
-            bottom: 95px !important; /* Above search bar */
+            position: fixed !important;
+            bottom: 100px !important; /* Forces results to stay above search bar */
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
             box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* MODAL: SINGLE PROFESSIONAL LAYER - FLATTENED */
+        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER - NO 2-IN-1Display */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -221,6 +228,11 @@ function initGlobalUIStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
+
+        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
+        #sidebar-drawer.open { left: 0; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
     document.head.appendChild(style);
 }
@@ -274,8 +286,8 @@ window.openCart = () => {
 window.handleOrder = () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
     const msg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
-    const url = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
-    window.open(url, '_blank');
+    const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
+    window.open(waUrl, '_blank');
     cart = [];
     localStorage.removeItem(`cart_${currentStoreId}`);
     updateCartUI();
@@ -368,7 +380,7 @@ window.startTryOn = async () => {
     resDiv.innerHTML = `
         <div class="modal-body-flat" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
+            <h2 style="font-weight:900; font-size:1.25rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
             <p style="margin-top:20px; font-weight:700; color:#e60023; font-size:0.75rem; text-transform:uppercase;">PREPARING YOUR AI PREVIEW...</p>
