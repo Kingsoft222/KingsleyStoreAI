@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection ---
+// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Set initial loading state for greetings
+    // Restoration of "Loading greetings..." state
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Restore Store Front Ads
+            // Banner Ads Restoration
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // Greetings Restoration Logic
+            // Greetings Data Handling
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -160,14 +160,15 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
+        /* Fixed Search Results Logic: Tucked professionally, no overlap */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
-            padding: 10px !important;
+            padding: 10px 10px 100px 10px !important; /* Bottom padding ensures it doesn't cover search bar */
             width: 100% !important;
             position: relative;
-            z-index: 8000 !important;
+            z-index: 1000 !important;
             background: transparent;
             margin-bottom: 20px;
         }
@@ -196,13 +197,13 @@ function initGlobalUIStyles() {
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* Centered Dotted Spinner */
+        /* Centered Dotted Spinner Styling */
         .dotted-spinner {
-            width: 50px; height: 50px;
+            width: 55px; height: 55px;
             border: 5px dotted #e60023;
             border-radius: 50%;
             animation: spin-dotted 2s linear infinite;
-            margin: 0 auto;
+            margin: 20px auto;
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -291,7 +292,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
     
-    // Vendor First Name Personalization Logic
+    // Vendor First Name Personalized Logic
     const fullStoreName = document.getElementById('store-name-display').innerText;
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     const personalizedTitle = `${vendorName}'s Showroom`;
@@ -300,7 +301,7 @@ window.promptShowroomChoice = (id) => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
-            <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">${personalizedTitle}</h2>
+            <h2 style="font-weight:900; font-size:1.4rem; color:#111; margin:20px 0; text-transform:capitalize;">${personalizedTitle}</h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
@@ -341,11 +342,17 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
+    // Captured Vendor Name for global application
+    const fullStoreName = document.getElementById('store-name-display').innerText;
+    const vendorName = fullStoreName.split(' ')[0] || "Vendor";
+    
     resDiv.innerHTML = `
         <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <h2 style="font-weight:900; font-size:1.6rem; margin-bottom:5px;"><b>${vendorName}'s Showroom</b></h2>
+            <h3 style="font-weight:800; font-size:1.1rem; color:#666; margin-bottom:20px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
-            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
+            <p style="margin-top:25px; font-weight:700; color:#e60023; font-size:0.85rem;">PREPARING YOUR AI PREVIEW...</p>
         </div>`;
 };
 
