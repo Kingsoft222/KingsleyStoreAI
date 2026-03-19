@@ -41,13 +41,13 @@ let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", s
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
 let localUserBase64 = "";
-window.activeGreetings = []; 
+window.activeGreetings = ["Welcome!"]; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Professional Integration ---
+// --- Chatway Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Efficient Menu Button logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -95,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
                 searchInput.oninput = window.executeSearch;
-                // Protection against widget overlap when using input
                 searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
                 searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
@@ -117,6 +115,16 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // Greetings Restoration
+            const greetingEl = document.getElementById('dynamic-greeting');
+            if (data.greetingsEnabled !== false) {
+                window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
+                if (greetingEl) {
+                    greetingEl.innerText = window.activeGreetings[0];
+                    greetingEl.style.display = 'block';
+                }
+            } else if (greetingEl) { greetingEl.style.display = 'none'; }
+
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
                 window.renderProducts(storeCatalog);
@@ -127,16 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && window.activeGreetings.length > 0) { 
-            el.innerText = window.activeGreetings[gIndex % window.activeGreetings.length]; 
-            gIndex++; 
+        if (el && window.activeGreetings.length > 1) { 
+            gIndex = (gIndex + 1) % window.activeGreetings.length;
+            el.innerText = window.activeGreetings[gIndex]; 
         }
     }, 4000);
 
     initVoiceSearch();
 });
 
-// Render logic to ensure catalog items are not "dummy"
+// Restoration of dynamic lists to ensure items are clickable/tappable
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
@@ -151,39 +159,37 @@ window.renderProducts = (items) => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Removal of dummy icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
-        
-        /* Harmonized 2-Column Grid for Laptop and Mobile */
-        #ai-results {
+        /* Laptop Grid Harmonization - Force 2 columns to match mobile */
+        #ai-results, #product-list, #main-catalog {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 15px !important;
+            gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
+            box-sizing: border-box !important;
         }
 
-        /* Interactivity Shield: Ensure taps hit products, not invisible widget layers */
+        /* Interactivity Shield - Absolute priority for products */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
-            padding: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            padding: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
-            z-index: 1000 !important; 
+            z-index: 9999 !important; 
             overflow: hidden;
         }
         .result-card:active { transform: scale(0.96); }
-        .result-card img { pointer-events: none; border-radius: 10px; width: 100%; height: auto; object-fit: cover; }
+        .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* High-Fidelity Showroom Elements */
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 20000; }
+        /* High-Fidelity Showroom Components */
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 20000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 20005; border: 2px solid rgba(255,255,255,0.4); }
+        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 20005; border: 2px solid rgba(255,255,255,0.4); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
