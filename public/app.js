@@ -43,7 +43,6 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 let localUserBase64 = "";
 window.activeGreetings = []; 
 let gIndex = 0;
-let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
@@ -70,8 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            // Original top-left quadrant search
-            const isTopLeft = rect.top < 150 && rect.left < 150 && rect.width > 0;
+            // Target the top-left quadrant for the menu icon
+            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
         });
@@ -81,7 +80,8 @@ document.addEventListener('DOMContentLoaded', () => {
             menuBtn.classList.add('scrollable-sidebar-icon');
             menuBtn.style.pointerEvents = 'auto';
             menuBtn.style.cursor = 'pointer';
-            menuBtn.style.zIndex = '10000';
+            menuBtn.style.zIndex = '20000';
+            // Explicitly set the click listener for tap responsiveness
             menuBtn.onclick = (e) => { 
                 e.preventDefault(); 
                 e.stopPropagation();
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     findAndEnableMenu();
-    setInterval(findAndEnableMenu, 2000);
+    setInterval(findAndEnableMenu, 1500);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -154,40 +154,40 @@ function initGlobalUIStyles() {
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
         /* RESTORE ORIGINAL NATURAL SCROLLING: EVERYTHING SCROLLS */
-        body { overflow-x: hidden; overflow-y: auto; padding-top: 0; min-height: 100vh; }
+        body { overflow-x: hidden; overflow-y: auto; padding-top: 0; min-height: 100vh; position: relative; }
         
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon: Opposite Sidebar (Top-Right), scrolling naturally */
+        /* Cart Icon: Directly opposite sidebar (Top-Right), scrolling naturally */
         #cart-icon-wrapper {
             position: absolute !important;
             top: 20px !important;
             right: 20px !important;
-            z-index: 10000 !important;
+            z-index: 20000 !important;
             background: #fff;
             padding: 8px;
-            border-radius: 10px;
+            border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Sidebar Icon: Top-Left, scrolling naturally */
+        /* Sidebar Icon: Top-Left quadrant, scrolling naturally */
         .scrollable-sidebar-icon {
             position: absolute !important;
             top: 20px !important;
             left: 20px !important;
-            z-index: 10000 !important;
+            z-index: 20000 !important;
             background: #fff !important;
             padding: 8px !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH RESULTS: Natural flow expands the page, viewing branding while scrolling */
+        /* SEARCH RESULTS: Natural flow inside viewport, branding stays visible while scrolling */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -199,12 +199,11 @@ function initGlobalUIStyles() {
             margin-bottom: 20px !important;
             z-index: 500 !important;
             background: transparent;
-            /* Allow results to expand page instead of internal scrolling */
-            max-height: none !important; 
+            max-height: none !important;
             overflow: visible !important;
         }
 
-        /* MODAL: SINGLE PROFESSIONAL LAYER - FLATTENED */
+        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER - NO 2-IN-1Display */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -219,7 +218,7 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
@@ -240,8 +239,8 @@ function initGlobalUIStyles() {
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
 
-        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
-        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
+        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 30000; display: none; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 30001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
@@ -249,6 +248,7 @@ function initGlobalUIStyles() {
 }
 
 const ensureCartIconExists = () => {
+    // Only one cart icon on the right
     if (document.getElementById('cart-icon-wrapper')) return;
     const cartDiv = document.createElement('div');
     cartDiv.id = 'cart-icon-wrapper';
@@ -267,7 +267,7 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR BAG IS EMPTY</h2><p style="color:#666;">Select items to see them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">BAG IS EMPTY</h2><p style="color:#666;">Choose products to add them here.</p></div>`;
         return;
     }
 
@@ -296,7 +296,7 @@ window.openCart = () => {
 
 window.handleOrder = () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
+    const msg = `🛡️ *ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
     window.open(waUrl, '_blank');
     cart = [];
@@ -309,7 +309,17 @@ window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
+    
+    // Exact word matching to prevent scattered tags
+    const filtered = storeCatalog.filter(c => {
+        const name = c.name.toLowerCase();
+        const tags = c.tags ? c.tags.toLowerCase() : "";
+        // Match specific word boundary for precision
+        const matchName = new RegExp('\\b' + query + '\\b').test(name);
+        const matchTags = new RegExp('\\b' + query + '\\b').test(tags);
+        return matchName || matchTags;
+    });
+    
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
@@ -330,13 +340,13 @@ window.promptShowroomChoice = (id) => {
 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    // REMOVED NESTING: Single professional card layer
+    // REMOVED 2-IN-1: Single card layer
     resDiv.innerHTML = `
         <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+            <h2 style="font-weight:900; font-size:1.2rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
-                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:1rem;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.1rem; margin-bottom:12px;">₦${selectedCloth.price.toLocaleString()}</p>
                 <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase; width:100%;">Wear it! ✨</button>
             </div>
@@ -361,7 +371,7 @@ window.proceedToUpload = () => {
         <div class="modal-body-flat" style="padding:40px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.3rem;">FINISH YOUR LOOK</h2>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.4rem;">FINISH YOUR LOOK</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
             <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:0.9rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
         </div>`;
