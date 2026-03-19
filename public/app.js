@@ -203,7 +203,7 @@ function initGlobalUIStyles() {
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 55vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
@@ -217,11 +217,17 @@ function initGlobalUIStyles() {
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Support Center Centering Fix */
         .support-center-wrapper {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             display: flex; align-items: center; justify-content: center;
             background: rgba(0,0,0,0.1); z-index: 40000;
+        }
+
+        .modal-flat-container {
+            background: white; width: 92%; max-width: 420px; 
+            margin: auto; border-radius: 24px; padding: 20px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15); 
+            position: relative; overflow: hidden;
         }
     `;
     document.head.appendChild(style);
@@ -292,16 +298,12 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
     
-    const fullStoreName = document.getElementById('store-name-display').innerText;
-    const vendorName = fullStoreName.split(' ')[0] || "Vendor";
-    const personalizedTitle = `${vendorName}'s Showroom`;
-
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="background: white; width: 90%; max-width: 400px; margin: auto; border-radius: 20px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative;">
-            <div style="text-align:center; position:relative;">
-                <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">${personalizedTitle}</h2>
+        <div class="modal-flat-container">
+            <div style="text-align:center;">
+                <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">Product Preview</h2>
                 <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
                 <div style="padding:15px 10px;">
                     <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
@@ -327,7 +329,7 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="background: white; width: 90%; max-width: 400px; margin: auto; border-radius: 20px; padding: 40px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align:center; position:relative;">
+        <div class="modal-flat-container" style="padding: 40px 20px; text-align:center;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
@@ -347,9 +349,9 @@ window.startTryOn = async () => {
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     
     resDiv.innerHTML = `
-        <div style="background: white; width: 90%; max-width: 400px; margin: auto; border-radius: 20px; padding: 80px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); position:relative; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px;">
+        <div class="modal-flat-container" style="padding: 60px 20px; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:420px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color: red; font-weight: 900; font-size: 1.2rem; margin-bottom: 20px; text-transform: uppercase;">${vendorName}'s Showroom</h2>
+            <h2 style="color: red; font-weight: 900; font-size: 1.3rem; margin-bottom: 25px; text-transform: uppercase;">${vendorName}'s Showroom</h2>
             <div class="dotted-spinner"></div>
             <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
         </div>`;
