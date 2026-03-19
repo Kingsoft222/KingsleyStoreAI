@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    initChatwayObserver(); // New logic to force Chatway position
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -93,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic for keyboard space
                 searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
                 searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
             }
@@ -137,26 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// Logic to force Chatway above store ads as soon as it appears
-function initChatwayObserver() {
-    const observer = new MutationObserver(() => {
-        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
-        if (widget) {
-            widget.style.setProperty('bottom', '450px', 'important');
-            widget.style.setProperty('right', '20px', 'important');
-            widget.style.setProperty('position', 'fixed', 'important');
-        }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-}
-
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of any previous custom heads or icons to clear UI */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], [class*="headphones"] { display: none !important; }
+        /* Final Permanent Removal of any previous custom floating Heads/Bubbles */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
         
-        /* Force Chatway to move above store ads using strict positioning */
+        /* Fixed Positioning for Chatway above store ads */
         #chatway-widget-container, .chatway-widget-container, div[id^="chatway-"] { 
             bottom: 450px !important; 
             right: 20px !important; 
@@ -172,15 +157,7 @@ function initGlobalUIStyles() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        /* Professional Circular Spinner */
-        .circular-loader { 
-            border: 4px solid rgba(230, 0, 35, 0.1); 
-            border-top: 4px solid #e60023; 
-            border-radius: 50%; 
-            width: 45px; 
-            height: 45px; 
-            animation: spin-loader 0.8s linear infinite; 
-        }
+        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
@@ -250,7 +227,7 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
-    const SpeechRecognition = window.window.SpeechRecognition || window.window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
@@ -387,4 +364,4 @@ window.executeSearch = () => {
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); }
+window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
