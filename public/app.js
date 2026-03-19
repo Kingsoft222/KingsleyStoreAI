@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
+            // Original top-left quadrant search
             const isTopLeft = rect.top < 150 && rect.left < 150 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             menuBtn.classList.add('scrollable-sidebar-icon');
             menuBtn.style.pointerEvents = 'auto';
             menuBtn.style.cursor = 'pointer';
+            menuBtn.style.zIndex = '10000';
             menuBtn.onclick = (e) => { 
                 e.preventDefault(); 
                 e.stopPropagation();
@@ -151,41 +153,41 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* SCROLLABLE PAGE FLOW */
-        body { overflow-x: hidden; overflow-y: auto; }
+        /* RESTORE ORIGINAL NATURAL SCROLLING: EVERYTHING SCROLLS */
+        body { overflow-x: hidden; overflow-y: auto; padding-top: 0; min-height: 100vh; }
         
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon: Directly opposite sidebar (Top-Right), scrolls with page */
+        /* Cart Icon: Opposite Sidebar (Top-Right), scrolling naturally */
         #cart-icon-wrapper {
             position: absolute !important;
             top: 20px !important;
             right: 20px !important;
-            z-index: 1000 !important;
+            z-index: 10000 !important;
             background: #fff;
             padding: 8px;
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Sidebar Icon: Top-Left, scrolls with page */
+        /* Sidebar Icon: Top-Left, scrolling naturally */
         .scrollable-sidebar-icon {
             position: absolute !important;
             top: 20px !important;
             left: 20px !important;
-            z-index: 1000 !important;
+            z-index: 10000 !important;
             background: #fff !important;
             padding: 8px !important;
-            border-radius: 12px !important;
+            border-radius: 10px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH RESULTS: Natural flow inside viewport, viewing branding while scrolling */
+        /* SEARCH RESULTS: Natural flow expands the page, viewing branding while scrolling */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -194,8 +196,12 @@ function initGlobalUIStyles() {
             width: 100% !important;
             position: relative !important;
             margin-top: 20px !important;
+            margin-bottom: 20px !important;
             z-index: 500 !important;
             background: transparent;
+            /* Allow results to expand page instead of internal scrolling */
+            max-height: none !important; 
+            overflow: visible !important;
         }
 
         /* MODAL: SINGLE PROFESSIONAL LAYER - FLATTENED */
@@ -213,12 +219,12 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
 
-        @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .dotted-spinner {
             width: 50px; height: 50px;
@@ -261,7 +267,7 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR BAG IS EMPTY</h2><p style="color:#666;">Browse products to add them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR BAG IS EMPTY</h2><p style="color:#666;">Select items to see them here.</p></div>`;
         return;
     }
 
