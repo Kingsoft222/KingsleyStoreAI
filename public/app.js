@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Locked) ---
+// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Initial Greeting State Restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -70,13 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
+            const isTopLeft = rect.top < 120 && rect.left < 100 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
         });
 
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
+            menuBtn.classList.add('fixed-sidebar-icon');
             menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Restore Store Ads
+            // Restore Store Front Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -114,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // Handle Greetings Logic
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -160,17 +159,31 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* SEARCH VIEWPORT DOCKING: Tucked inside, prevents floating/overflow */
+        /* FIXED VENDOR HEADER: Stays while mall scrolls */
+        #owner-img, #store-name-display, #dynamic-greeting {
+            position: relative;
+            z-index: 100;
+        }
+        
+        .fixed-sidebar-icon {
+            position: fixed !important;
+            top: 20px !important;
+            left: 20px !important;
+            z-index: 20000 !important;
+        }
+
+        /* PROFESSIONAL TUCKING & SCROLLING: Search results docking */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
-            max-height: 60vh !important;
+            max-height: 58vh !important; 
             overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
             position: absolute !important;
-            bottom: 85px !important;
+            bottom: 90px !important;
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
@@ -186,6 +199,7 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
+            margin-top: 10px;
         }
 
         .result-card { 
@@ -196,20 +210,9 @@ function initGlobalUIStyles() {
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s ease; 
-            z-index: 10 !important;
         }
 
-        /* Centered Dotted Spinner */
-        .dotted-spinner {
-            width: 50px; height: 50px;
-            border: 5px dotted #e60023;
-            border-radius: 50%;
-            animation: spin-dotted 2s linear infinite;
-            margin: 15px auto;
-        }
-        @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* PROFESSIONAL SINGLE MODAL FIX */
+        /* SINGLE PROFESSIONAL MODAL */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -219,7 +222,7 @@ function initGlobalUIStyles() {
         .modal-body-content {
             background: #fff;
             width: 90%;
-            max-width: 380px; /* Reduced for Showroom/Loader */
+            max-width: 380px; 
             border-radius: 28px;
             overflow: hidden;
             position: relative;
@@ -232,7 +235,7 @@ function initGlobalUIStyles() {
         .support-body-content {
             background: #fff;
             width: 92%;
-            max-width: 480px; /* Standard Support Size */
+            max-width: 480px;
             border-radius: 30px;
             padding: 50px 20px;
             position: relative;
@@ -241,7 +244,17 @@ function initGlobalUIStyles() {
 
         @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 52vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        /* Centered Dotted Spinner */
+        .dotted-spinner {
+            width: 50px; height: 50px;
+            border: 5px dotted #e60023;
+            border-radius: 50%;
+            animation: spin-dotted 2s linear infinite;
+            margin: 15px auto;
+        }
+        @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 30000; border: 1.5px solid rgba(255,255,255,0.3); }
@@ -249,7 +262,7 @@ function initGlobalUIStyles() {
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
     document.head.appendChild(style);
 }
@@ -305,7 +318,7 @@ window.executeSearch = () => {
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}" style="pointer-events:none;">
+            <img src="${item.imgUrl}">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:8px; font-size:0.8rem;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
