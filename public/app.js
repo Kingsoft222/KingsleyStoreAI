@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // Greetings Rotation Restoration
+            // Greetings Restoration
             const greetingEl = document.getElementById('dynamic-greeting');
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// Logic to ensure product lists are fully interactive and NOT dummy
+// Restoration of product list rendering to ensure items are NOT "dummy"
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
@@ -159,9 +159,10 @@ window.renderProducts = (items) => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
+        /* Removal of dummy icons */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Force 2-column grid everywhere (Laptop/Mobile Harmonization) */
+        /* Harmonized 2-Column Grid for Laptop and Mobile */
         #ai-results, #product-list, #main-catalog {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -171,30 +172,32 @@ function initGlobalUIStyles() {
             box-sizing: border-box !important;
         }
 
-        /* High Interactivity Priority */
+        /* Interactivity Shield: Ensure clicks hit products, not widget containers */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
             padding: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
-            z-index: 10000 !important; 
+            z-index: 1000 !important; 
+            overflow: hidden;
         }
         .result-card:active { transform: scale(0.96); }
+        .result-card img { pointer-events: none; border-radius: 10px; width: 100%; height: auto; object-fit: cover; }
 
         /* High-Fidelity Showroom Components */
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 20000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
+        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 40px; height: 40px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 20005; border: 2px solid rgba(255,255,255,0.4); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
-        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; transition: 0.2s; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; }
 
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -272,7 +275,7 @@ window.closeFittingRoom = () => {
     if (window.chatway) window.chatway.show();
 };
 
-// Full Interactivity Showroom logic
+// High-Fidelity Showroom Restoration with Zoom and Pan
 window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     const clothId = String(id);
@@ -288,10 +291,10 @@ window.promptShowroomChoice = (id) => {
                 <img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img">
             </div>
             <div style="padding:15px 10px;">
-                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:1.2rem;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
                 <p style="color:#888; font-size:0.75rem; margin-bottom:15px;">Tap to zoom & move to inspect</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; cursor:pointer; border:none; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; box-shadow: 0 8px 20px rgba(230,0,35,0.3);">Wear it! ✨</button>
             </div>
         </div>`;
     
