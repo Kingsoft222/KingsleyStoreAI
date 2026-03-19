@@ -63,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initGlobalUIStyles(); 
     ensureCartIconExists();
     
-    // Greeting state restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -71,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
+            // Look for icons in the top-left area
+            const isTopLeft = rect.top < 150 && rect.left < 150 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
         });
@@ -79,12 +79,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
             menuBtn.classList.add('fixed-sidebar-icon');
-            menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
+            menuBtn.style.pointerEvents = 'auto';
+            menuBtn.style.cursor = 'pointer';
+            menuBtn.onclick = (e) => { 
+                e.preventDefault(); 
+                e.stopPropagation();
+                window.openOptionsMenu(); 
+            };
         }
     };
 
     findAndEnableMenu();
-    setInterval(findAndEnableMenu, 3000);
+    setInterval(findAndEnableMenu, 2000);
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
@@ -146,34 +152,38 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL FLOW: Natural scrolling, no fixed overlap mess */
+        /* ORIGINAL FLOW RESTORED */
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon Restoration: Permanent Top Right Position */
+        /* Cart Icon: Pinned Top Left near sidebar */
         #cart-icon-wrapper {
             position: fixed !important;
             top: 20px !important;
-            right: 20px !important;
+            left: 75px !important; /* Spaced to be next to sidebar icon */
             z-index: 45000 !important;
             background: #fff;
-            padding: 10px;
-            border-radius: 50%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             cursor: pointer;
             display: flex; align-items: center; justify-content: center;
         }
 
         .fixed-sidebar-icon {
             position: fixed !important;
-            top: 25px !important;
+            top: 20px !important;
             left: 20px !important;
-            z-index: 40000 !important;
+            z-index: 45000 !important;
+            background: #fff !important;
+            padding: 8px !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH VIEWPORT TUCKING: DOCKED ABOVE SEARCH BAR, SCROLLABLE */
+        /* SEARCH VIEWPORT: Tucked, docked, and strictly scrollable */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -183,26 +193,27 @@ function initGlobalUIStyles() {
             max-height: 55vh !important; 
             overflow-y: auto !important;
             position: fixed !important;
-            bottom: 100px !important; /* Forces results to stay above search bar */
+            bottom: 100px !important;
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
             border-top-left-radius: 30px;
             border-top-right-radius: 30px;
+            pointer-events: auto !important;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER - NO 2-IN-1Display */
+        /* SINGLE PROFESSIONAL MODAL LAYER - NO NESTING */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             z-index: 50000; align-items: center; justify-content: center;
         }
 
         .modal-body-flat {
             background: #fff;
-            width: 88%;
+            width: 90%;
             max-width: 380px; 
             border-radius: 28px;
             overflow: hidden;
@@ -228,11 +239,6 @@ function initGlobalUIStyles() {
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
-
-        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
-        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
-        #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
     document.head.appendChild(style);
 }
@@ -244,8 +250,8 @@ const ensureCartIconExists = () => {
     cartDiv.onclick = window.openCart;
     cartDiv.innerHTML = `
         <div style="position:relative;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            <span id="cart-count-badge" style="position:absolute; top:-8px; right:-8px; background:#e60023; color:white; font-size:10px; font-weight:bold; border-radius:50%; padding:2px 5px; min-width:18px; text-align:center;">0</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            <span id="cart-count-badge" style="position:absolute; top:-10px; right:-10px; background:#e60023; color:white; font-size:9px; font-weight:bold; border-radius:50%; padding:2px 4px; min-width:16px; text-align:center;">0</span>
         </div>`;
     document.body.appendChild(cartDiv);
 };
@@ -256,36 +262,36 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR CART IS EMPTY</h2><p style="color:#666; margin-top:10px;">Select products from the mall to see them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">CART IS EMPTY</h2><p style="color:#666;">Add products to see them here.</p></div>`;
         return;
     }
 
     const cartHtml = cart.map((item, idx) => `
-        <div style="display:flex; align-items:center; gap:15px; background:#f9f9f9; padding:10px; border-radius:12px; margin-bottom:10px; position:relative;">
-            <img src="${item.imgUrl}" style="width:60px; height:60px; object-fit:cover; border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:12px; background:#f5f5f5; padding:8px; border-radius:12px; margin-bottom:8px; position:relative;">
+            <img src="${item.imgUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:8px;">
             <div style="text-align:left;">
-                <h4 style="font-size:0.85rem; font-weight:800; margin:0;">${item.name}</h4>
-                <p style="color:#e60023; font-weight:800; margin:3px 0 0;">₦${item.price.toLocaleString()}</p>
+                <h4 style="font-size:0.8rem; font-weight:800; margin:0;">${item.name}</h4>
+                <p style="color:#e60023; font-weight:800; margin:0;">₦${item.price.toLocaleString()}</p>
             </div>
-            <button onclick="window.removeFromCart(${idx}); window.openCart();" style="position:absolute; right:10px; background:none; border:none; color:#ccc; font-size:1.2rem; cursor:pointer;">✕</button>
+            <button onclick="window.removeFromCart(${idx}); window.openCart();" style="position:absolute; right:10px; background:none; border:none; color:#bbb; font-size:1.1rem; cursor:pointer;">✕</button>
         </div>`).join('');
 
     const total = cart.reduce((s, i) => s + i.price, 0);
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="max-height:85vh; overflow-y:auto; padding-top:40px;">
+        <div class="modal-body-flat" style="max-height:80vh; overflow-y:auto;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.3rem; margin-bottom:20px;">SHOPPING CART</h2>
-            <div style="padding:0 5px;">${cartHtml}</div>
-            <div style="margin-top:20px; border-top:2px dashed #eee; padding-top:15px;">
-                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; margin-bottom:20px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
-                <button onclick="window.handleOrder()" style="background:#25D366; color:white; width:100%; padding:18px; border-radius:15px; font-weight:900; border:none; cursor:pointer; font-size:1rem;">CHECKOUT VIA WHATSAPP</button>
+            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:15px;">MY CART</h2>
+            <div>${cartHtml}</div>
+            <div style="margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
+                <div style="display:flex; justify-content:space-between; font-weight:900; margin-bottom:15px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
+                <button onclick="window.handleOrder()" style="background:#25D366; color:white; width:100%; padding:15px; border-radius:12px; font-weight:900; border:none; cursor:pointer;">ORDER ON WHATSAPP</button>
             </div>
         </div>`;
 };
 
 window.handleOrder = () => {
     const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
+    const msg = `🛡️ *VERIFIED ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
     const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
     window.open(waUrl, '_blank');
     cart = [];
@@ -319,17 +325,15 @@ window.promptShowroomChoice = (id) => {
 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    // ONLY ONE LAYER - NO NESTING
     resDiv.innerHTML = `
         <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+            <h2 style="font-weight:900; font-size:1.1rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.1rem; margin-bottom:12px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <div style="display:flex; gap:10px;">
-                    <button onclick="window.proceedToUpload()" style="flex:1; background:#e60023; color:white; padding:18px; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:0.9rem;">WEAR IT! ✨</button>
-                    <button onclick="window.addToCartFromShowroom()" style="flex:1; background:#111; color:white; padding:18px; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:0.9rem;">ADD TO CART</button>
-                </div>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase;">Wear it! ✨</button>
             </div>
         </div>`;
     
@@ -344,15 +348,6 @@ window.promptShowroomChoice = (id) => {
     };
     container.onclick = (e) => { if (e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); };
     container.onmousemove = handlePan; container.ontouchmove = handlePan;
-};
-
-window.addToCartFromShowroom = () => {
-    if (selectedCloth) {
-        cart.push(selectedCloth);
-        localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
-        updateCartUI();
-        window.closeFittingRoom();
-    }
 };
 
 window.proceedToUpload = () => {
@@ -380,7 +375,7 @@ window.startTryOn = async () => {
     resDiv.innerHTML = `
         <div class="modal-body-flat" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.25rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
+            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
             <p style="margin-top:20px; font-weight:700; color:#e60023; font-size:0.75rem; text-transform:uppercase;">PREPARING YOUR AI PREVIEW...</p>
