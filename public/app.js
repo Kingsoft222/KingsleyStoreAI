@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
+    initChatwayObserver();
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -136,11 +137,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
+// Logic to force Chatway above store ads as soon as it appears
+function initChatwayObserver() {
+    const observer = new MutationObserver(() => {
+        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
+        if (widget) {
+            widget.style.setProperty('bottom', '450px', 'important');
+            widget.style.setProperty('right', '20px', 'important');
+            widget.style.setProperty('position', 'fixed', 'important');
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
         /* Permanent Removal of custom heads/icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
         
         /* Force Chatway Positioning above store ads */
         #chatway-widget-container, .chatway-widget-container, div[id^="chatway-"] { 
@@ -205,7 +219,9 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (window.chatway && window.chatway.open) { 
-        window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); 
+        window.chatway.show(); 
+        window.chatway.open(); 
+        window.closeFittingRoom(); 
     }
 };
 
@@ -232,6 +248,7 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
+    // Fix: Remove extra .window reference to prevent site crash
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
@@ -365,13 +382,16 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Restore Interaction: Explicitly bind promptShowroomChoice to the window and wrap ID in standard quotes
-    results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer;">
+    // Fix Interactivity: Ensure item.id is safely handled as a string for the onclick handler
+    results.innerHTML = filtered.map(item => {
+        const escapedId = String(item.id).replace(/'/g, "\\'");
+        return `
+        <div class="result-card" onclick="window.promptShowroomChoice('${escapedId}')" style="cursor:pointer;">
             <img src="${item.imgUrl}" style="pointer-events:none;">
             <h4 class="cart-item-name">${item.name}</h4>
             <p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p>
-        </div>`).join('');
+        </div>`;
+    }).join('');
 };
 
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
