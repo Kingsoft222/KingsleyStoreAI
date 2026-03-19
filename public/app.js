@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Locked) ---
+// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Greeting state restoration
+    // Greeting restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            const isTopLeft = rect.top < 120 && rect.left < 100 && rect.width > 0;
+            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
         });
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Restore Store Front Ads
+            // Restore Store Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -159,44 +159,49 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* FIXED VENDOR HEADER: High-priority layering so products scroll UNDER */
-        #owner-img, #store-name-display, #dynamic-greeting, .fixed-sidebar-icon {
-            position: relative;
+        /* FIXED SOLID HEADER: Products scroll behind, not through */
+        .store-header-fixed {
+            position: fixed !important;
+            top: 0; left: 0; width: 100%;
             z-index: 20000 !important;
+            padding: 20px 0 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* Cart Icon: Fixed Top Right corner */
-        [id*="cart-icon"], .cart-container, #cart-count-parent {
+        /* Cart Icon: Permanent Top Right corner */
+        [id*="cart-icon"], .cart-container, #cart-count-parent, .shopping-cart-fixed {
             position: fixed !important;
-            top: 20px !important;
-            right: 20px !important;
-            z-index: 20001 !important;
+            top: 25px !important;
+            right: 25px !important;
+            z-index: 21000 !important;
         }
         
         .fixed-sidebar-icon {
             position: fixed !important;
             top: 25px !important;
             left: 20px !important;
+            z-index: 21000 !important;
         }
 
-        /* PROFESSIONAL TUCKING & SCROLLING */
+        /* PROFESSIONAL TUCKING & SCROLLING: dock results inside viewport */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
-            padding: 10px !important;
+            padding: 15px !important;
             width: 100% !important;
-            max-height: 58vh !important; 
+            max-height: 55vh !important; 
             overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
             position: absolute !important;
-            bottom: 85px !important;
+            bottom: 90px !important;
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            -webkit-overflow-scrolling: touch;
+            box-shadow: 0 -15px 30px rgba(0,0,0,0.1);
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
         }
 
         #product-list, #main-catalog {
@@ -206,20 +211,10 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            margin-top: 130px; /* Spacer for fixed vendor header */
+            margin-top: 160px; /* Space for the solid fixed header */
         }
 
-        .result-card { 
-            background: #ffffff !important; 
-            border-radius: 14px; 
-            padding: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
-            cursor: pointer !important; 
-            pointer-events: auto !important; 
-            transition: transform 0.2s ease; 
-        }
-
-        /* UNIFIED SINGLE PROFESSIONAL MODAL */
+        /* MODAL: REMOVED 2-IN-1 CLUTTER */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -228,20 +223,19 @@ function initGlobalUIStyles() {
 
         .modal-body-content {
             background: #fff;
-            width: 90%;
+            width: 88%;
             max-width: 380px; 
             border-radius: 28px;
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
 
-        @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* Centered Dotted Spinner */
         .dotted-spinner {
             width: 50px; height: 50px;
             border: 5px dotted #e60023;
@@ -251,7 +245,7 @@ function initGlobalUIStyles() {
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 48vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 45vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 40000; border: 1.5px solid rgba(255,255,255,0.3); }
@@ -259,7 +253,7 @@ function initGlobalUIStyles() {
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; }
     `;
     document.head.appendChild(style);
 }
@@ -302,7 +296,7 @@ window.openChatPage = () => {
             <div class="dotted-spinner" style="margin-bottom: 25px;"></div>
             <h2 style="font-weight: 900; color: #111; font-size: 1.7rem; letter-spacing: -1px; margin-bottom: 5px;">SUPPORT CENTER</h2>
             <p style="color: #666; font-weight: 500; font-size: 0.95rem; line-height: 1.5; max-width: 290px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait...</p>
-            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Return to Mall</button>
+            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem;">Return to Mall</button>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
 };
@@ -391,10 +385,18 @@ window.startTryOn = async () => {
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const adaptiveTextColor = isDarkMode ? 'white' : 'black';
+    const bgColor = isDarkMode ? '#111' : '#f9f9f9';
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
-    styleTag.innerHTML = `#dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
+    styleTag.innerHTML = `
+        #dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } 
+        #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#fff'}; }
+        .store-header-fixed { background: ${bgColor} !important; }
+    `;
+    // Ensure fixed wrapper applied to header elements
+    const h = document.getElementById('owner-img').parentElement;
+    if (h) h.classList.add('store-header-fixed');
 }
 
 function initVoiceSearch() {
