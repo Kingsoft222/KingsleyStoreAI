@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Smart Hide Logic for Search
+                // Smart Hide Logic for keyboard space
                 searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
                 searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
             }
@@ -139,11 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of any previous custom heads or icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
+        /* Permanent Removal of any previous custom heads or icons to clear UI */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], [class*="headphones"] { display: none !important; }
         
-        /* Force Chatway to stay fixed above store ads */
-        #chatway-widget-container, .chatway-widget-container { 
+        /* Force Chatway to move above store ads using strict positioning */
+        #chatway-widget-container, .chatway-widget-container, div[id^="chatway-"] { 
             bottom: 450px !important; 
             right: 20px !important; 
             position: fixed !important;
@@ -158,7 +158,15 @@ function initGlobalUIStyles() {
         .sidebar-active { background: #e9eef6; border-radius: 0 30px 30px 0; margin-right: 12px; color: #0b57d0 !important; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 1s linear infinite; }
+        /* Professional Circular Spinner */
+        .circular-loader { 
+            border: 4px solid rgba(230, 0, 35, 0.1); 
+            border-top: 4px solid #e60023; 
+            border-radius: 50%; 
+            width: 45px; 
+            height: 45px; 
+            animation: spin-loader 0.8s linear infinite; 
+        }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
@@ -199,7 +207,9 @@ window.openOptionsMenu = () => {
 
 window.openChatSupport = () => {
     if (window.chatway && window.chatway.open) { 
-        window.chatway.show(); window.chatway.open(); window.closeFittingRoom(); 
+        window.chatway.show(); 
+        window.chatway.open(); 
+        window.closeFittingRoom(); 
     }
 };
 
