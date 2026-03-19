@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Integration ---
+// --- Chatway Professional Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -91,6 +91,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
                 searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
+
+            // Restore Store Front Ads (Banners)
+            const container = document.getElementById('quick-search-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')" style="background:#111; color:white; padding:15px; border-radius:12px; flex:1; cursor:pointer; text-align:left; border:1px solid #333;">
+                        <h4 style="margin:0; font-size:1rem; color:white;">${data.label1 || 'Ladies Wear'}</h4>
+                        <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Shop exclusive wear</p>
+                    </div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')" style="background:#111; color:white; padding:15px; border-radius:12px; flex:1; cursor:pointer; text-align:left; border:1px solid #333;">
+                        <h4 style="margin:0; font-size:1rem; color:white;">${data.label2 || 'Dinner Wear'}</h4>
+                        <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Perfect styles for you</p>
+                    </div>`;
+            }
             
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
@@ -125,10 +139,10 @@ window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
-            <img src="${item.imgUrl}" alt="${item.name}">
-            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
-            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
+            <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; font-size:0.9rem;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
@@ -137,18 +151,28 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Fixed Sizing and 2-Column Harmonization */
-        #ai-results, #product-list, #main-catalog {
+        /* Harmonized 2-Column Grid (Push Search Results Above) */
+        #ai-results {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+            padding: 10px !important;
+            width: 100% !important;
+            position: relative;
+            z-index: 100 !important;
+            background: transparent;
+        }
+
+        #product-list, #main-catalog {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            z-index: 10 !important;
         }
 
-        /* Interactivity Restoration Logic */
+        /* Interactivity Shield */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
@@ -158,11 +182,13 @@ function initGlobalUIStyles() {
             pointer-events: all !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
-            z-index: 50 !important; 
+            z-index: 500 !important; 
+            overflow: hidden;
         }
+        .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* Showroom & Zoom Restoration */
+        /* High-Fidelity Showroom Components */
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
@@ -210,8 +236,9 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
+    // Forced priority click binding for search results
     results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
@@ -238,8 +265,8 @@ window.promptShowroomChoice = (id) => {
     const handlePan = (e) => {
         if (!img.classList.contains('zoomed')) return;
         const rect = container.getBoundingClientRect();
-        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches[0].clientX);
-        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches[0].clientY);
+        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
         const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100;
         img.style.transformOrigin = `${x}% ${y}%`;
     };
@@ -267,7 +294,6 @@ window.handleCustomerUpload = (e) => {
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="circular-loader"></div><p style="margin-top:25px; font-weight:800; color:#e60023;">Stitching your outfit...</p></div>`;
-    // AI fetch logic remains as per original API setup...
 };
 
 function applyDynamicThemeStyles() {
