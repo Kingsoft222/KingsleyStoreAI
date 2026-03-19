@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection (Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
+    // Greeting state restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -77,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
             menuBtn.classList.add('fixed-sidebar-icon');
-            menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
     };
@@ -159,20 +159,27 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* FIXED VENDOR HEADER: Stays while mall scrolls */
-        #owner-img, #store-name-display, #dynamic-greeting {
+        /* FIXED VENDOR HEADER: High-priority layering so products scroll UNDER */
+        #owner-img, #store-name-display, #dynamic-greeting, .fixed-sidebar-icon {
             position: relative;
-            z-index: 100;
+            z-index: 20000 !important;
+        }
+
+        /* Cart Icon: Fixed Top Right corner */
+        [id*="cart-icon"], .cart-container, #cart-count-parent {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 20001 !important;
         }
         
         .fixed-sidebar-icon {
             position: fixed !important;
-            top: 20px !important;
+            top: 25px !important;
             left: 20px !important;
-            z-index: 20000 !important;
         }
 
-        /* PROFESSIONAL TUCKING & SCROLLING: Search results docking */
+        /* PROFESSIONAL TUCKING & SCROLLING */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -181,15 +188,15 @@ function initGlobalUIStyles() {
             width: 100% !important;
             max-height: 58vh !important; 
             overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch;
             position: absolute !important;
-            bottom: 90px !important;
+            bottom: 85px !important;
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
             box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
             border-top-left-radius: 20px;
             border-top-right-radius: 20px;
+            -webkit-overflow-scrolling: touch;
         }
 
         #product-list, #main-catalog {
@@ -199,7 +206,7 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            margin-top: 10px;
+            margin-top: 130px; /* Spacer for fixed vendor header */
         }
 
         .result-card { 
@@ -212,11 +219,11 @@ function initGlobalUIStyles() {
             transition: transform 0.2s ease; 
         }
 
-        /* SINGLE PROFESSIONAL MODAL */
+        /* UNIFIED SINGLE PROFESSIONAL MODAL */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 25000; align-items: center; justify-content: center;
+            z-index: 30000; align-items: center; justify-content: center;
         }
 
         .modal-body-content {
@@ -232,16 +239,6 @@ function initGlobalUIStyles() {
             text-align: center;
         }
 
-        .support-body-content {
-            background: #fff;
-            width: 92%;
-            max-width: 480px;
-            border-radius: 30px;
-            padding: 50px 20px;
-            position: relative;
-            text-align: center;
-        }
-
         @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* Centered Dotted Spinner */
@@ -254,10 +251,10 @@ function initGlobalUIStyles() {
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 48vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 30000; border: 1.5px solid rgba(255,255,255,0.3); }
+        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 40000; border: 1.5px solid rgba(255,255,255,0.3); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
@@ -300,12 +297,12 @@ window.openChatPage = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
     resDiv.innerHTML = `
-        <div class="support-body-content">
-            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 15px; right: 20px; z-index: 30000; color: #ccc; font-size: 1.5rem; cursor: pointer;">✕</div>
+        <div class="modal-body-content" style="max-width: 480px; padding: 50px 20px;">
+            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 15px; right: 20px; z-index: 40000; color: #ccc; font-size: 1.5rem; cursor: pointer;">✕</div>
             <div class="dotted-spinner" style="margin-bottom: 25px;"></div>
             <h2 style="font-weight: 900; color: #111; font-size: 1.7rem; letter-spacing: -1px; margin-bottom: 5px;">SUPPORT CENTER</h2>
             <p style="color: #666; font-weight: 500; font-size: 0.95rem; line-height: 1.5; max-width: 290px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait...</p>
-            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem;">Return to Mall</button>
+            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Return to Mall</button>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
 };
