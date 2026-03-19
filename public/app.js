@@ -234,7 +234,7 @@ function applyDynamicThemeStyles() {
     styleTag.innerHTML = `
         #dynamic-greeting, #store-name-display, .summary-text, .theme-subtext, .theme-p { color: ${adaptiveTextColor} !important; }
         #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
-        .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .result-card { background: #ffffff !important; border-radius: 12px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 5; position: relative; }
         .result-card h4, .cart-item-name { color: #000000 !important; font-weight: 700; margin: 5px 0; }
         .result-card p { color: #e60023 !important; font-weight: bold; }
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 60vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
@@ -248,7 +248,7 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
-    // Fix: Remove extra .window reference to prevent site crash
+    // Fix: Using correct SpeechRecognition reference to prevent connection errors
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
@@ -382,14 +382,14 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Fix Interactivity: Ensure item.id is safely handled as a string for the onclick handler
+    // Logic overhaul: Mapping directly to the global prompt function with escaped string literal IDs
     results.innerHTML = filtered.map(item => {
-        const escapedId = String(item.id).replace(/'/g, "\\'");
+        const itemIdStr = String(item.id).replace(/'/g, "\\'");
         return `
-        <div class="result-card" onclick="window.promptShowroomChoice('${escapedId}')" style="cursor:pointer;">
-            <img src="${item.imgUrl}" style="pointer-events:none;">
-            <h4 class="cart-item-name">${item.name}</h4>
-            <p style="color:#e60023; font-weight:bold;">₦${item.price.toLocaleString()}</p>
+        <div class="result-card" onclick="event.preventDefault(); window.promptShowroomChoice('${itemIdStr}')" style="cursor:pointer !important; -webkit-tap-highlight-color: transparent;">
+            <img src="${item.imgUrl}" style="pointer-events:none; width: 100%; border-radius: 8px;">
+            <h4 class="cart-item-name" style="pointer-events:none;">${item.name}</h4>
+            <p style="color:#e60023; font-weight:bold; pointer-events:none;">₦${item.price.toLocaleString()}</p>
         </div>`;
     }).join('');
 };
