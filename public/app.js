@@ -43,6 +43,7 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 let localUserBase64 = "";
 window.activeGreetings = []; 
 let gIndex = 0;
+let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
@@ -60,30 +61,60 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    ensureCartIconExists();
     
+    // Set initial loading state for greetings
     const greetingEl = document.getElementById('dynamic-greeting');
-    
-    // Core Data Sync Restoration
+    if (greetingEl) greetingEl.innerText = "Loading greetings...";
+
+    const findAndEnableMenu = () => {
+        const elements = document.querySelectorAll('button, div, span, i, svg');
+        const menuBtn = Array.from(elements).find(el => {
+            const rect = el.getBoundingClientRect();
+            const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
+            const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
+            return isTopLeft && hasIconContent;
+        });
+
+        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
+            menuBtn.setAttribute('data-menu-active', 'true');
+            menuBtn.style.cursor = 'pointer';
+            menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
+        }
+    };
+
+    findAndEnableMenu();
+    setInterval(findAndEnableMenu, 3000);
+
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            // Restore Brand Identity
-            const nameEl = document.getElementById('store-name-display');
-            if (nameEl) nameEl.innerText = data.storeName || "STORE";
-            
-            const imgEl = document.getElementById('owner-img');
-            if (imgEl && data.profileImage) imgEl.src = data.profileImage;
-
+            const rawStoreName = data.storeName || "STORE";
+            document.getElementById('store-name-display').innerText = rawStoreName;
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
                 searchInput.oninput = window.executeSearch;
             }
+
+            // Restore Store Front Ads
+            const container = document.getElementById('quick-search-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')" style="background:#111; color:white; padding:15px; border-radius:12px; flex:1; cursor:pointer; text-align:left; border:1px solid #333;">
+                        <h4 style="margin:0; font-size:1rem; color:white;">${data.label1 || 'Ladies Wear'}</h4>
+                        <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Shop exclusive wear</p>
+                    </div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')" style="background:#111; color:white; padding:15px; border-radius:12px; flex:1; cursor:pointer; text-align:left; border:1px solid #333;">
+                        <h4 style="margin:0; font-size:1rem; color:white;">${data.label2 || 'Dinner Wear'}</h4>
+                        <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Perfect styles for you</p>
+                    </div>`;
+            }
             
+            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // Greetings Restoration Logic
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -102,33 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Sidebar Enabling Logic
-    const findAndEnableMenu = () => {
-        const elements = document.querySelectorAll('button, div, span, i, svg');
-        const menuBtn = Array.from(elements).find(el => {
-            const rect = el.getBoundingClientRect();
-            const isTopLeft = rect.top < 150 && rect.left < 100 && rect.width > 0;
-            const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
-            return isTopLeft && hasIconContent;
-        });
-
-        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
-            menuBtn.setAttribute('data-menu-active', 'true');
-            menuBtn.classList.add('scrollable-sidebar-icon');
-            menuBtn.style.pointerEvents = 'auto';
-            menuBtn.style.cursor = 'pointer';
-            menuBtn.style.zIndex = '15000';
-            menuBtn.onclick = (e) => { 
-                e.preventDefault(); 
-                e.stopPropagation();
-                window.openOptionsMenu(); 
-            };
-        }
-    };
-
-    findAndEnableMenu();
-    setInterval(findAndEnableMenu, 1000);
-
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
         if (el && window.activeGreetings.length > 1) { 
@@ -143,10 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
-    if (items.length === 0) {
-        listContainer.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #888; padding: 40px 0;">No matching styles found.</p>`;
-        return;
-    }
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
@@ -160,169 +160,130 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL NATURAL SCROLLING */
-        body { overflow-x: hidden; overflow-y: auto; padding-top: 0; min-height: 100vh; position: relative; }
-        
-        #owner-img, #store-name-display, #dynamic-greeting {
-            position: relative !important;
-            z-index: 10;
-        }
-
-        /* Cart Icon: Directly opposite sidebar (Top-Right), scrolling naturally */
-        #cart-icon-wrapper {
-            position: absolute !important;
-            top: 20px !important;
-            right: 20px !important;
-            z-index: 15000 !important;
-            background: #fff;
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Sidebar Icon: Top-Left, scrolling naturally */
-        .scrollable-sidebar-icon {
-            position: absolute !important;
-            top: 20px !important;
-            left: 20px !important;
-            z-index: 15000 !important;
-            background: #fff !important;
-            padding: 8px !important;
-            border-radius: 12px !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
-        }
-
-        /* SEARCH RESULTS: Part of natural scroll flow */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
-            padding: 15px !important;
+            padding: 10px !important;
             width: 100% !important;
-            position: relative !important;
-            margin-top: 20px !important;
-            z-index: 500 !important;
-            background: transparent;
-            min-height: 50px;
-        }
-
-        /* MODAL: SINGLE PROFESSIONAL FLAT LAYER */
-        #fitting-room-modal {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 50000; align-items: center; justify-content: center;
-        }
-
-        .modal-body-flat {
-            background: #fff;
-            width: 90%;
-            max-width: 380px; 
-            border-radius: 28px;
-            overflow: hidden;
             position: relative;
-            padding: 25px 15px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
-            animation: modalPop 0.3s ease;
-            text-align: center;
+            z-index: 8000 !important;
+            background: transparent;
+            margin-bottom: 20px;
         }
 
-        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        #product-list, #main-catalog {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+            padding: 10px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
 
+        .result-card { 
+            background: #ffffff !important; 
+            border-radius: 14px; 
+            padding: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+            cursor: pointer !important; 
+            pointer-events: auto !important; 
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative;
+            z-index: 7000 !important; 
+            overflow: hidden;
+        }
+        .result-card:active { transform: scale(0.96); }
+        .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+
+        /* Centered Dotted Spinner */
         .dotted-spinner {
             width: 50px; height: 50px;
             border: 5px dotted #e60023;
             border-radius: 50%;
             animation: spin-dotted 2s linear infinite;
-            margin: 15px auto;
+            margin: 0 auto;
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 45vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 10px; right: 10px; width: 35px; height: 35px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; z-index: 60000; border: 1.5px solid rgba(255,255,255,0.3); }
+        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
 
-        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 30000; display: none; }
-        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 30001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
+        #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
+        #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; font-weight: 600; }
+        .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
+
+        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
+        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
 
-const ensureCartIconExists = () => {
-    if (document.getElementById('cart-icon-wrapper')) return;
-    const cartDiv = document.createElement('div');
-    cartDiv.id = 'cart-icon-wrapper';
-    cartDiv.onclick = window.openCart;
-    cartDiv.innerHTML = `
-        <div style="position:relative;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-            <span id="cart-count-badge" style="position:absolute; top:-10px; right:-10px; background:#e60023; color:white; font-size:9px; font-weight:bold; border-radius:50%; padding:2px 4px; min-width:16px; text-align:center;">0</span>
+window.openOptionsMenu = () => {
+    const modal = document.getElementById('fitting-room-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const resDiv = document.getElementById('ai-fitting-result');
+    const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
+    
+    resDiv.innerHTML = `
+        <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff;">
+                <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Store Options</span>
+                    <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <div onclick="window.openChatPage()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
+                    
+                    <div class="sidebar-category">Luxury Wears</div>
+                    <div onclick="window.location.assign('?store=kingss1')" class="sidebar-item">💎<span>Stella Wears</span></div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" class="sidebar-item">👗<span>IFY FASHION</span></div>
+                    
+                    <div class="sidebar-category">Bespoke Native</div>
+                    <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
+                    
+                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
+                </div>
+            </div>
         </div>`;
-    document.body.appendChild(cartDiv);
 };
 
-window.openCart = () => {
+window.openChatPage = () => {
+    injectChatSupport();
     const modal = document.getElementById('fitting-room-modal');
     const resDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
-    
-    if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">BAG IS EMPTY</h2><p style="color:#666;">Choose items to see them here.</p></div>`;
-        return;
-    }
-
-    const cartHtml = cart.map((item, idx) => `
-        <div style="display:flex; align-items:center; gap:12px; background:#f7f7f7; padding:10px; border-radius:12px; margin-bottom:10px; position:relative;">
-            <img src="${item.imgUrl}" style="width:55px; height:55px; object-fit:cover; border-radius:8px;">
-            <div style="text-align:left;">
-                <h4 style="font-size:0.85rem; font-weight:800; margin:0;">${item.name}</h4>
-                <p style="color:#e60023; font-weight:800; margin:0;">₦${item.price.toLocaleString()}</p>
-            </div>
-            <button onclick="window.removeFromCart(${idx}); window.openCart();" style="position:absolute; right:10px; background:none; border:none; color:#ccc; font-size:1.2rem; cursor:pointer;">✕</button>
-        </div>`).join('');
-
-    const total = cart.reduce((s, i) => s + i.price, 0);
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="max-height:85vh; overflow-y:auto; padding-top:20px;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.3rem; margin-bottom:20px;">SHOPPING CART</h2>
-            <div>${cartHtml}</div>
-            <div style="margin-top:20px; border-top:1px solid #eee; padding-top:15px;">
-                <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; margin-bottom:20px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
-                <button onclick="window.handleOrder()" style="background:#25D366; color:white; width:100%; padding:18px; border-radius:15px; font-weight:900; border:none; cursor:pointer;">CHECKOUT ON WHATSAPP</button>
+        <div style="height: 100vh; width: 100vw; background: rgba(0,0,0,0.05); position: relative; overflow: hidden; display:flex; align-items:center; justify-content:center; animation: fadeIn 0.3s ease;">
+            <div style="max-width: 600px; width: 92%; background: #fff; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); position: relative; padding: 60px 30px; text-align: center;">
+                <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
+                <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
+                <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait a moment...</p>
+                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return to Mall</button>
             </div>
         </div>`;
-};
-
-window.handleOrder = () => {
-    const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡️ *VERIFIED ORDER*%0ATotal: *₦${total.toLocaleString()}*%0A%0AItems:%0A${cart.map(i => `- ${i.name}`).join('%0A')}`;
-    const waUrl = `https://wa.me/${storePhone.replace('+', '')}?text=${msg}`;
-    window.open(waUrl, '_blank');
-    cart = [];
-    localStorage.removeItem(`cart_${currentStoreId}`);
-    updateCartUI();
-    window.closeFittingRoom();
+    if (window.chatway) { window.chatway.show(); window.chatway.open(); }
 };
 
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    
-    // Precise Search Check
-    const filtered = storeCatalog.filter(c => {
-        const name = c.name.toLowerCase();
-        const tags = c.tags ? c.tags.toLowerCase() : "";
-        return name.includes(query) || tags.includes(query);
-    });
-    
+    const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    window.renderProducts(filtered); // Re-use the same render function
+    results.innerHTML = filtered.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
+            <img src="${item.imgUrl}" style="pointer-events:none;">
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
+        </div>`).join('');
 };
 
 window.promptShowroomChoice = (id) => {
@@ -330,6 +291,7 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
     
+    // Vendor First Name Personalization Logic
     const fullStoreName = document.getElementById('store-name-display').innerText;
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     const personalizedTitle = `${vendorName}'s Showroom`;
@@ -337,13 +299,13 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+        <div style="text-align:center; padding:5px; position:relative;">
+            <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">${personalizedTitle}</h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
-            <div style="padding:15px 5px 0;">
-                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:1rem;">${selectedCloth.name}</h3>
-                <p style="color:#e60023; font-weight:800; font-size:1.1rem; margin-bottom:12px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase;">Wear it! ✨</button>
+            <div style="padding:15px 10px;">
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
+                <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Wear it! ✨</button>
             </div>
         </div>`;
     
@@ -363,12 +325,12 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="padding:40px 20px;">
+        <div style="text-align:center; padding:20px; position:relative;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.4rem;">FINISH YOUR LOOK</h2>
+            <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:0.9rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
         </div>`;
 };
 
@@ -379,16 +341,11 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    const fullStoreName = document.getElementById('store-name-display').innerText;
-    const vendorName = fullStoreName.split(' ')[0] || "Vendor";
-    
     resDiv.innerHTML = `
-        <div class="modal-body-flat" style="padding:45px 20px;">
+        <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
-            <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
-            <p style="margin-top:20px; font-weight:700; color:#e60023; font-size:0.75rem; text-transform:uppercase;">PREPARING YOUR AI PREVIEW...</p>
+            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
         </div>`;
 };
 
@@ -398,10 +355,7 @@ function applyDynamicThemeStyles() {
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
-    styleTag.innerHTML = `
-        #dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } 
-        #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
-    `;
+    styleTag.innerHTML = `#dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
 }
 
 function initVoiceSearch() {
@@ -420,8 +374,5 @@ window.closeFittingRoom = () => {
 
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-window.updateCartUI = () => { 
-    const c = document.getElementById('cart-count-badge'); 
-    if (c) c.innerText = cart.length; 
-};
+window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); };
