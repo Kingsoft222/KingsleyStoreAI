@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection (Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Restoration of "Loading greetings..." state
+    // Initial Greeting State Restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Restore Store Front Ads
+            // Restore Store Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // Greetings Restoration
+            // Handle Greetings Logic
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -160,53 +160,32 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Modal Foundation: Centering everything professionally */
-        #fitting-room-modal {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
-            z-index: 20000; align-items: center; justify-content: center;
-        }
-
-        /* Compact sizing for Showroom Loader / Processing screen */
-        .compact-modal {
-            background: #fff;
-            width: 88%;
-            max-width: 380px; /* Reduced professionally */
-            border-radius: 24px;
-            overflow: hidden;
-            position: relative;
-            padding: 25px 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            animation: modalPop 0.3s ease;
-        }
-
-        /* Support Modal Sizing (Standard) */
-        .support-modal-wrapper {
-            background: #fff;
-            width: 92%;
-            max-width: 480px;
-            border-radius: 30px;
-            padding: 40px 20px;
-            text-align: center;
-            position: relative;
-        }
-
-        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        /* PROFESSIONAL TUCKING: Fixed search result viewport */
+        /* SEARCH VIEWPORT DOCKING: Tucked inside, prevents floating/overflow */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             padding: 10px !important;
             width: 100% !important;
-            max-height: 60vh !important; /* Tucked professionally */
+            max-height: 60vh !important;
             overflow-y: auto !important;
-            position: relative;
-            z-index: 1000 !important;
-            background: transparent;
-            margin-bottom: 85px !important; /* Prevents overlap with search bar */
-            scroll-behavior: smooth;
+            position: absolute !important;
+            bottom: 85px !important;
+            left: 0 !important;
+            z-index: 15000 !important;
+            background: #fff;
+            box-shadow: 0 -10px 25px rgba(0,0,0,0.05);
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+        }
+
+        #product-list, #main-catalog {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 12px !important;
+            padding: 10px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
 
         .result-card { 
@@ -217,6 +196,7 @@ function initGlobalUIStyles() {
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s ease; 
+            z-index: 10 !important;
         }
 
         /* Centered Dotted Spinner */
@@ -229,15 +209,47 @@ function initGlobalUIStyles() {
         }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
+        /* PROFESSIONAL SINGLE MODAL FIX */
+        #fitting-room-modal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            z-index: 25000; align-items: center; justify-content: center;
+        }
+
+        .modal-body-content {
+            background: #fff;
+            width: 90%;
+            max-width: 380px; /* Reduced for Showroom/Loader */
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            padding: 25px 15px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+            animation: modalPop 0.3s ease;
+            text-align: center;
+        }
+
+        .support-body-content {
+            background: #fff;
+            width: 92%;
+            max-width: 480px; /* Standard Support Size */
+            border-radius: 30px;
+            padding: 50px 20px;
+            position: relative;
+            text-align: center;
+        }
+
+        @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 52vh; border-radius: 15px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
-        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 22000; border: 1.5px solid rgba(255,255,255,0.3); }
+        .close-preview-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; background: rgba(0,0,0,0.8); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; z-index: 30000; border: 1.5px solid rgba(255,255,255,0.3); }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; }
     `;
     document.head.appendChild(style);
 }
@@ -275,12 +287,12 @@ window.openChatPage = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
     resDiv.innerHTML = `
-        <div class="support-modal-wrapper">
+        <div class="support-body-content">
             <div onclick="window.closeFittingRoom()" style="position: absolute; top: 15px; right: 20px; z-index: 30000; color: #ccc; font-size: 1.5rem; cursor: pointer;">✕</div>
             <div class="dotted-spinner" style="margin-bottom: 25px;"></div>
             <h2 style="font-weight: 900; color: #111; font-size: 1.7rem; letter-spacing: -1px; margin-bottom: 5px;">SUPPORT CENTER</h2>
             <p style="color: #666; font-weight: 500; font-size: 0.95rem; line-height: 1.5; max-width: 290px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait...</p>
-            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Return to Mall</button>
+            <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 45px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem;">Return to Mall</button>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
 };
@@ -311,8 +323,8 @@ window.promptShowroomChoice = (id) => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="compact-modal">
-            <h2 style="font-weight:900; font-size:1.1rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+        <div class="modal-body-content">
+            <h2 style="font-weight:900; font-size:1.1rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
@@ -337,7 +349,7 @@ window.promptShowroomChoice = (id) => {
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div class="compact-modal" style="padding:40px 20px; text-align:center;">
+        <div class="modal-body-content" style="padding:40px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.3rem;">FINISH YOUR LOOK</h2>
@@ -357,7 +369,7 @@ window.startTryOn = async () => {
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     
     resDiv.innerHTML = `
-        <div class="compact-modal" style="text-align:center; padding:45px 20px;">
+        <div class="modal-body-content" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
