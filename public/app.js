@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection (Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.oninput = window.executeSearch;
             }
 
-            // Banner Ads Restoration
+            // Restore Store Front Ads
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -160,17 +160,19 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Fixed Search Results Logic: Tucked professionally, no overlap */
+        /* Professional Search Results: Tucked Inside, No Overflooding */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
-            padding: 10px 10px 100px 10px !important; /* Bottom padding ensures it doesn't cover search bar */
+            padding: 10px !important;
             width: 100% !important;
+            max-height: 70vh !important;
+            overflow-y: auto !important;
             position: relative;
             z-index: 1000 !important;
             background: transparent;
-            margin-bottom: 20px;
+            margin-bottom: 80px !important; /* Forces products to stay above search bar */
         }
 
         #product-list, #main-catalog {
@@ -194,10 +196,9 @@ function initGlobalUIStyles() {
             z-index: 7000 !important; 
             overflow: hidden;
         }
-        .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* Centered Dotted Spinner Styling */
+        /* Centered Dotted Spinner */
         .dotted-spinner {
             width: 55px; height: 55px;
             border: 5px dotted #e60023;
@@ -217,9 +218,6 @@ function initGlobalUIStyles() {
         #sidebar-drawer.open { left: 0; }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
-
-        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
-        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
@@ -240,15 +238,12 @@ window.openOptionsMenu = () => {
                 </div>
                 <div style="display: flex; flex-direction: column;">
                     <div onclick="window.openChatPage()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
-                    
                     <div class="sidebar-category">Luxury Wears</div>
                     <div onclick="window.location.assign('?store=kingss1')" class="sidebar-item">💎<span>Stella Wears</span></div>
                     <div onclick="window.location.assign('?store=ifeomaezema1791')" class="sidebar-item">👗<span>IFY FASHION</span></div>
-                    
                     <div class="sidebar-category">Bespoke Native</div>
                     <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
                     <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
-                    
                     <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
                 </div>
             </div>
@@ -266,8 +261,8 @@ window.openChatPage = () => {
                 <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
                 <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
                 <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
-                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait a moment...</p>
-                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return to Mall</button>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below...</p>
+                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer;">Return to Mall</button>
             </div>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
@@ -281,7 +276,7 @@ window.executeSearch = () => {
     results.style.display = 'grid';
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}" style="pointer-events:none;">
+            <img src="${item.imgUrl}">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
@@ -292,7 +287,6 @@ window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
     
-    // Vendor First Name Personalized Logic
     const fullStoreName = document.getElementById('store-name-display').innerText;
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     const personalizedTitle = `${vendorName}'s Showroom`;
@@ -306,7 +300,7 @@ window.promptShowroomChoice = (id) => {
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Wear it! ✨</button>
             </div>
         </div>`;
     
@@ -331,7 +325,7 @@ window.proceedToUpload = () => {
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">SELECT FROM GALLERY</button>
         </div>`;
 };
 
@@ -342,7 +336,6 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    // Captured Vendor Name for global application
     const fullStoreName = document.getElementById('store-name-display').innerText;
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     
