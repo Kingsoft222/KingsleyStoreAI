@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Dynamic Page Injection (Permanent/Locked) ---
+// --- Chatway Dynamic Page Injection (Locked) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Greeting restoration
+    // Greeting state restoration
     const greetingEl = document.getElementById('dynamic-greeting');
     if (greetingEl) greetingEl.innerText = "Loading greetings...";
 
@@ -159,32 +159,34 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* FIXED SOLID HEADER: Products scroll behind, not through */
+        /* FIXED SOLID HEADER: Products scroll BEHIND this solid area */
         .store-header-fixed {
             position: fixed !important;
             top: 0; left: 0; width: 100%;
             z-index: 20000 !important;
-            padding: 20px 0 10px;
+            padding: 15px 0 10px;
             text-align: center;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            background: #fff !important; 
         }
 
-        /* Cart Icon: Permanent Top Right corner */
-        [id*="cart-icon"], .cart-container, #cart-count-parent, .shopping-cart-fixed {
+        /* Cart Icon: Restore to Permanent Top Right corner */
+        [id*="cart-icon"], .cart-container, #cart-count-parent, [class*="shopping-cart"] {
             position: fixed !important;
             top: 25px !important;
             right: 25px !important;
-            z-index: 21000 !important;
+            z-index: 25000 !important;
+            display: block !important;
         }
         
         .fixed-sidebar-icon {
             position: fixed !important;
             top: 25px !important;
             left: 20px !important;
-            z-index: 21000 !important;
+            z-index: 25000 !important;
         }
 
-        /* PROFESSIONAL TUCKING & SCROLLING: dock results inside viewport */
+        /* SEARCH VIEWPORT TUCKING & INTERNAL SCROLLING */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -194,14 +196,14 @@ function initGlobalUIStyles() {
             max-height: 55vh !important; 
             overflow-y: auto !important;
             -webkit-overflow-scrolling: touch;
-            position: absolute !important;
-            bottom: 90px !important;
+            position: fixed !important;
+            bottom: 95px !important;
             left: 0 !important;
             z-index: 15000 !important;
             background: #fff;
-            box-shadow: 0 -15px 30px rgba(0,0,0,0.1);
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
+            box-shadow: 0 -15px 35px rgba(0,0,0,0.1);
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
         }
 
         #product-list, #main-catalog {
@@ -211,10 +213,10 @@ function initGlobalUIStyles() {
             padding: 10px !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            margin-top: 160px; /* Space for the solid fixed header */
+            margin-top: 175px !important; 
         }
 
-        /* MODAL: REMOVED 2-IN-1 CLUTTER */
+        /* MODAL: SINGLE PROFESSIONAL CONTAINER - REMOVED 2-IN-1 CLUTTER */
         #fitting-room-modal {
             display: none; position: fixed; top: 0; left: 0;
             width: 100%; height: 100%; background: rgba(0,0,0,0.85);
@@ -229,12 +231,12 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
+            box-shadow: 0 40px 90px rgba(0,0,0,0.6);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
 
-        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .dotted-spinner {
             width: 50px; height: 50px;
@@ -253,7 +255,7 @@ function initGlobalUIStyles() {
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
-        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; }
+        .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-weight: 600; font-family: 'Google Sans', sans-serif; }
     `;
     document.head.appendChild(style);
 }
@@ -385,16 +387,16 @@ window.startTryOn = async () => {
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const adaptiveTextColor = isDarkMode ? 'white' : 'black';
-    const bgColor = isDarkMode ? '#111' : '#f9f9f9';
+    const bgColor = isDarkMode ? '#111' : '#fff';
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
     styleTag.innerHTML = `
         #dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } 
-        #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#fff'}; }
-        .store-header-fixed { background: ${bgColor} !important; }
+        #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }
+        .store-header-fixed { background: ${bgColor} !important; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     `;
-    // Ensure fixed wrapper applied to header elements
+    
     const h = document.getElementById('owner-img').parentElement;
     if (h) h.classList.add('store-header-fixed');
 }
@@ -415,5 +417,10 @@ window.closeFittingRoom = () => {
 
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
+window.updateCartUI = () => { 
+    const c = document.getElementById('cart-count'); 
+    if (c) c.innerText = cart.length; 
+    const icon = document.querySelector('[id*="cart-icon"]');
+    if (icon) icon.style.display = 'block';
+};
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); };
