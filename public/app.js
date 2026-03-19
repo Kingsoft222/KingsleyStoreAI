@@ -41,7 +41,7 @@ let tempUserImageUrl = "", selectedCloth = null, storePhone = "2348000000000", s
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
 let localUserBase64 = "";
-window.activeGreetings = ["Welcome!"]; 
+window.activeGreetings = []; 
 let gIndex = 0;
 let vtoRetryCount = 0;
 
@@ -62,6 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
+    // Set initial loading state for greetings
+    const greetingEl = document.getElementById('dynamic-greeting');
+    if (greetingEl) greetingEl.innerText = "Loading greetings...";
+
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -84,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            document.getElementById('store-name-display').innerText = data.storeName || "STORE";
+            const rawStoreName = data.storeName || "STORE";
+            document.getElementById('store-name-display').innerText = rawStoreName;
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
@@ -109,11 +114,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // Greetings Restoration
-            const greetingEl = document.getElementById('dynamic-greeting');
+            // Greetings Restoration Logic
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
-                if (greetingEl) { greetingEl.innerText = window.activeGreetings[0]; greetingEl.style.display = 'block'; }
+                if (greetingEl) {
+                    greetingEl.innerText = window.activeGreetings[0];
+                    greetingEl.style.display = 'block';
+                }
+            } else if (greetingEl) {
+                greetingEl.style.display = 'none';
             }
 
             if (data.catalog) {
@@ -149,10 +158,8 @@ window.renderProducts = (items) => {
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent removal of global widget layers */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Harmonized 2-Column Grid with Push-Up Logic */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -174,7 +181,6 @@ function initGlobalUIStyles() {
             box-sizing: border-box !important;
         }
 
-        /* Interactivity Shield */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 14px; 
@@ -187,9 +193,19 @@ function initGlobalUIStyles() {
             z-index: 7000 !important; 
             overflow: hidden;
         }
+        .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
 
-        /* High-Fidelity Showroom & 4-Way Pan */
+        /* Centered Dotted Spinner */
+        .dotted-spinner {
+            width: 50px; height: 50px;
+            border: 5px dotted #e60023;
+            border-radius: 50%;
+            animation: spin-dotted 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
@@ -238,20 +254,19 @@ window.openOptionsMenu = () => {
         </div>`;
 };
 
-// Internal Popup Page for Chat Support
 window.openChatPage = () => {
     injectChatSupport();
     const modal = document.getElementById('fitting-room-modal');
     const resDiv = document.getElementById('ai-fitting-result');
     modal.style.display = 'flex';
     resDiv.innerHTML = `
-        <div style="height: 100vh; width: 100vw; background: #fff; position: relative; overflow: hidden; animation: fadeIn 0.3s ease;">
-            <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; left: 20px; z-index: 30000; background: #000; color: #fff; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">✕</div>
-            <div style="padding: 120px 20px; text-align: center;">
-                <div class="circular-loader" style="margin: 0 auto 30px;"></div>
-                <h2 style="font-weight: 900; color: #111; font-size: 1.6rem; letter-spacing: -1px;">SUPPORT PAGE</h2>
-                <p style="color: #666; font-weight: 500; line-height: 1.5; max-width: 250px; margin: 0 auto;">Our official chat agent will appear at the bottom of this page.</p>
-                <button onclick="window.closeFittingRoom()" style="margin-top: 40px; background: #f1f1f1; border: none; padding: 15px 30px; border-radius: 30px; font-weight: 700; color: #333; cursor: pointer;">Return to Mall</button>
+        <div style="height: 100vh; width: 100vw; background: rgba(0,0,0,0.05); position: relative; overflow: hidden; display:flex; align-items:center; justify-content:center; animation: fadeIn 0.3s ease;">
+            <div style="max-width: 600px; width: 92%; background: #fff; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); position: relative; padding: 60px 30px; text-align: center;">
+                <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
+                <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
+                <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait a moment...</p>
+                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return to Mall</button>
             </div>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
@@ -263,9 +278,8 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Pushed Up Interactive Grid
     results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
             <img src="${item.imgUrl}" style="pointer-events:none;">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
@@ -276,15 +290,22 @@ window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
+    
+    // Vendor First Name Personalization Logic
+    const fullStoreName = document.getElementById('store-name-display').innerText;
+    const vendorName = fullStoreName.split(' ')[0] || "Vendor";
+    const personalizedTitle = `${vendorName}'s Showroom`;
+
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
         <div style="text-align:center; padding:5px; position:relative;">
+            <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">${personalizedTitle}</h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Wear it! ✨</button>
             </div>
         </div>`;
     
@@ -309,7 +330,7 @@ window.proceedToUpload = () => {
             <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
             <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">SELECT FROM GALLERY</button>
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
         </div>`;
 };
 
@@ -320,7 +341,12 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="position:relative; text-align:center; padding:60px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="circular-loader"></div><p style="margin-top:25px; font-weight:800; color:#e60023;">Stitching your outfit...</p></div>`;
+    resDiv.innerHTML = `
+        <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
+        </div>`;
 };
 
 function applyDynamicThemeStyles() {
