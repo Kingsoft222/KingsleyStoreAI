@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Chatway Professional Integration ---
+// --- Chatway Integration ---
 (function() {
     const s = document.createElement("script");
     s.id = "chatway";
@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    initChatwayDraggableEngine(); 
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -93,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+                // Smart Hide Logic for Search
                 searchInput.addEventListener('focus', () => { if (window.chatway) window.chatway.hide(); });
                 searchInput.addEventListener('blur', () => { if (window.chatway) window.chatway.show(); });
             }
@@ -136,81 +136,18 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- Chatway Draggable & Permanent Position Logic ---
-function initChatwayDraggableEngine() {
-    const observer = new MutationObserver(() => {
-        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
-        if (widget && !widget.getAttribute('data-draggable-init')) {
-            widget.setAttribute('data-draggable-init', 'true');
-            
-            // Set initial position above store ads
-            widget.style.bottom = '450px';
-            widget.style.right = '20px';
-            widget.style.position = 'fixed';
-            widget.style.zIndex = '2147483647';
-            widget.style.touchAction = 'none';
-
-            let isDragging = false;
-            let currentX = 0;
-            let currentY = 0;
-            let initialX;
-            let initialY;
-            let xOffset = 0;
-            let yOffset = 0;
-
-            const dragStart = (e) => {
-                const clientX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-                const clientY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-                
-                // Detection for Chatway launcher interaction
-                if (e.target.closest('#chatway-widget-container') || e.target.closest('.chatway-widget-container')) {
-                    initialX = clientX - xOffset;
-                    initialY = clientY - yOffset;
-                    isDragging = true;
-                }
-            };
-
-            const dragEnd = () => {
-                initialX = currentX;
-                initialY = currentY;
-                isDragging = false;
-            };
-
-            const drag = (e) => {
-                if (isDragging) {
-                    e.preventDefault();
-                    const clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-                    const clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-                    currentX = clientX - initialX;
-                    currentY = clientY - initialY;
-                    xOffset = currentX;
-                    yOffset = currentY;
-                    widget.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-                }
-            };
-
-            document.addEventListener("touchstart", dragStart, false);
-            document.addEventListener("touchend", dragEnd, false);
-            document.addEventListener("touchmove", drag, { passive: false });
-            document.addEventListener("mousedown", dragStart, false);
-            document.addEventListener("mouseup", dragEnd, false);
-            document.addEventListener("mousemove", drag, false);
-        }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true });
-}
-
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of any previous custom floating heads or dummy icons */
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], [class*="headphones"] { display: none !important; }
+        /* Permanent Removal of any previous custom heads or icons */
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Force position for Chatway via CSS fallback */
-        #chatway-widget-container, .chatway-widget-container {
-            bottom: 450px !important;
-            right: 20px !important;
+        /* Force Chatway to stay fixed above store ads */
+        #chatway-widget-container, .chatway-widget-container { 
+            bottom: 450px !important; 
+            right: 20px !important; 
+            position: fixed !important;
+            z-index: 2147483647 !important;
         }
 
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
