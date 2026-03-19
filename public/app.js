@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
             const rect = el.getBoundingClientRect();
-            // Original top-left quadrant search
             const isTopLeft = rect.top < 150 && rect.left < 150 && rect.width > 0;
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
@@ -81,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
             menuBtn.classList.add('scrollable-sidebar-icon');
             menuBtn.style.pointerEvents = 'auto';
             menuBtn.style.cursor = 'pointer';
-            menuBtn.style.zIndex = '2000';
             menuBtn.onclick = (e) => { 
                 e.preventDefault(); 
                 e.stopPropagation();
@@ -153,20 +151,20 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* RESTORE ORIGINAL NATURAL SCROLLING FOR ALL ELEMENTS */
-        body { overflow-x: hidden; overflow-y: auto; padding-top: 0; }
+        /* SCROLLABLE PAGE FLOW */
+        body { overflow-x: hidden; overflow-y: auto; }
         
         #owner-img, #store-name-display, #dynamic-greeting {
             position: relative !important;
             z-index: 10;
         }
 
-        /* Cart Icon: Directly opposite sidebar (Top-Right), scrolls with identity */
+        /* Cart Icon: Directly opposite sidebar (Top-Right), scrolls with page */
         #cart-icon-wrapper {
             position: absolute !important;
             top: 20px !important;
             right: 20px !important;
-            z-index: 2000 !important;
+            z-index: 1000 !important;
             background: #fff;
             padding: 8px;
             border-radius: 12px;
@@ -175,19 +173,19 @@ function initGlobalUIStyles() {
             display: flex; align-items: center; justify-content: center;
         }
 
-        /* Sidebar Icon: Top-Left, scrolls with identity */
+        /* Sidebar Icon: Top-Left, scrolls with page */
         .scrollable-sidebar-icon {
             position: absolute !important;
             top: 20px !important;
             left: 20px !important;
-            z-index: 2000 !important;
+            z-index: 1000 !important;
             background: #fff !important;
             padding: 8px !important;
             border-radius: 12px !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
 
-        /* SEARCH RESULTS: Part of natural scroll, seeing vendor identity while scrolling */
+        /* SEARCH RESULTS: Natural flow inside viewport, viewing branding while scrolling */
         #ai-results {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
@@ -198,7 +196,6 @@ function initGlobalUIStyles() {
             margin-top: 20px !important;
             z-index: 500 !important;
             background: transparent;
-            min-height: 100px;
         }
 
         /* MODAL: SINGLE PROFESSIONAL LAYER - FLATTENED */
@@ -216,12 +213,12 @@ function initGlobalUIStyles() {
             overflow: hidden;
             position: relative;
             padding: 25px 15px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.5);
             animation: modalPop 0.3s ease;
             text-align: center;
         }
 
-        @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes modalPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .dotted-spinner {
             width: 50px; height: 50px;
@@ -264,7 +261,7 @@ window.openCart = () => {
     modal.style.display = 'flex';
     
     if (cart.length === 0) {
-        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">CART IS EMPTY</h2><p style="color:#666;">Choose products to see them here.</p></div>`;
+        resDiv.innerHTML = `<div class="modal-body-flat" style="padding:50px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem; margin-bottom:15px;">🛒</div><h2 style="font-weight:900;">YOUR BAG IS EMPTY</h2><p style="color:#666;">Browse products to add them here.</p></div>`;
         return;
     }
 
@@ -327,15 +324,15 @@ window.promptShowroomChoice = (id) => {
 
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    // ONLY ONE CARD LAYER - NO NESTING
+    // REMOVED NESTING: Single professional card layer
     resDiv.innerHTML = `
         <div class="modal-body-flat">
-            <h2 style="font-weight:900; font-size:1.2rem; color:#e60023; margin:0 0 15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
+            <h2 style="font-weight:900; font-size:1.15rem; color:#e60023; margin-bottom:15px; text-transform:capitalize;"><b>${personalizedTitle}</b></h2>
             <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
             <div style="padding:15px 5px 0;">
-                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:1rem;">${selectedCloth.name}</h3>
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800; font-size:0.95rem;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.1rem; margin-bottom:12px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:12px; font-weight:900; border:none; cursor:pointer; font-size:1rem; text-transform:uppercase; width:100%;">Wear it! ✨</button>
             </div>
         </div>`;
     
@@ -358,7 +355,7 @@ window.proceedToUpload = () => {
         <div class="modal-body-flat" style="padding:40px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3.5rem; margin-bottom:10px;">🤳</div>
-            <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.4rem;">FINISH YOUR LOOK</h2>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:20px; font-size:1.3rem;">FINISH YOUR LOOK</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
             <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:0.9rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
         </div>`;
@@ -377,7 +374,7 @@ window.startTryOn = async () => {
     resDiv.innerHTML = `
         <div class="modal-body-flat" style="padding:45px 20px;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="font-weight:900; font-size:1.3rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
+            <h2 style="font-weight:900; font-size:1.2rem; margin-bottom:5px; color:#e60023; margin-top:-5px;"><b>${vendorName}'s Showroom</b></h2>
             <h3 style="font-weight:800; font-size:0.95rem; color:#111; margin-bottom:20px; letter-spacing:1px;">STITCHING YOUR OUTFIT</h3>
             <div class="dotted-spinner"></div>
             <p style="margin-top:20px; font-weight:700; color:#e60023; font-size:0.75rem; text-transform:uppercase;">PREPARING YOUR AI PREVIEW...</p>
