@@ -94,6 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
+                // Live Search Trigger
+                searchInput.oninput = window.executeSearch;
                 // Smart Hide Logic for Chatway
                 searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
                 searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
@@ -144,7 +146,7 @@ function initGlobalUIStyles() {
         /* Permanent Removal of all dummy elements */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Interactive Search Result Cards */
+        /* Interactive Search Result Cards - Optimized for Laptop and Mobile */
         .result-card { 
             background: #ffffff !important; 
             border-radius: 12px; 
@@ -153,9 +155,11 @@ function initGlobalUIStyles() {
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 10;
+            position: relative;
+            z-index: 50;
         }
-        .result-card:active { transform: scale(0.98); }
+        .result-card:hover { transform: translateY(-3px); }
+        .result-card:active { transform: scale(0.97); }
         .result-card img { pointer-events: none; border-radius: 8px; width: 100%; object-fit: cover; }
 
         /* Sidebar UI */
@@ -194,11 +198,11 @@ window.openOptionsMenu = () => {
                     </div>
                     <div style="padding: 30px 24px 10px; font-size: 0.9rem; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; border-top: 1px solid #f1f1f1; margin-top: 15px;">Verified store <span style="color: #0b57d0;">✔️</span></div>
                     <div class="sidebar-category">Luxury Wears</div>
-                    <a href="?store=kingss1" class="sidebar-item">💎<span>Stella Wears</span></a>
-                    <a href="?store=ifeomaezema1791" class="sidebar-item">👗<span>IFY FASHION</span></a>
+                    <div onclick="window.location.assign('?store=kingss1')" class="sidebar-item">💎<span>Stella Wears</span></div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" class="sidebar-item">👗<span>IFY FASHION</span></div>
                     <div class="sidebar-category">Bespoke Native</div>
-                    <a href="?store=adivichi" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></a>
-                    <a href="?store=thomasmongim" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></a>
+                    <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
                 </div>
                 <div style="flex: 1;"></div>
                 <div style="padding: 24px; border-top: 1px solid #f1f1f1; text-align: center; opacity: 0.4;"><p style="font-size: 0.65rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</p></div>
@@ -251,7 +255,8 @@ window.closeFittingRoom = () => {
 
 window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
-    selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
+    const clothId = String(id);
+    selectedCloth = storeCatalog.find(c => String(c.id) === clothId);
     if (!selectedCloth) return;
     tempUserImageUrl = ""; localUserBase64 = ""; vtoRetryCount = 0;
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -367,12 +372,12 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Clean interactive card mapping
+    // Mapping interactive click cards with forced priority
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
-            <h4 class="cart-item-name" style="color:#000 !important;">${item.name}</h4>
-            <p style="color:#e60023 !important; font-weight:bold;">₦${item.price.toLocaleString()}</p>
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
