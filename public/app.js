@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
-    // Optimized Menu Button Finder
+    // Unified Menu Button Logic
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -71,8 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return isTopLeft && hasIconContent;
         });
 
-        if (menuBtn && !menuBtn.getAttribute('data-menu-enabled')) {
-            menuBtn.setAttribute('data-menu-enabled', 'true');
+        if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
+            menuBtn.setAttribute('data-menu-active', 'true');
             menuBtn.style.cursor = 'pointer';
             const openAction = (e) => {
                 e.preventDefault();
@@ -94,9 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('ai-input');
             if (searchInput) {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
-                // Live Search Trigger
                 searchInput.oninput = window.executeSearch;
-                // Smart Hide Logic for Chatway
                 searchInput.onfocus = () => { if (window.chatway) window.chatway.hide(); };
                 searchInput.onblur = () => { if (window.chatway) window.chatway.show(); };
             }
@@ -124,7 +122,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (greetingEl) greetingEl.style.display = 'block';
             } else if (greetingEl) { greetingEl.style.display = 'none'; }
 
-            if (data.catalog) storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
+            if (data.catalog) {
+                storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
+                window.renderProducts(storeCatalog);
+            }
             updateCartUI();
         }
     });
@@ -140,29 +141,39 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
+// Render logic to ensure lists are NOT "dummy" and are interactive
+window.renderProducts = (items) => {
+    const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
+    if (!listContainer) return;
+    listContainer.innerHTML = items.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
+            <img src="${item.imgUrl}" alt="${item.name}">
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
+        </div>`).join('');
+};
+
 function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Permanent Removal of all dummy elements */
+        /* Removal of dummy icons */
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"], .custom-support-icon { display: none !important; }
         
-        /* Interactive Search Result Cards - Optimized for Laptop and Mobile */
+        /* Interactive Product Card Fixes */
         .result-card { 
             background: #ffffff !important; 
-            border-radius: 12px; 
-            padding: 10px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            border-radius: 14px; 
+            padding: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             cursor: pointer !important; 
             pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative;
             z-index: 50;
         }
-        .result-card:hover { transform: translateY(-3px); }
-        .result-card:active { transform: scale(0.97); }
-        .result-card img { pointer-events: none; border-radius: 8px; width: 100%; object-fit: cover; }
+        .result-card:active { transform: scale(0.96); }
+        .result-card img { pointer-events: none; border-radius: 10px; width: 100%; height: auto; }
 
-        /* Sidebar UI */
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 4px 0 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
         #sidebar-drawer.open { left: 0; }
@@ -372,7 +383,7 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     results.style.display = 'grid';
-    // Mapping interactive click cards with forced priority
+    // Explicit interactive card mapping
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
