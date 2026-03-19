@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
+    initChatwayObserver(); // New logic to force Chatway position
     
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
@@ -135,6 +136,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initVoiceSearch();
 });
+
+// Logic to force Chatway above store ads as soon as it appears
+function initChatwayObserver() {
+    const observer = new MutationObserver(() => {
+        const widget = document.getElementById('chatway-widget-container') || document.querySelector('.chatway-widget-container');
+        if (widget) {
+            widget.style.setProperty('bottom', '450px', 'important');
+            widget.style.setProperty('right', '20px', 'important');
+            widget.style.setProperty('position', 'fixed', 'important');
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
 
 function initGlobalUIStyles() {
     const style = document.createElement('style');
@@ -236,7 +250,7 @@ function applyDynamicThemeStyles() {
 function initVoiceSearch() {
     const micBtn = document.getElementById('mic-btn');
     if (!micBtn) return;
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.window.SpeechRecognition || window.window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-NG';
@@ -373,4 +387,4 @@ window.executeSearch = () => {
 async function resizeImage(b64) { return new Promise((res) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); const MAX = 800; let w = img.width, h = img.height; if (w > h) { if (w > MAX) { h *= MAX/w; w = MAX; } } else { if (h > MAX) { w *= MAX/h; h = MAX; } } canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h); res(canvas.toDataURL('image/jpeg', 0.80)); }; img.src = b64; }); }
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
+window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); }
