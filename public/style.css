@@ -1,4 +1,6 @@
-/* 1. Global & Theme Variables */
+/* ==========================================
+   1. GLOBAL & THEME VARIABLES
+   ========================================== */
 :root {
     --accent: #e60023;
     --bg-main: #ffffff;
@@ -25,7 +27,9 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER: Sidebar Left, Cart Right */
+/* ==========================================
+   2. HEADER LID (Pinned Top)
+   ========================================== */
 .app-header {
     position: relative;
     z-index: 5000 !important; 
@@ -41,20 +45,21 @@ body, html {
     font-weight: 800; font-size: 1.2rem; color: var(--text-main); padding: 10px;
 }
 
-/* 🎯 STORE PROFILE */
 .store-profile { text-align: center; padding: 10px 0; display: flex; flex-direction: column; align-items: center; }
 .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: #ccc; margin-bottom: 15px; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
 .greeting { font-size: 1rem; font-weight: 500; color: var(--text-main); margin: 0; opacity: 0.85; }
 
-/* 🎯 DOCKVIEW PHYSICS (Pushed down 4px) */
+/* ==========================================
+   3. DOCKVIEW PHYSICS (Middle Scrolling Layer)
+   ========================================== */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important;
-    top: 259px; 
-    bottom: 215px; 
+    top: 259px;           /* 4px push down from top lids */
+    bottom: 215px;        /* Clearance for 90px ads + search lid */
     left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
     overflow-y: auto !important; -webkit-overflow-scrolling: touch;
@@ -63,13 +68,15 @@ body, html {
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 PRODUCT DISPLAY PATTERN */
+/* Product Display Pattern */
 .result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; text-align: center; cursor: pointer; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; background: #333; }
 .result-card h4 { font-size: 0.8rem; margin: 10px 0 5px; color: #fff !important; font-weight: 700; }
-.result-card p { font-size: 0.9rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
+.result-card p { font-size: 0.95rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
 
-/* 🎯 BOLD WHITE MODAL (Shape from your JPG) */
+/* ==========================================
+   4. BOLD WHITE MODAL (Shape Restore)
+   ========================================== */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
@@ -84,7 +91,13 @@ body, html {
 
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
 
-/* 🎯 ADS HEIGHT: Reduced to 90px to fit 4 products above */
+/* ==========================================
+   5. BOTTOM LID & ADS (Pinned Bottom)
+   ========================================== */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
+#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 12px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
+
+/* Ads Height at 90px */
 .split-card { 
     flex: 1; height: 90px !important; 
     background: var(--card-bg); color: white; 
@@ -95,17 +108,19 @@ body, html {
 .split-card h4 { font-size: 0.95rem; margin: 0; font-weight: 800; color: #fff; }
 .split-card p { font-size: 0.7rem; margin: 2px 0 0; color: #aaa; }
 
-/* 🎯 BOTTOM CONTROLS */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
-#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 12px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
+/* Search Bar Restoration */
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 8px 12px 8px 22px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
 .mic-icon { font-size: 1.5rem !important; color: #5f6368; cursor: pointer; margin-right: 15px; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
 
-/* 🎯 ZOOM & PAN */
+/* ==========================================
+   6. ZOOM & INTERACTION
+   ========================================== */
 .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
 .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
 .zoomed { transform: scale(3.5); cursor: grab; transition: none !important; }
+
+/* Sidebar Logic */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
 #sidebar-drawer.open { left: 0; }
