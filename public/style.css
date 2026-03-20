@@ -23,7 +23,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 THE TOP SHIELD: Solid background covers branding and greeting */
+/* 🎯 TOP SHIELD */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
@@ -32,87 +32,55 @@ body, html {
 }
 
 .store-profile { text-align: center; padding-top: 10px; }
-.profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { 
-    width: 110px; height: 110px; border-radius: 50%; 
-    border: 3px solid var(--accent); overflow: hidden; 
-    background: #ccc; display: flex; align-items: center; justify-content: center;
-}
-.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
 .greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: Anchored specifically to scroll behind top & bottom masks */
+/* 🎯 SEARCH DOCK - BUILT FOR STABILITY */
 #ai-results {
     display: none; 
-    grid-template-columns: 1fr; 
-    gap: 16px;
+    grid-template-columns: 1fr 1fr; 
+    gap: 12px;
     position: fixed !important;
-    
-    /* Anchored strictly above the split-card ads at the bottom */
     bottom: 180px !important; 
     left: 50%;
     transform: translateX(-50%);
-    width: 100%;
+    width: 95%;
     max-width: 500px;
-    
-    /* Height capped so images vanish right as they reach the greeting line */
-    max-height: 42vh !important; 
+    max-height: 40vh !important; 
     overflow-y: auto !important; 
-    
-    /* MIDDLE LAYER: Sits above background catalog but below shields */
     z-index: 1000 !important; 
     background: var(--bg-main);
-    padding: 20px 15px;
-    border-top: 1px solid var(--border);
-    border-radius: 24px 24px 0 0;
+    padding: 15px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
     box-sizing: border-box;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
 }
-#ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 THE BOTTOM SHIELD: Grouped Ads + Search Bar */
+/* 🎯 BOTTOM SHIELD */
 .bottom-controls { 
     position: fixed; 
     bottom: 0; 
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9000 !important; /* Top priority shield */
+    z-index: 9000 !important; 
     border-top: 1px solid var(--border);
-    box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
 .split-cards { 
     display: flex; 
     justify-content: center; 
-    gap: 15px; 
-    padding: 15px; 
-    width: 100%;
-    box-sizing: border-box;
+    gap: 10px; 
+    padding: 10px; 
     background: var(--bg-main);
 }
 
 .search-card { 
     flex: 1; background: var(--card-bg); color: white; 
-    padding: 18px; border-radius: 12px; border: none; 
-    font-weight: bold; font-size: 0.9rem; cursor: pointer; 
-    text-align: center;
+    padding: 15px; border-radius: 12px; border: none; 
+    font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center;
 }
 
-/* Catalog Background Grid */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }
-.result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; }
-.result-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #333; }
-
-.search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
-.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
-.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
-
-/* Loaders and Spinners */
-.loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
-.rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
-.dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
-@keyframes rotateSpinner { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; height: 40px; color: var(--text-main); }
