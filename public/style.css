@@ -1,6 +1,4 @@
-/* ==========================================
-   1. GLOBAL & THEME VARIABLES
-   ========================================== */
+/* 1. Global & Theme Variables */
 :root {
     --accent: #e60023;
     --bg-main: #ffffff;
@@ -21,147 +19,70 @@
 }
 
 body, html {
-    margin: 0; padding: 0; 
-    font-family: 'Inter', -apple-system, sans-serif;
+    margin: 0; padding: 0; font-family: 'Inter', sans-serif;
     background-color: var(--bg-main); color: var(--text-main);
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* ==========================================
-   2. HEADER LID (Sidebar Left, Cart Right)
-   ========================================== */
+/* 🎯 HEADER: Sidebar Left, Cart Right (Proportional Alignment) */
 .app-header {
-    position: relative;
-    z-index: 5000 !important; 
+    position: relative; z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 20px;
 }
 
-#menu-icon { 
-    font-size: 1.5rem; background: none; border: none; 
-    color: var(--text-main); cursor: pointer; padding: 10px;
-    pointer-events: auto !important;
-}
+#menu-icon { font-size: 1.5rem; background: none; border: none; color: var(--text-main); cursor: pointer; padding: 10px; }
 
 #cart-icon-container {
     cursor: pointer; display: flex; align-items: center; gap: 8px;
     font-weight: 800; font-size: 1.2rem; color: var(--text-main); padding: 10px;
-    pointer-events: auto !important;
 }
 
-.store-profile { text-align: center; padding: 10px 0; display: flex; flex-direction: column; align-items: center; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: #ccc; margin-bottom: 15px; }
+.store-profile { text-align: center; padding: 5px 0; display: flex; flex-direction: column; align-items: center; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: #ccc; margin-bottom: 10px; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
-.store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
-.greeting { font-size: 1rem; font-weight: 500; color: var(--text-main); margin: 0; opacity: 0.85; }
+.store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0; letter-spacing: -1px; }
 
-/* ==========================================
-   3. DOCKVIEW PHYSICS (Middle Scrolling Layer)
-   ========================================== */
+/* 🎯 DOCKVIEW (Products behind lids) */
 #ai-results {
-    display: none; 
-    grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
-    position: fixed !important;
-    top: 259px;           /* 4px push down from greetings */
-    bottom: 215px;        /* Clearance for 90px ads + search bar */
-    left: 0; right: 0;
+    display: none; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
+    position: fixed !important; top: 259px; bottom: 215px; left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
     overflow-y: auto !important; -webkit-overflow-scrolling: touch;
     z-index: 2000 !important; background: var(--bg-main);
-    padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box; 
-    scrollbar-width: none;
-    pointer-events: auto !important; /* 🎯 ENSURES PRODUCTS ARE CLICKABLE */
-}
-#ai-results::-webkit-scrollbar { display: none; }
-
-/* Product Display Pattern */
-.result-card { 
-    background: var(--card-bg) !important; border-radius: 14px; padding: 10px; 
-    text-align: center; cursor: pointer; color: white; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+    padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box;
     pointer-events: auto !important;
 }
-.result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; background: #333; pointer-events: none; }
-.result-card h4 { font-size: 0.8rem; margin: 10px 0 5px; color: #fff !important; font-weight: 700; }
-.result-card p { font-size: 0.95rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
 
-/* ==========================================
-   4. BOLD WHITE MODAL (Shape Restore)
-   ========================================== */
+/* 🎯 BOLD MODAL (Shape from modal.jpg) */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
     display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 90%; max-width: 450px; height: auto;
-    background: #ffffff !important; 
-    border-radius: 40px !important; position: relative; padding: 40px 25px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow-y: auto;
+    width: 90%; max-width: 450px; background: #ffffff !important;
+    border-radius: 40px !important; position: relative; padding: 35px 25px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow-y: auto; text-align: center;
 }
 
-.close-preview-x { 
-    position: absolute; top: 20px; right: 25px; 
-    font-size: 1.8rem; color: #000; font-weight: 900; 
-    cursor: pointer; z-index: 22000 !important;
-}
+.close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
 
-/* ==========================================
-   5. BOTTOM LID & ADS (Pinned Bottom)
-   ========================================== */
-.bottom-controls { 
-    position: fixed; bottom: 0; width: 100%; 
-    background: var(--bg-main) !important; padding-bottom: 25px; 
-    z-index: 9000 !important; border-top: 1px solid var(--border); 
-}
+/* 🎯 BOTTOM CONTROLS & PILL SEARCHBAR (From hhod.jpg) */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
+#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 12px; width: 100%; box-sizing: border-box; }
 
-#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 12px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
+.split-card { flex: 1; height: 90px; background: var(--card-bg); color: white; padding: 12px; border-radius: 16px; cursor: pointer; text-align: left; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
 
-/* 🎯 ADS HEIGHT: 90px to help 4 products display in column */
-.split-card { 
-    flex: 1; height: 90px !important; 
-    background: var(--card-bg); color: white; 
-    padding: 12px; border-radius: 16px; 
-    cursor: pointer; text-align: left; border: 1px solid var(--border);
-    display: flex; flex-direction: column; justify-content: center;
-    pointer-events: auto !important;
-}
-.split-card h4 { font-size: 0.95rem; margin: 0; font-weight: 800; color: #fff; }
-.split-card p { font-size: 0.7rem; margin: 2px 0 0; color: #aaa; }
+.search-bar { background: var(--input-bg); border-radius: 50px; padding: 8px 12px 8px 22px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
+.mic-icon { font-size: 1.5rem !important; color: #5f6368; cursor: pointer; margin-right: 15px; }
+.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
 
-/* 🎯 RESTORED PILL SEARCH BAR */
-.search-bar { 
-    background: var(--input-bg); border-radius: 50px; 
-    padding: 8px 12px 8px 22px; display: flex; 
-    align-items: center; margin: 0 15px; border: 1px solid var(--border); 
-}
+.result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; cursor: pointer; color: white; }
+.result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; pointer-events: none; }
 
-.search-bar input { 
-    border: none; background: transparent; flex: 1; outline: none; 
-    font-size: 16px; color: var(--text-main); height: 45px;
-}
-
-.mic-icon { 
-    font-size: 1.5rem !important; color: #5f6368; 
-    cursor: pointer; margin-right: 15px; 
-    pointer-events: auto !important;
-}
-
-.send-circle { 
-    background: var(--accent); border: none; width: 45px; height: 45px; 
-    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-    cursor: pointer; color: white; flex-shrink: 0;
-    pointer-events: auto !important;
-}
-
-/* ==========================================
-   6. ZOOM & INTERACTION
-   ========================================== */
-.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
-.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
-.zoomed { transform: scale(3.5); cursor: grab; transition: none !important; }
-
-/* Sidebar Drawer Physics */
+/* Sidebar Logic */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
 #sidebar-drawer.open { left: 0; }
