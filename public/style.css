@@ -25,16 +25,41 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER LID */
+/* 🎯 HEADER: Sidebar Left, Cart Right */
 .app-header {
     position: relative;
     z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
 }
 
+#menu-icon { 
+    font-size: 1.5rem; 
+    background: none; 
+    border: none; 
+    color: var(--text-main); 
+    cursor: pointer; 
+    padding: 10px;
+}
+
+#cart-icon-container {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--text-main);
+    padding: 10px;
+}
+
+/* 🎯 STORE PROFILE */
 .store-profile { 
     text-align: center; 
-    padding: 25px 0 10px; 
+    padding: 10px 0; 
     display: flex; flex-direction: column; align-items: center; 
 }
 
@@ -48,42 +73,32 @@ body, html {
 .store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
 .greeting { font-size: 1rem; font-weight: 500; color: var(--text-main); margin: 0; opacity: 0.85; }
 
-/* 🎯 CART ICON: TOP RIGHT CORNER */
-#cart-icon-container {
-    position: fixed;
-    top: 25px;
-    right: 25px; 
-    z-index: 6000 !important;
-    cursor: pointer;
-    display: flex !important;
-    pointer-events: auto !important;
-}
-
-/* 🎯 VIEW DOCK PHYSICS (Pushed down 4px) */
+/* 🎯 VIEW DOCK PHYSICS (Middle scrolling layer) */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important;
-    top: 259px; /* 4px push effect */
+    top: 259px; 
     bottom: 240px; left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
     overflow-y: auto !important; -webkit-overflow-scrolling: touch;
     z-index: 2000 !important; background: var(--bg-main);
     padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box; scrollbar-width: none;
 }
+#ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 BOLD WHITE MODAL (Shape from uploaded image) */
+/* 🎯 BOLD WHITE MODAL (Shape from your JPG) */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
     display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 90%; max-width: 450px; height: auto; max-height: 85vh;
-    background: #ffffff !important; /* Plain White */
-    border-radius: 40px !important; /* Extra Bold Rounded Corners */
+    width: 90%; max-width: 450px; height: auto;
+    background: #ffffff !important; /* Professional White Plain Background */
+    border-radius: 40px !important; /* Adopting the shape from image_3.png */
     position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
-    overflow-y: auto; padding: 35px 25px;
+    overflow-y: auto; padding: 40px 25px;
 }
 
 /* 🎯 VISIBLE CLOSE ICON */
@@ -93,16 +108,56 @@ body, html {
     cursor: pointer; z-index: 22000 !important;
 }
 
-/* 🎯 ZOOM & PAN (Inspection Physics) */
+/* 🎯 BOTTOM CONTROLS: SEARCH & ADS */
+.bottom-controls { 
+    position: fixed; bottom: 0; width: 100%; 
+    background: var(--bg-main) !important; padding-bottom: 25px; 
+    z-index: 9000 !important; border-top: 1px solid var(--border);
+}
+
+#quick-search-container { 
+    display: flex; justify-content: center; gap: 15px; padding: 15px; 
+    width: 100%; box-sizing: border-box; background: var(--bg-main); 
+}
+
+.split-card { 
+    flex: 1; background: var(--card-bg); color: white; 
+    padding: 18px 15px; border-radius: 14px; 
+    cursor: pointer; text-align: left; border: 1px solid var(--border);
+}
+
+/* 🎯 RESTORED PILL SEARCH BAR */
+.search-bar { 
+    background: var(--input-bg); 
+    border-radius: 50px; 
+    padding: 8px 12px 8px 22px; 
+    display: flex; 
+    align-items: center; 
+    margin: 0 15px; 
+    border: 1px solid var(--border); 
+}
+
+.search-bar input { 
+    border: none; background: transparent; flex: 1; outline: none; 
+    font-size: 16px; color: var(--text-main); height: 45px;
+}
+
+.mic-icon { 
+    font-size: 1.5rem !important; color: #5f6368; 
+    cursor: pointer; margin-right: 15px; 
+}
+
+.send-circle { 
+    background: var(--accent); border: none; width: 45px; height: 45px; 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; color: white; flex-shrink: 0;
+}
+
+/* 🎯 ZOOM & PAN */
 .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
 .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
 .zoomed { transform: scale(3.5); cursor: grab; transition: none !important; }
 
-/* 🎯 BOTTOM SHIELD */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
-#quick-search-container { display: flex; justify-content: center; gap: 15px; padding: 15px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
-.split-card { flex: 1; background: var(--card-bg); color: white; padding: 18px 15px; border-radius: 14px; cursor: pointer; text-align: left; border: 1px solid var(--border); }
-
-/* Sidebar */
+/* Sidebar Drawer */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
 #sidebar-drawer.open { left: 0; }
