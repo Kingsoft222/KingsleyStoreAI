@@ -23,11 +23,12 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 THE BRANDING MASK: Keeps products behind store profile */
+/* 🎯 THE TOP SHIELD: Prevents products from covering Logo, Name, and Greetings */
 .app-header, .store-profile {
-    position: relative;
-    z-index: 5000 !important; 
-    background: var(--bg-main) !important;
+    position: sticky !important;
+    top: 0;
+    z-index: 5000 !important; /* Highest priority at the top */
+    background-color: var(--bg-main) !important; /* Must be solid to hide products */
     padding-bottom: 10px;
 }
 
@@ -40,9 +41,9 @@ body, html {
 }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; background: var(--bg-main); }
 
-/* 🎯 THE SEARCH DOCK: Anchored specifically in the mid-layer */
+/* 🎯 THE SEARCH DOCK: Anchored specifically in the middle layer */
 #ai-results {
     display: none; 
     grid-template-columns: 1fr; 
@@ -56,11 +57,11 @@ body, html {
     width: 100%;
     max-width: 500px;
     
-    /* Fixed viewport to prevent touching branding */
-    max-height: 40vh !important; 
+    /* Limit height so it doesn't push into the status bar area */
+    max-height: 45vh !important; 
     overflow-y: auto !important; 
     
-    /* 🔥 LOWEST PRIORITY: Sandwiched behind everything else */
+    /* LAYER: Sandwiched behind everything else */
     z-index: 10 !important; 
     background: var(--bg-main);
     padding: 20px 15px;
@@ -71,14 +72,14 @@ body, html {
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 THE BOTTOM SHIELD: Includes Ads + Search Bar */
+/* 🎯 THE BOTTOM SHIELD: Grouped Ads + Search Bar */
 .bottom-controls { 
     position: fixed; 
     bottom: 0; 
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9000 !important; /* ABSOLUTE TOP */
+    z-index: 9000 !important; /* Top priority at the bottom */
     border-top: 1px solid var(--border);
     box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
 }
@@ -110,7 +111,7 @@ body, html {
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Loader Styles */
+/* Loader and Spinner stay as they were */
 .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
 .rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
 .dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
