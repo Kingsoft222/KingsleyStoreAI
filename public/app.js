@@ -47,7 +47,6 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Image Optimization ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -171,6 +170,7 @@ function initGlobalUIStyles() {
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-family: 'Google Sans', sans-serif; font-weight: 600; }
+        .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
     `;
     document.head.appendChild(style);
 }
@@ -211,7 +211,7 @@ window.openChatPage = () => {
                 <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
                 <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
                 <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
-                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">Official agent loading...</p>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">Loading agent...</p>
                 <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return</button>
             </div>
         </div>`;
@@ -219,16 +219,9 @@ window.openChatPage = () => {
 };
 
 window.executeSearch = () => {
-    const input = document.getElementById('ai-input');
+    const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
-    if (!input || !results) return;
-
-    const query = input.value.toLowerCase().trim();
-    if (!query) { 
-        results.innerHTML = ""; 
-        results.style.setProperty('display', 'none', 'important'); 
-        return; 
-    }
+    if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     
     const filtered = storeCatalog.filter(c => 
         (c.name && c.name.toLowerCase().includes(query)) || 
@@ -236,7 +229,7 @@ window.executeSearch = () => {
     );
 
     if (filtered.length > 0) {
-        // 🔥 FORCE DISPLAY GRID TO BYPASS CSS LOCKS
+        // 🔥 CRITICAL FIX: Ensure display matches the fixed dock in style.css
         results.style.setProperty('display', 'grid', 'important'); 
         results.innerHTML = filtered.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; width: 100%; box-sizing: border-box;">
@@ -246,7 +239,7 @@ window.executeSearch = () => {
             </div>`).join('');
     } else {
         results.style.setProperty('display', 'block', 'important');
-        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No styles found.</div>`;
+        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No results found for "${query}"</div>`;
     }
 };
 
