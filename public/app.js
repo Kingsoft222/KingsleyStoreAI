@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.placeholder = data.searchHint || "Search...";
                 searchInput.oninput = window.executeSearch;
             }
+
             // 🎯 RESTORED STORE FRONT ADS
             const container = document.getElementById('quick-search-container');
             if (container) {
@@ -77,6 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Perfect styles for you</p>
                     </div>`;
             }
+
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
@@ -189,8 +191,10 @@ window.renderProducts = (items) => {
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}" alt="${item.name}"><h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4><p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p></div>`).join('');
 };
+
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; if(window.chatway){ window.chatway.hide(); window.chatway.close(); } };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `#draggable-chat-head, #chat-close-zone { display: none !important; } .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }`; document.head.appendChild(s); }
+function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `#draggable-chat-head, #chat-close-zone { display: none !important; } .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } } .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-family: 'Google Sans', sans-serif; font-weight: 600; } .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }`; document.head.appendChild(s); }
 function initVoiceSearch() { const micBtn = document.getElementById('mic-btn'); if (!micBtn) return; const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRec) return; const recognition = new SpeechRec(); micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} }; recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
+function applyDynamicThemeStyles() { const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; const adaptiveTextColor = isDarkMode ? 'white' : 'black'; const styleTag = document.createElement('style'); styleTag.innerHTML = `#store-name-display, #dynamic-greeting { color: ${adaptiveTextColor} !important; }`; document.head.appendChild(styleTag); }
