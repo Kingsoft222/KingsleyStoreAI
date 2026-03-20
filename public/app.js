@@ -62,6 +62,15 @@ async function optimizeForAI(base64Str) {
     });
 }
 
+const injectChatSupport = () => {
+    if (document.getElementById('chatway-script')) return;
+    const s = document.createElement("script");
+    s.id = "chatway-script";
+    s.async = true;
+    s.src = "https://cdn.chatway.app/widget.js?id=govCX46EKb8v";
+    document.head.appendChild(s);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
@@ -76,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
             return isTopLeft && (el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.classList.contains('fa-bars'));
         });
-        if (menuBtn) {
+        if (menuBtn && !menuBtn.onclick) {
             menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
@@ -97,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // 🎯 RESTORED GREETING TOGGLE
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -137,7 +145,7 @@ window.renderProducts = (items) => {
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
             <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
-            <h4 style="color:#fff !important; font-weight:700;">${item.name}</h4>
+            <h4 class="cart-item-name" style="color:#fff !important; font-weight:700;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
@@ -157,7 +165,7 @@ window.executeSearch = () => {
         results.innerHTML = filtered.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
                 <img src="${item.imgUrl}" style="pointer-events:none;">
-                <h4 style="color:#fff !important; font-weight:700;">${item.name}</h4>
+                <h4 class="cart-item-name" style="color:#fff !important; font-weight:700;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
     } else {
@@ -170,22 +178,59 @@ window.openOptionsMenu = () => {
     if (!modal) return;
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
+    const verifiedIcon = `<svg viewBox="0 0 24 24" width="18" height="18" fill="#00a2ff" style="margin-left:5px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
+    const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="#0b57d0"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
+
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; position: fixed; left: 0; top: 0; height: 100%; width: 300px; z-index: 20001; overflow-y: auto;">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; position: fixed; left: 0; top: 0; height: 100%; width: 300px; z-index: 20001; overflow-y: auto; display: flex; flex-direction: column;">
                 <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
                     <span>Store Options</span><span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column;">
-                    <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Luxury Wears</div>
-                    <div onclick="window.location.assign('?store=kingss1')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">💎<span>Stella Wears</span></div>
-                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">👗<span>IFY FASHION</span></div>
-                    <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Bespoke Native</div>
-                    <div onclick="window.location.assign('?store=adivichi')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">🧵<span>ADIVICHI FASHION</span></div>
-                    <div onclick="window.location.assign('?store=thomasmongim')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">👔<span>TOMMY BEST FASHION</span></div>
+                    <div onclick="window.openChatPage()" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">
+                        <span>${agentIcon}</span><span>Chat Support</span>
+                    </div>
+                    <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Verified Stores</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="display: flex; align-items: center; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">
+                        <span>Stella Wears</span>${verifiedIcon}
+                    </div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="display: flex; align-items: center; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">
+                        <span>IFY FASHION</span>${verifiedIcon}
+                    </div>
+                    <div onclick="window.location.assign('?store=adivichi')" style="display: flex; align-items: center; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">
+                        <span>ADIVICHI FASHION</span>${verifiedIcon}
+                    </div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="display: flex; align-items: center; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">
+                        <span>TOMMY BEST</span>${verifiedIcon}
+                    </div>
+                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
                 </div>
             </div>
         </div>`;
+};
+
+// 🎯 UPDATED: Chat Support now triggers properly
+window.openChatPage = () => {
+    injectChatSupport();
+    const modal = document.getElementById('fitting-room-modal');
+    const resDiv = document.getElementById('ai-fitting-result');
+    modal.style.display = 'flex';
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:80px 20px;">
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:20px; font-weight:800; color:#111;">Connecting to Agent...</p>
+            <button onclick="window.closeFittingRoom()" style="margin-top:20px; background:#111; color:#fff; border:none; padding:10px 20px; border-radius:10px;">Return to Shop</button>
+        </div>`;
+    
+    // Check if Chatway is ready, then open it
+    const checkChat = setInterval(() => {
+        if (window.chatway) {
+            window.chatway.show();
+            window.chatway.open();
+            clearInterval(checkChat);
+        }
+    }, 500);
 };
 
 window.promptShowroomChoice = (id) => {
@@ -198,7 +243,7 @@ window.promptShowroomChoice = (id) => {
 
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT PHOTO</button></div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>SELECT PHOTO</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT PHOTO</button></div>`;
 };
 
 window.handleCustomerUpload = (e) => { 
@@ -226,7 +271,7 @@ window.startTryOn = async () => {
 };
 
 window.buyNow = () => {
-    const text = `I'm interested in: ${selectedCloth.name} (₦${selectedCloth.price.toLocaleString()})`;
+    const text = `Order: ${selectedCloth.name} (₦${selectedCloth.price.toLocaleString()})`;
     window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(text)}`, '_blank');
 };
 
