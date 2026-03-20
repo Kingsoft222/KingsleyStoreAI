@@ -92,7 +92,7 @@ body, html {
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 CART ICON: Positioned Top Right */
+/* 🎯 CART ICON: Locked Top Right */
 #cart-icon-container {
     position: fixed;
     top: 25px;
