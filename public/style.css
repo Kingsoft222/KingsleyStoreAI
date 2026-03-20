@@ -23,7 +23,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 TOP LID (Fixed) */
+/* 🎯 HEADER LID (Fixed Top) */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
@@ -31,21 +31,31 @@ body, html {
     padding-bottom: 10px;
 }
 
-/* 🎯 SEARCH DOCK (Scrolling Middle Layer) */
+.store-profile { text-align: center; padding-top: 10px; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; display: flex; align-items: center; justify-content: center; background: #ccc; }
+.profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+.store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
+
+/* 🎯 SEARCH DOCK: LOCKED VIEWPORT */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
+
     position: fixed !important;
-    top: 220px;           /* Below branding */
-    bottom: 230px;        /* Above Ads shield */
+    top: 220px;           /* Lock below greetings */
+    bottom: 240px;        /* Lock above Store Front Ads shield */
     left: 0;
     right: 0;
+
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
+
     overflow-y: auto !important; 
     -webkit-overflow-scrolling: touch;
+    
     z-index: 2000 !important; 
     background: var(--bg-main);
     padding: 15px;
@@ -62,12 +72,11 @@ body, html {
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9000 !important; /* Topmost layer */
+    z-index: 9000 !important; 
     border-top: 1px solid var(--border);
-    box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
-/* Store Front Ads (Split Cards) Container */
+/* Store Front Ads Shield */
 #quick-search-container {
     display: flex;
     justify-content: center;
@@ -75,26 +84,22 @@ body, html {
     padding: 15px;
     width: 100%;
     box-sizing: border-box;
-    background: var(--bg-main); /* Makes it opaque so products hide behind it */
+    background: var(--bg-main); /* Blocks products sliding down */
 }
 
 .split-card { 
-    flex: 1; 
-    background: var(--card-bg); 
-    color: white; 
-    padding: 15px; 
-    border-radius: 12px; 
-    cursor: pointer; 
-    text-align: left;
-    border: 1px solid var(--border);
+    flex: 1; background: var(--card-bg); color: white; 
+    padding: 15px; border-radius: 12px; cursor: pointer; 
+    text-align: left; border: 1px solid var(--border);
 }
 
-/* Search Results UI */
+/* Card UI */
 .result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
-.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; pointer-events: none; }
+.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff !important; }
 .result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
+.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
