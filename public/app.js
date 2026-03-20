@@ -24,7 +24,7 @@ let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", st
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 let windowActiveGreetings = [], gIndex = 0;
 
-// --- 🚀 ADOPTED FASTEST VTO ENGINE ---
+// --- 🚀 STABLE FAST TRY-ON ENGINE UTILITIES ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -49,10 +49,11 @@ async function getBase64FromUrl(url) {
                 const rd = new FileReader();
                 rd.onloadend = () => resolve(rd.result.split(',')[1]);
                 rd.readAsDataURL(b);
-            });
+            }).catch(() => resolve(""));
     });
 }
 
+// --- 🎯 INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {});
@@ -68,6 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
+            const searchInput = document.getElementById('ai-input');
+            if (searchInput) {
+                searchInput.placeholder = data.searchHint || "Search...";
+                searchInput.oninput = window.executeSearch;
+            }
+            
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -77,6 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
+
             if (data.greetingsEnabled !== false) {
                 windowActiveGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 const el = document.getElementById('dynamic-greeting');
@@ -100,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- 🎯 RESTORED PRODUCT DISPLAY PATTERN ---
+// --- 🎯 PRODUCT RENDER ---
 window.renderProducts = (items) => {
     const results = document.getElementById('ai-results');
     if (!results) return;
@@ -120,7 +128,7 @@ window.executeSearch = () => {
     window.renderProducts(filtered);
 };
 
-// --- 🚀 FAST TRY-ON Logic adopted from your stable code ---
+// --- 🚀 FAST TRY-ON Logic ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     const fullStoreName = document.getElementById('store-name-display').innerText;
@@ -137,7 +145,6 @@ window.startTryOn = async () => {
     try {
         const optimizedUser = await optimizeForAI(localUserBase64);
         const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        // Direct Fast processing endpoint
         const response = await fetch('/api/process-vto', { 
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userImage: optimizedUser, clothImage: rawCloth, category: selectedCloth.category || "Native" }) 
@@ -148,15 +155,15 @@ window.startTryOn = async () => {
                 <div style="text-align:center;">
                     <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
                     <div class="zoom-container" id="result-zoom-box"><img src="data:image/jpeg;base64,${result.image}" class="zoom-image" id="result-img"></div>
-                    <button onclick="window.addToCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; margin-top:20px; border:none; cursor:pointer;">Add to Cart 🛍️</button>
+                    <button onclick="window.addToCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; margin-top:20px; border:none; cursor:pointer; text-transform:uppercase;">Add to Cart 🛍️</button>
                 </div>`;
             const container = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
             container.onclick = () => img.classList.toggle('zoomed');
         } else { throw new Error(); }
-    } catch (e) { alert("AI processing failed. Please check image quality."); window.closeFittingRoom(); }
+    } catch (e) { alert("AI processing failed. Check image quality."); window.closeFittingRoom(); }
 };
 
-// ... Sidebar, Cart UI, Close, and Pan logics remain fully intact from established versions ...
+// ... Remaining logics (Pan, Cart, Sidebar) remain identical to established versions ...
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     document.getElementById('fitting-room-modal').style.display = 'flex';
@@ -213,9 +220,7 @@ window.openCart = () => {
         <div style="padding:10px; color:#000;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
             <h2 style="color:#e60023; font-weight:900;">CART SUMMARY</h2>
-            <div style="max-height:300px; overflow-y:auto; margin-bottom:15px;">
-                ${cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><div><b>${item.name}</b><br>₦${item.price.toLocaleString()}</div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:red; font-size:1.2rem;">✕</button></div>`).join('')}
-            </div>
+            ${cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><div><b>${item.name}</b><br>₦${item.price.toLocaleString()}</div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:red; font-size:1.2rem;">✕</button></div>`).join('')}
             <div style="display:flex; justify-content:space-between; font-weight:900; font-size:1.2rem; border-top:2px solid #e60023; padding-top:15px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
             <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px;">Checkout WhatsApp</button>
         </div>`;
@@ -251,7 +256,7 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchmove', (e) => { if(!isPanning) return; currentX = e.touches[0].clientX - startX; currentY = e.touches[0].clientY - startY; img.style.transform = `scale(3.5) translate(${currentX/3.5}px, ${currentY/3.5}px)`; });
     box.addEventListener('touchend', () => isPanning = false);
 }
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; if(window.chatway){ window.chatway.hide(); window.chatway.close(); } };
+window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.openCart(); updateCartUI(); };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
