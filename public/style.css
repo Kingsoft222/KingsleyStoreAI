@@ -23,94 +23,68 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER LAYER: Solid lid for content to slide under */
+/* 🎯 HEADER LID */
 .app-header, .store-profile {
     position: relative;
-    z-index: 4000 !important; 
-    background: var(--bg-main);
-    padding-bottom: 5px;
+    z-index: 5000 !important; 
+    background-color: var(--bg-main) !important;
+    padding-bottom: 10px;
 }
 
 .store-profile { text-align: center; padding-top: 10px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { 
-    width: 110px; height: 110px; border-radius: 50%; 
-    border: 3px solid var(--accent); overflow: hidden; 
-    background: #ccc; display: flex; align-items: center; justify-content: center;
-}
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: Forced Grid (2 in a row) */
+/* 🎯 THE SEARCH DOCK */
 #ai-results {
     display: none; 
-    /* Force 2 per row */
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
     position: fixed !important;
-    bottom: 185px !important; /* Raised to stay above ad boxes */
+    bottom: 200px !important; /* Strictly above Ads */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 500px;
-    
-    max-height: 40vh !important; 
+    max-height: 44vh !important; 
     overflow-y: auto !important; 
-    
-    z-index: 500 !important; 
+    z-index: 1000 !important; 
     background: var(--bg-main);
     padding: 15px;
     border-top: 1px solid var(--border);
-    border-radius: 28px 28px 0 0;
+    border-radius: 24px 24px 0 0;
     box-sizing: border-box;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* Ad Boxes Protector */
-.split-cards { 
-    display: flex; 
-    justify-content: center; 
-    gap: 12px; 
-    padding: 12px; 
-    width: 100%;
-    box-sizing: border-box;
-    position: fixed !important;
-    bottom: 90px !important; 
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 500px;
-    z-index: 3000 !important; 
-    background: var(--bg-main);
-    margin: 0;
-}
-
-.search-card { 
-    flex: 1; background: var(--card-bg); color: white; 
-    padding: 18px; border-radius: 12px; border: none; 
-    font-weight: bold; font-size: 0.85rem; cursor: pointer; 
-    text-align: center;
-}
-
+/* Ad Boxes and Search Bar Shield */
 .bottom-controls { 
-    position: fixed; 
-    bottom: 0; 
-    width: 100%; 
-    background: var(--bg-main); 
-    padding-bottom: 25px; 
-    z-index: 5000 !important; 
-    border-top: 1px solid var(--border); 
+    position: fixed; bottom: 0; width: 100%; 
+    background: var(--bg-main) !important; padding-bottom: 25px; 
+    z-index: 9000 !important; border-top: 1px solid var(--border);
+    box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
-/* Background Catalog */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 250px; position: relative; z-index: 100; }
-.result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 8px; text-align: center; cursor: pointer;}
-.result-card img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; background: #333; }
-.result-card h4 { font-size: 0.8rem; margin: 8px 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.result-card p { font-size: 0.9rem; font-weight: 800; color: var(--accent); margin: 0; }
+.split-cards { 
+    display: flex; justify-content: center; gap: 15px; padding: 15px; 
+    width: 100%; box-sizing: border-box; background: var(--bg-main);
+}
+
+.search-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
+
+/* Result Card UI */
+.result-card { background: var(--card-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
+.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; }
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
+
+/* Catalog background */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }

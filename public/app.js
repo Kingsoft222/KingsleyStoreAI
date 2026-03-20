@@ -44,6 +44,7 @@ let localUserBase64 = "";
 window.activeGreetings = []; 
 let gIndex = 0;
 
+// --- Image Optimization Logic ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -62,11 +63,23 @@ async function optimizeForAI(base64Str) {
     });
 }
 
+const injectChatSupport = () => {
+    if (document.getElementById('chatway-script')) return;
+    const s = document.createElement("script");
+    s.id = "chatway-script";
+    s.async = true;
+    s.src = "https://cdn.chatway.app/widget.js?id=govCX46EKb8v";
+    document.head.appendChild(s);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
     
+    const greetingEl = document.getElementById('dynamic-greeting');
+    if (greetingEl) greetingEl.innerText = "Boss, let's find your style!"; // Fallback starting text
+
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -79,12 +92,31 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
+            
+            // 🎯 RESTORED GREETING LOGIC
+            if (data.greetingsEnabled !== false) {
+                window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Boss, let's find your style!"];
+                if (greetingEl) greetingEl.innerText = window.activeGreetings[0];
+            }
+
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
                 window.renderProducts(storeCatalog);
             }
+            updateCartUI();
         }
     });
+
+    // 🎯 RESTORED GREETING ROTATION
+    setInterval(() => {
+        const el = document.getElementById('dynamic-greeting');
+        if (el && window.activeGreetings && window.activeGreetings.length > 1) { 
+            gIndex = (gIndex + 1) % window.activeGreetings.length;
+            el.innerText = window.activeGreetings[gIndex]; 
+        }
+    }, 4000);
+
+    initVoiceSearch();
 });
 
 window.renderProducts = (items) => {
@@ -93,8 +125,8 @@ window.renderProducts = (items) => {
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}" alt="${item.name}">
-            <h4>${item.name}</h4>
-            <p>₦${item.price.toLocaleString()}</p>
+            <h4 style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
@@ -104,26 +136,44 @@ window.executeSearch = () => {
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
     const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
     
-    results.style.display = 'grid'; // JS trigger matches the CSS grid rules
+    results.style.display = 'grid'; 
     results.innerHTML = filtered.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
             <img src="${item.imgUrl}">
-            <h4>${item.name}</h4>
-            <p>₦${item.price.toLocaleString()}</p>
+            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
 window.promptShowroomChoice = (id) => {
+    if (window.chatway) window.chatway.hide();
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center;"><img src="${selectedCloth.imgUrl}" style="width:100%; border-radius:12px;"><h3>${selectedCloth.name}</h3><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:15px; width:100%; border-radius:12px; border:none; font-weight:900;">Wear it!</button></div>`;
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:5px; position:relative;">
+            <div class="zoom-container" id="preview-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
+            <div style="padding:15px 10px;">
+                <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
+                <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Wear it! ✨</button>
+            </div>
+        </div>`;
+    const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
+    container.onclick = (e) => { if (e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); };
 };
 
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>SELECT PHOTO</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:15px; width:100%; border-radius:12px; border:none; font-weight:900;">GALLERY</button></div>`;
+    resDiv.innerHTML = `
+        <div style="text-align:center; padding:20px; position:relative;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div style="font-size:3.5rem; margin-bottom:15px;">🤳</div>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">FINISH YOUR LOOK</h2>
+            <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
+            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem; text-transform:uppercase;">SELECT FROM GALLERY</button>
+        </div>`;
 };
 
 window.handleCustomerUpload = (e) => { 
@@ -135,7 +185,12 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center; padding:50px;"><p>Processing...</p></div>`;
+    resDiv.innerHTML = `
+        <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching outfit...</p>
+        </div>`;
     try {
         const optimizedUser = await optimizeForAI(localUserBase64);
         const response = await fetch('/api/process-vto', {
@@ -145,9 +200,13 @@ window.startTryOn = async () => {
         });
         const result = await response.json();
         if (result.success) {
-            resDiv.innerHTML = `<div style="text-align:center;"><img src="data:image/png;base64,${result.image}" style="width:100%; border-radius:12px;"><button onclick="window.buyNow()" style="background:#25D366; color:white; padding:15px; width:100%; border-radius:12px; border:none; font-weight:900; margin-top:10px;">Buy Look</button></div>`;
+            resDiv.innerHTML = `
+                <div style="text-align:center; padding:5px; position:relative;">
+                    <div class="zoom-container" id="result-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img"></div>
+                    <div style="padding:15px 10px;"><button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Buy Look</button></div>
+                </div>`;
         }
-    } catch (err) { alert(err.message); }
+    } catch (err) { alert(err.message); window.proceedToUpload(); }
 };
 
 window.buyNow = () => {
@@ -158,16 +217,26 @@ window.buyNow = () => {
 function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const adaptiveTextColor = isDarkMode ? 'white' : 'black';
-    const styleTag = document.createElement('style');
-    styleTag.innerHTML = `#store-name-display { color: ${adaptiveTextColor} !important; }`;
-    document.head.appendChild(styleTag);
+    const styleId = 'dynamic-theme-style';
+    let styleTag = document.getElementById(styleId);
+    if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
+    styleTag.innerHTML = `#dynamic-greeting, #store-name-display { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
 }
 
 function initGlobalUIStyles() {
     const style = document.createElement('style');
-    style.innerHTML = `#draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }`;
+    style.innerHTML = `
+        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
+        .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
+        @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; }
+        .zoom-image { width: 100%; height: 100%; object-fit: contain; }
+        .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
+    `;
     document.head.appendChild(style);
 }
 
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
+window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
+window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); };
