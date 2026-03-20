@@ -356,7 +356,7 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        localUserBase64 = ev.target.result; // Header removed during startTryOn
+        localUserBase64 = ev.target.result;
         window.startTryOn(); 
     }; 
     reader.readAsDataURL(file); 
@@ -372,25 +372,12 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        // --- LOGIC ADDED: Optimize images before sending to Vercel ---
-        const [cleanUser, cleanCloth] = await Promise.all([
-            optimizeForAI(localUserBase64),
-            fetch(selectedCloth.imgUrl)
-                .then(r => r.blob())
-                .then(blob => new Promise(res => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => res(reader.result);
-                    reader.readAsDataURL(blob);
-                }))
-                .then(b64 => optimizeForAI(b64))
-        ]);
-
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userImage: cleanUser,
-                clothImage: cleanCloth,
+                userImage: localUserBase64,
+                clothImageUrl: selectedCloth.imgUrl,
                 category: selectedCloth.category || "Native"
             })
         });
@@ -407,19 +394,13 @@ window.startTryOn = async () => {
                     </div>
                     <div style="padding:15px 10px;">
                         <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; justify-content:center; gap:10px;">
-                            <i class="fab fa-whatsapp"></i> Buy This Look
+                            Buy This Look
                         </button>
                     </div>
                 </div>`;
             
             const container = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
             container.onclick = () => img.classList.toggle('zoomed');
-            container.onmousemove = (e) => {
-                if (!img.classList.contains('zoomed')) return;
-                const rect = container.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100, y = ((e.clientY - rect.top) / rect.height) * 100;
-                img.style.transformOrigin = `${x}% ${y}%`;
-            };
         } else {
             throw new Error(result.error);
         }
