@@ -164,33 +164,50 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* THE DOCK FIX: Anchors results to the bottom search bar area */
+        /* THE DOCK FIX: Anchored, centered, and overflow-proof */
         #ai-results { 
             display: none; 
-            grid-template-columns: repeat(2, 1fr) !important; 
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
             gap: 12px !important; 
-            padding: 20px 15px 40px !important;
+            padding: 15px 12px 30px !important;
             width: 100% !important; 
+            max-width: 500px; 
             position: fixed !important;
-            bottom: 85px !important; /* Docks exactly above the input bar */
-            left: 0;
-            right: 0;
+            bottom: 85px !important; 
+            left: 50%;
+            transform: translateX(-50%); 
             z-index: 9000 !important; 
             background: #ffffff; 
             border-top: 1px solid #f0f0f0;
-            border-radius: 28px 28px 0 0;
-            box-shadow: 0 -15px 35px rgba(0,0,0,0.12);
-            max-height: 60vh !important; /* Prevents covering header/logo */
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.12);
+            max-height: 60vh !important; 
             overflow-y: auto !important; 
+            overflow-x: hidden !important; 
+            box-sizing: border-box;
             scrollbar-width: none;
             -webkit-overflow-scrolling: touch;
         }
         #ai-results::-webkit-scrollbar { display: none; }
 
-        #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
-        .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 5 !important; overflow: hidden; }
+        .result-card { 
+            background: #ffffff !important; 
+            border-radius: 14px; 
+            padding: 10px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+            cursor: pointer !important; 
+            pointer-events: auto !important; 
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative; 
+            z-index: 5 !important; 
+            overflow: hidden;
+            width: 100%;
+            min-width: 0; 
+        }
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+
+        #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
         .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
