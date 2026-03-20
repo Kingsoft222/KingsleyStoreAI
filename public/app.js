@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.placeholder = data.searchHint || "Search...";
                 searchInput.oninput = window.executeSearch;
             }
+            // 🎯 RESTORED STORE FRONT ADS
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -88,12 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
                 window.renderProducts(storeCatalog);
             }
+            updateCartUI();
         }
     });
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && window.activeGreetings.length > 1) { 
+        if (el && window.activeGreetings.length > 1 && el.style.display !== 'none') { 
             gIndex = (gIndex + 1) % window.activeGreetings.length;
             el.innerText = window.activeGreetings[gIndex]; 
         }
@@ -182,7 +184,6 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchend', () => isPanning = false);
 }
 
-/* Rest of logics (Upload, TryOn, WhatsApp) stay untouched */
 window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
