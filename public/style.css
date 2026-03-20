@@ -23,12 +23,12 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER & BRANDING: Stays on top of everything */
+/* 🎯 THE BRANDING MASK: Keeps products behind store profile */
 .app-header, .store-profile {
     position: relative;
-    z-index: 4000 !important; 
-    background: var(--bg-main);
-    padding-bottom: 5px;
+    z-index: 5000 !important; 
+    background: var(--bg-main) !important;
+    padding-bottom: 10px;
 }
 
 .store-profile { text-align: center; padding-top: 10px; }
@@ -42,26 +42,28 @@ body, html {
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
 .greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
 
-/* 🎯 THE SEARCH DOCK: Anchored lower than ads */
+/* 🎯 THE SEARCH DOCK: Anchored specifically in the mid-layer */
 #ai-results {
     display: none; 
     grid-template-columns: 1fr; 
     gap: 16px;
     position: fixed !important;
-    bottom: 95px !important; 
+    
+    /* Positioned between the Ads and the Header */
+    bottom: 180px !important; 
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 500px;
     
-    /* Adjusted height to stay within the safe scroll zone */
-    max-height: 38vh !important; 
+    /* Fixed viewport to prevent touching branding */
+    max-height: 40vh !important; 
     overflow-y: auto !important; 
     
-    /* LAYER: Set low so it passes BEHIND branding and ads */
-    z-index: 500 !important; 
+    /* 🔥 LOWEST PRIORITY: Sandwiched behind everything else */
+    z-index: 10 !important; 
     background: var(--bg-main);
-    padding: 10px 15px 120px; /* Extra bottom padding for safe scrolling */
+    padding: 20px 15px;
     border-top: 1px solid var(--border);
     border-radius: 28px 28px 0 0;
     box-sizing: border-box;
@@ -69,7 +71,18 @@ body, html {
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 STORE FRONT ADS PROTECTOR: THE MAGIC FIX */
+/* 🎯 THE BOTTOM SHIELD: Includes Ads + Search Bar */
+.bottom-controls { 
+    position: fixed; 
+    bottom: 0; 
+    width: 100%; 
+    background: var(--bg-main) !important; 
+    padding-bottom: 25px; 
+    z-index: 9000 !important; /* ABSOLUTE TOP */
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+}
+
 .split-cards { 
     display: flex; 
     justify-content: center; 
@@ -77,18 +90,7 @@ body, html {
     padding: 15px; 
     width: 100%;
     box-sizing: border-box;
-    
-    /* Position fixed above the search bar to block overlapping products */
-    position: fixed !important;
-    bottom: 95px !important; 
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 500px;
-    
-    /* Higher priority than results container */
-    z-index: 3000 !important; 
-    background: var(--bg-main); /* Solid shield */
-    margin: 0;
+    background: var(--bg-main);
 }
 
 .search-card { 
@@ -98,19 +100,8 @@ body, html {
     text-align: center;
 }
 
-/* 🎯 BOTTOM DOCKBAR: Forefront */
-.bottom-controls { 
-    position: fixed; 
-    bottom: 0; 
-    width: 100%; 
-    background: var(--bg-main); 
-    padding-bottom: 25px; 
-    z-index: 5000 !important; /* Top Layer */
-    border-top: 1px solid var(--border); 
-}
-
-/* Base Catalog Items */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 250px; position: relative; z-index: 100; }
+/* Catalog background items */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 280px; position: relative; z-index: 1; }
 .result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer;}
 .result-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #333; }
 
@@ -119,7 +110,7 @@ body, html {
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Loader Styles remain as is */
+/* Loader Styles */
 .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
 .rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
 .dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
