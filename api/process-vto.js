@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     try {
         const { userImage, clothImage, category } = req.body;
 
-        // Clean headers: Vertex AI only accepts the raw base64 string
+        // Strip Base64 headers
         const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
         const cleanCloth = clothImage.includes('base64,') ? clothImage.split('base64,')[1] : clothImage;
 
@@ -23,10 +23,11 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Map categories strictly to what the model expects
+        // Strict category mapping for Vertex VTO model
         let vtoCategory = "DRESS"; 
-        if (category === "Corporate" || category === "Suits") vtoCategory = "TOP";
-        if (category === "Casual") vtoCategory = "BOTTOM";
+        const cat = String(category).toUpperCase();
+        if (cat.includes("TOP") || cat.includes("SHIRT") || cat.includes("CORPORATE")) vtoCategory = "TOP";
+        else if (cat.includes("BOTTOM") || cat.includes("PANTS") || cat.includes("CASUAL")) vtoCategory = "BOTTOM";
 
         const response = await axios.post(url, {
             instances: [{
@@ -42,37 +43,35 @@ export default async function handler(req, res) {
             }],
             parameters: {
                 sampleCount: 1,
-                addWatermark: false
+                addWatermark: false,
+                enableImageRefinement: true
             }
         }, {
             headers: { 
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 58000 
+            timeout: 59000 
         });
 
-        // Check if predictions exist in the response
-        if (response.data.predictions && response.data.predictions.length > 0) {
-            const prediction = response.data.predictions[0];
-            const resultImage = prediction.image?.bytesBase64Encoded || prediction.bytesBase64Encoded;
-            
-            if (resultImage) {
-                return res.status(200).json({ success: true, image: resultImage });
-            }
+        // The model returns the result inside predictions[0].image.bytesBase64Encoded
+        const prediction = response.data.predictions?.[0];
+        const resultImage = prediction?.image?.bytesBase64Encoded || prediction?.bytesBase64Encoded;
+
+        if (resultImage) {
+            return res.status(200).json({ success: true, image: resultImage });
+        } else {
+            console.error("Vertex AI Response Structure:", JSON.stringify(response.data));
+            throw new Error("The AI Tailor didn't return an image. Try a clearer body photo.");
         }
 
-        console.error("Vertex AI Detailed Error:", JSON.stringify(response.data));
-        throw new Error("AI returned an empty result.");
-
     } catch (error) {
-        // Detailed logging for Vercel
-        const errorMsg = error.response?.data?.error?.message || error.message;
-        console.error("VTO FINAL ERROR:", errorMsg);
+        const detail = error.response?.data?.[0]?.error?.message || error.response?.data?.error?.message || error.message;
+        console.error("VTO_LOG_ERROR:", detail);
         
         return res.status(500).json({ 
             success: false, 
-            error: `Stitching Error: ${errorMsg}` 
+            error: `Error: ${detail}` 
         });
     }
 }
