@@ -164,31 +164,18 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* THE DOCK FIX: Anchored, centered, and overflow-proof */
+        /* RESTORED: Search Results load in view docks without overfloating, following the original logic */
         #ai-results { 
             display: none; 
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
+            grid-template-columns: repeat(2, 1fr) !important; 
             gap: 12px !important; 
-            padding: 15px 12px 30px !important;
+            padding: 10px !important; 
             width: 100% !important; 
-            max-width: 500px; 
-            position: fixed !important;
-            bottom: 85px !important; 
-            left: 50%;
-            transform: translateX(-50%); 
-            z-index: 9000 !important; 
-            background: #ffffff; 
-            border-top: 1px solid #f0f0f0;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.12);
-            max-height: 60vh !important; 
-            overflow-y: auto !important; 
-            overflow-x: hidden !important; 
-            box-sizing: border-box;
-            scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
+            position: relative; 
+            z-index: 8000 !important; 
+            background: transparent; 
+            margin-bottom: 20px; 
         }
-        #ai-results::-webkit-scrollbar { display: none; }
 
         .result-card { 
             background: #ffffff !important; 
@@ -199,10 +186,8 @@ function initGlobalUIStyles() {
             pointer-events: auto !important; 
             transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             position: relative; 
-            z-index: 5 !important; 
+            z-index: 7000 !important; 
             overflow: hidden;
-            width: 100%;
-            min-width: 0; 
         }
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
@@ -330,7 +315,6 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-// --- Backend Connection logic ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
@@ -362,7 +346,7 @@ window.startTryOn = async () => {
                         <img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img">
                     </div>
                     <div style="padding:15px 10px;">
-                        <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">
                             Buy This Look
                         </button>
                     </div>
