@@ -23,51 +23,15 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 THE BRANDING PROTECTOR: Ensures Store Name & Ads stay ON TOP */
+/* 🎯 HEADER & GREETINGS PROTECTOR: Lowered to show greeting properly */
 .app-header, .store-profile {
-    position: sticky !important;
-    top: 0;
-    z-index: 2000 !important; /* Higher than results */
-    background: var(--bg-main); /* Must be solid to hide products sliding under */
-    padding-bottom: 10px;
-}
-
-.store-profile { 
-    text-align: center; 
-    padding-top: 10px; 
-    border-bottom: 1px solid transparent; /* Keeps it clean */
-}
-
-/* 🎯 THE SEARCH DOCK: Anchored to bottom, restricted height */
-#ai-results {
-    display: none; 
-    grid-template-columns: 1fr; 
-    gap: 16px;
-    
-    position: fixed !important;
-    bottom: 95px !important; /* Docks right above search bar */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 500px;
-    
-    /* 🔥 CRITICAL FIX: Forces results to stop before hitting the branding */
-    max-height: 45vh !important; 
-    overflow-y: auto !important; 
-    
-    z-index: 1000 !important; /* Lower than branding (2000), higher than catalog */
+    position: relative;
+    z-index: 2500 !important; 
     background: var(--bg-main);
-    padding: 20px 15px 50px;
-    border-top: 2px solid var(--accent); /* Adds a professional "divider" line */
-    border-radius: 28px 28px 0 0;
-    box-shadow: 0 -20px 40px rgba(0,0,0,0.15);
-    box-sizing: border-box;
-    scrollbar-width: none;
+    padding-bottom: 5px;
 }
 
-#ai-results::-webkit-scrollbar { display: none; }
-
-/* Existing UI Styles below - Logic Intact */
+.store-profile { text-align: center; padding-top: 10px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
 .profile-pic { 
     width: 110px; height: 110px; border-radius: 50%; 
@@ -76,29 +40,81 @@ body, html {
 }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
 
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 220px; }
-.result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; width: 100%; box-sizing: border-box;}
+/* 🎯 SEARCH DOCK: Anchored above bar, scrolling BEHIND branding and ads */
+#ai-results {
+    display: none; 
+    grid-template-columns: 1fr; 
+    gap: 16px;
+    position: fixed !important;
+    bottom: 95px !important; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 500px;
+    
+    /* 🔥 TUCKED VIEW: Adjusted height to stop exactly below the greeting line */
+    max-height: 40vh !important; 
+    overflow-y: auto !important; 
+    
+    /* Layered behind store ads and bar */
+    z-index: 500 !important; 
+    background: var(--bg-main);
+    padding: 20px 15px 60px;
+    border-top: 1px solid var(--border);
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -15px 30px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+    scrollbar-width: none;
+}
+
+#ai-results::-webkit-scrollbar { display: none; }
+
+/* 🎯 STORE FRONT ADS PROTECTOR: Ensures products slide BEHIND them */
+.split-cards { 
+    display: flex; 
+    justify-content: center; 
+    gap: 15px; 
+    padding: 0 15px; 
+    margin-bottom: 15px; 
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 2000 !important; /* Higher than #ai-results */
+    background: var(--bg-main);
+}
+
+.search-card { 
+    flex: 1; background: var(--card-bg); color: white; 
+    padding: 18px; border-radius: 12px; border: none; 
+    font-weight: bold; font-size: 0.9rem; cursor: pointer; 
+    text-align: center;
+}
+
+/* Catalog items stay base level */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 220px; position: relative; z-index: 100; }
+.result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer;}
 .result-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #333; }
 
+/* 🎯 BOTTOM DOCKBAR: Always at the forefront */
 .bottom-controls { 
-    position: fixed; bottom: 0; width: 100%; 
-    background: var(--bg-main); padding-bottom: 25px; 
-    z-index: 3000 !important; /* Always on very top */
+    position: fixed; 
+    bottom: 0; 
+    width: 100%; 
+    background: var(--bg-main); 
+    padding-bottom: 25px; 
+    z-index: 3000 !important; 
     border-top: 1px solid var(--border); 
 }
 
-.split-cards { display: flex; justify-content: center; gap: 15px; padding: 0 15px; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
-.search-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Loader styles stay as is */
+/* Loader Styles */
 .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
 .rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
 .dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
-
 @keyframes rotateSpinner { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
