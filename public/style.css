@@ -23,7 +23,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 THE BRANDING MASK: Solid background + High Z-Index ensures products "vanish" behind it */
+/* 🎯 THE TOP SHIELD: Solid background covers branding and greeting */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
@@ -56,11 +56,11 @@ body, html {
     width: 100%;
     max-width: 500px;
     
-    /* Height capped to stop right below the greeting */
+    /* Height capped so images vanish right as they reach the greeting line */
     max-height: 42vh !important; 
     overflow-y: auto !important; 
     
-    /* MIDDLE LAYER physics */
+    /* MIDDLE LAYER: Sits above background catalog but below shields */
     z-index: 1000 !important; 
     background: var(--bg-main);
     padding: 20px 15px;
@@ -79,7 +79,7 @@ body, html {
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9000 !important; /* Forefront shield */
+    z-index: 9000 !important; /* Top priority shield */
     border-top: 1px solid var(--border);
     box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
@@ -101,7 +101,7 @@ body, html {
     text-align: center;
 }
 
-/* Base grid layout */
+/* Catalog Background Grid */
 .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }
 .result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; }
 .result-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #333; }
@@ -111,7 +111,7 @@ body, html {
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Spinner styles remain intact */
+/* Loaders and Spinners */
 .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
 .rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
 .dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
