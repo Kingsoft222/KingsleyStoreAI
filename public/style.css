@@ -23,11 +23,11 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER AREA: Back to natural flow, no more blocking brand name */
+/* 🎯 THE BRANDING MASK: Solid background + High Z-Index ensures products "vanish" behind it */
 .app-header, .store-profile {
     position: relative;
-    z-index: 10; /* Lower than results when results are closed */
-    background: transparent;
+    z-index: 5000 !important; 
+    background-color: var(--bg-main) !important;
     padding-bottom: 10px;
 }
 
@@ -40,48 +40,48 @@ body, html {
 }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: This is where the magic fix happens */
+/* 🎯 THE SEARCH DOCK: Anchored specifically to scroll behind top & bottom masks */
 #ai-results {
     display: none; 
     grid-template-columns: 1fr; 
     gap: 16px;
     position: fixed !important;
     
-    /* Anchored strictly to the split-card ads at the bottom */
+    /* Anchored strictly above the split-card ads at the bottom */
     bottom: 180px !important; 
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 500px;
     
-    /* 🔥 THE VANISHING ACT: Limits height so it stays below branding */
+    /* Height capped to stop right below the greeting */
     max-height: 42vh !important; 
     overflow-y: auto !important; 
     
-    /* Ensure it doesn't cover anything else */
-    z-index: 8000 !important; 
+    /* MIDDLE LAYER physics */
+    z-index: 1000 !important; 
     background: var(--bg-main);
     padding: 20px 15px;
     border-top: 1px solid var(--border);
     border-radius: 24px 24px 0 0;
-    box-shadow: 0 -20px 40px rgba(0,0,0,0.1);
     box-sizing: border-box;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 BOTTOM CONTROLS SHIELD: Groups Ads and Search Bar */
+/* 🎯 THE BOTTOM SHIELD: Grouped Ads + Search Bar */
 .bottom-controls { 
     position: fixed; 
     bottom: 0; 
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9999 !important; /* Forefront layer */
+    z-index: 9000 !important; /* Forefront shield */
     border-top: 1px solid var(--border);
+    box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
 .split-cards { 
