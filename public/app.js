@@ -240,16 +240,15 @@ window.executeSearch = () => {
     );
 
     if (filtered.length > 0) {
-        // Force the grid display based on CSS layout
-        results.style.setProperty('display', 'grid', 'important'); 
+        results.style.display = 'grid'; // CSS Masking relies on this being visible
         results.innerHTML = filtered.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; width: 100%; box-sizing: border-box;">
-                <img src="${item.imgUrl}" style="pointer-events:none;">
+                <img src="${item.imgUrl}" style="pointer-events:none; border-radius:10px; width:100%; aspect-ratio:1/1; object-fit:cover;">
                 <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
     } else {
-        results.style.setProperty('display', 'block', 'important');
+        results.style.display = 'block';
         results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No styles found for "${query}"</div>`;
     }
 };
