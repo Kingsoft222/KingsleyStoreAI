@@ -44,7 +44,6 @@ let localUserBase64 = "";
 window.activeGreetings = []; 
 let gIndex = 0;
 
-// --- RESTORED: Image Optimization ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -70,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const greetingEl = document.getElementById('dynamic-greeting');
 
-    // 🎯 RESTORED: SIDEBAR TOGGLE
     const findAndEnableMenu = () => {
         const elements = document.querySelectorAll('button, div, span, i, svg');
         const menuBtn = Array.from(elements).find(el => {
@@ -99,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // 🎯 RESTORED: GREETING TOGGLE LOGIC
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -114,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
                 window.renderProducts(storeCatalog);
             }
-            updateCartUI(); // 🎯 ENABLED: Sync cart on load
+            updateCartUI();
         }
     });
 
@@ -129,7 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// 🎯 RESTORED: CART SYNC LOGIC
 window.updateCartUI = () => {
     const cartBadge = document.getElementById('cart-count');
     if (cartBadge) {
@@ -153,12 +149,7 @@ window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    
-    const filtered = storeCatalog.filter(c => 
-        (c.name && c.name.toLowerCase().includes(query)) || 
-        (c.tags && c.tags.toLowerCase().includes(query))
-    );
-
+    const filtered = storeCatalog.filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.tags && c.tags.toLowerCase().includes(query)));
     if (filtered.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = filtered.map(item => `
@@ -167,23 +158,31 @@ window.executeSearch = () => {
                 <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
-    } else {
-        results.style.display = 'none';
-    }
+    } else { results.style.display = 'none'; }
 };
 
+// 🎯 EXACT LISTING RESTORED
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
-        <div style="padding: 25px; text-align: left; background: #fff; height: 100vh; width: 85vw; border-radius: 0 30px 30px 0;">
-            <div style="font-size: 1.6rem; font-weight: 900; margin-bottom: 30px; display: flex; justify-content: space-between; align-items:center; color:#111;">
-                <span>STORE OPTIONS</span><span onclick="window.closeFittingRoom()" style="cursor:pointer; color:#999; font-size:1.2rem;">✕</span>
+        <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff; position: fixed; left: 0; top: 0; height: 100%; width: 300px; z-index: 20001; overflow-y: auto;">
+                <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Store Options</span><span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
+                </div>
+                <div style="display: flex; flex-direction: column;">
+                    <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Luxury Wears</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">💎<span>Stella Wears</span></div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">👗<span>IFY FASHION</span></div>
+                    <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Bespoke Native</div>
+                    <div onclick="window.location.assign('?store=adivichi')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">🧵<span>ADIVICHI FASHION</span></div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">👔<span>TOMMY BEST FASHION</span></div>
+                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
+                </div>
             </div>
-            <div onclick="window.location.reload()" style="padding: 20px 0; border-bottom: 1px solid #f1f1f1; font-weight: 700; color:#111;">Refresh Shop</div>
-            <div onclick="window.closeFittingRoom()" style="padding: 20px 0; border-bottom: 1px solid #f1f1f1; font-weight: 700; color:#111;">Close Menu</div>
         </div>`;
 };
 
@@ -192,24 +191,12 @@ window.promptShowroomChoice = (id) => {
     if (!selectedCloth) return;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div style="text-align:center; padding:10px;">
-            <div class="zoom-container"><img src="${selectedCloth.imgUrl}" style="width:100%; border-radius:12px;"></div>
-            <h3 style="margin: 15px 0 5px;">${selectedCloth.name}</h3>
-            <p style="color:#e60023; font-weight:900; font-size:1.4rem; margin-bottom:20px;">₦${selectedCloth.price.toLocaleString()}</p>
-            <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.1rem;">Try it on! ✨</button>
-        </div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:10px;"><img src="${selectedCloth.imgUrl}" style="width:100%; border-radius:12px;"><h3>${selectedCloth.name}</h3><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:15px; width:100%; border-radius:12px; border:none; font-weight:900; cursor:pointer;">Wear it! ✨</button></div>`;
 };
 
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div style="text-align:center; padding:20px;">
-            <div onclick="window.closeFittingRoom()" style="text-align:right; cursor:pointer; color:#999; font-weight:bold;">✕</div>
-            <h2 style="color:#111; margin-bottom:20px;">UPLOAD YOUR PHOTO</h2>
-            <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
-            <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT FROM GALLERY</button>
-        </div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT FROM GALLERY</button></div>`;
 };
 
 window.handleCustomerUpload = (e) => { 
@@ -231,11 +218,7 @@ window.startTryOn = async () => {
         });
         const result = await response.json();
         if (result.success) {
-            resDiv.innerHTML = `
-                <div style="text-align:center; padding:10px;">
-                    <img src="data:image/png;base64,${result.image}" style="width:100%; border-radius:12px;">
-                    <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; margin-top:15px; cursor:pointer;">BUY ON WHATSAPP</button>
-                </div>`;
+            resDiv.innerHTML = `<div style="text-align:center; padding:10px;"><img src="data:image/png;base64,${result.image}" style="width:100%; border-radius:12px;"><button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; margin-top:15px; cursor:pointer;">BUY ON WHATSAPP</button></div>`;
         }
     } catch (err) { alert("Error: " + err.message); window.closeFittingRoom(); }
 };
