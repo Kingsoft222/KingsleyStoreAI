@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Image Optimization Logic ---
+// --- Image Optimization ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -171,9 +171,6 @@ function initGlobalUIStyles() {
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-family: 'Google Sans', sans-serif; font-weight: 600; }
-        .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
-        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
-        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
@@ -198,7 +195,6 @@ window.openOptionsMenu = () => {
                     <div class="sidebar-category">Bespoke Native</div>
                     <div onclick="window.location.assign('?store=adivichi')" class="sidebar-item">🧵<span>ADIVICHI FASHION</span></div>
                     <div onclick="window.location.assign('?store=thomasmongim')" class="sidebar-item">👔<span>TOMMY BEST FASHION</span></div>
-                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
                 </div>
             </div>
         </div>`;
@@ -215,8 +211,8 @@ window.openChatPage = () => {
                 <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
                 <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
                 <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
-                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below...</p>
-                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return to Mall</button>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">Official agent loading...</p>
+                <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return</button>
             </div>
         </div>`;
     if (window.chatway) { window.chatway.show(); window.chatway.open(); }
@@ -230,7 +226,7 @@ window.executeSearch = () => {
     const query = input.value.toLowerCase().trim();
     if (!query) { 
         results.innerHTML = ""; 
-        results.style.display = 'none'; 
+        results.style.setProperty('display', 'none', 'important'); 
         return; 
     }
     
@@ -240,7 +236,8 @@ window.executeSearch = () => {
     );
 
     if (filtered.length > 0) {
-        results.style.display = 'grid'; // CSS Masking relies on this being visible
+        // 🔥 FORCE DISPLAY GRID TO BYPASS CSS LOCKS
+        results.style.setProperty('display', 'grid', 'important'); 
         results.innerHTML = filtered.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; width: 100%; box-sizing: border-box;">
                 <img src="${item.imgUrl}" style="pointer-events:none; border-radius:10px; width:100%; aspect-ratio:1/1; object-fit:cover;">
@@ -248,8 +245,8 @@ window.executeSearch = () => {
                 <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
     } else {
-        results.style.display = 'block';
-        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No styles found for "${query}"</div>`;
+        results.style.setProperty('display', 'block', 'important');
+        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No styles found.</div>`;
     }
 };
 
@@ -306,7 +303,7 @@ window.startTryOn = async () => {
         <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div class="dotted-spinner"></div>
-            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
+            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching outfit...</p>
         </div>`;
 
     try {
@@ -325,15 +322,13 @@ window.startTryOn = async () => {
         if (result.success) {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:5px; position:relative;">
-                    <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">How do you look?</h2>
+                    <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase; letter-spacing:1px;">Done!</h2>
                     <div class="zoom-container" id="result-zoom-box">
                         <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                         <img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img">
                     </div>
                     <div style="padding:15px 10px;">
-                        <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">
-                            Buy This Look
-                        </button>
+                        <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Buy Look</button>
                     </div>
                 </div>`;
             const container = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
@@ -345,13 +340,13 @@ window.startTryOn = async () => {
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <h2 style="color:#111; font-weight:900;">OOPS!</h2>
                 <p style="color:#666; margin-bottom:20px;">${err.message}</p>
-                <button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none; font-weight:800;">TRY AGAIN</button>
+                <button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none; font-weight:800;">RETRY</button>
             </div>`;
     }
 };
 
 window.buyNow = () => {
-    const text = `Hello! I just tried on the *${selectedCloth.name}* in your AI Showroom and I love it! I'd like to make an order. \n\nPrice: ₦${selectedCloth.price.toLocaleString()}`;
+    const text = `Order: ${selectedCloth.name} \nPrice: ₦${selectedCloth.price.toLocaleString()}`;
     window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(text)}`, '_blank');
 };
 
@@ -361,7 +356,7 @@ function applyDynamicThemeStyles() {
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
-    styleTag.innerHTML = `#dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
+    styleTag.innerHTML = `#dynamic-greeting, #store-name-display { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
 }
 
 function initVoiceSearch() {
