@@ -1,37 +1,28 @@
 import { onRequest } from "firebase-functions/v2/https";
 import logger from "firebase-functions/logger";
 import admin from "firebase-admin";
-import { VertexAI } from '@google-cloud/vertexai';
+import { GoogleAuth } from 'google-auth-library';
 import axios from 'axios';
 
 if (!admin.apps.length) { admin.initializeApp(); }
 
-// Initialize Vertex AI with your project details
-// Final Fix: Switched to 'gemini-1.5-pro' to resolve the 404 NOT_FOUND error 
-// and ensure the model is available in the kingsleystoreai project registry.
-const vertexAI = new VertexAI({ project: 'kingsleystoreai', location: 'us-central1' });
-const generativeModel = vertexAI.getGenerativeModel({
-    model: 'gemini-1.5-pro',
+const auth = new GoogleAuth({
+    scopes: 'https://www.googleapis.com/auth/cloud-platform',
 });
 
 /**
  * Helper to convert URLs to Base64
- * This bypasses browser CORS restrictions by fetching the image on the server.
  */
 async function downloadImageAsBase64(url) {
     try {
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         return Buffer.from(response.data).toString('base64');
     } catch (e) {
-        logger.error("Failed to download image from storage:", url);
+        logger.error("Failed to download image:", url);
         throw new Error("Image retrieval failed");
     }
 }
 
-/**
- * Main Virtual Try-On Cloud Function
- * Configured for high-performance (1GiB RAM) and long timeouts (300s).
- */
 export const process_vto = onRequest({ 
     cors: true, 
     timeoutSeconds: 300, 
@@ -47,58 +38,72 @@ export const process_vto = onRequest({
         const { userImageUrl, clothImageUrl, category } = req.body;
 
         if (!userImageUrl || !clothImageUrl) {
-            return res.status(400).send({ 
-                success: false, 
-                error: "Required image URLs are missing" 
-            });
+            return res.status(400).send({ success: false, error: "Missing images" });
         }
 
-        logger.info("VTO Engine: Downloading images on server...");
+        logger.info("VTO Engine: Preparing images...");
 
-        // Fetch both images simultaneously for speed
         const [userBase64, clothBase64] = await Promise.all([
             downloadImageAsBase64(userImageUrl),
             downloadImageAsBase64(clothImageUrl)
         ]);
 
-        const prompt = `
-            Task: Virtual Try-On. 
-            Instruction: Take the clothing from the product image and overlay it naturally onto the person in the user image.
-            Category: ${category || 'clothing'}.
-            Preserve person details, skin tone, and background perfectly.
-            Output: Return ONLY the final base64 image string.
-        `;
+        // Get Access Token for the REST API call
+        const client = await auth.getClient();
+        const tokenResponse = await client.getAccessToken();
+        const token = tokenResponse.token;
 
-        const request = {
-            contents: [{
-                role: 'user',
-                parts: [
-                    { text: prompt },
-                    { inlineData: { mimeType: 'image/jpeg', data: userBase64 } },
-                    { inlineData: { mimeType: 'image/jpeg', data: clothBase64 } }
-                ]
+        const projectId = process.env.GCLOUD_PROJECT || 'kingsleystoreai';
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+
+        // Map categories for the dedicated VTO model
+        let vtoCategory = "DRESS";
+        if (category === "Corporate" || category === "Suits") vtoCategory = "TOP";
+        if (category === "Casual") vtoCategory = "BOTTOM";
+        if (category === "Native") vtoCategory = "DRESS";
+
+        const requestBody = {
+            instances: [{
+                image: { bytesBase64Encoded: userBase64 },
+                clothes: [{
+                    image: { bytesBase64Encoded: clothBase64 },
+                    category: vtoCategory
+                }]
             }],
+            parameters: {
+                sampleCount: 1,
+                addWatermark: false,
+                enableImageRefinement: true,
+                guidanceScale: (category === "Native" || vtoCategory === "DRESS") ? 5.0 : 2.5
+            }
         };
 
-        logger.info("VTO Engine: Sending request to Vertex AI Gemini...");
-        const result = await generativeModel.generateContent(request);
-        const response = await result.response;
+        logger.info("VTO Engine: Calling Vertex AI Vision API...");
         
-        let finalBase64 = response.candidates[0].content.parts[0].text;
-        
-        // Clean the response: remove potential Markdown wrappers or data headers
-        finalBase64 = finalBase64.replace(/data:image\/jpeg;base64,|\n|\s|```/g, "").trim();
+        const response = await axios.post(url, requestBody, {
+            headers: { 
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const prediction = response.data.predictions[0];
+        const resultImage = prediction?.image?.bytesBase64Encoded || prediction?.bytesBase64Encoded;
+
+        if (!resultImage) {
+            throw new Error("AI returned no image data");
+        }
 
         res.status(200).send({ 
             success: true, 
-            image: finalBase64 
+            image: resultImage 
         });
 
     } catch (error) {
-        logger.error("AI Stitching Engine Error:", error);
+        logger.error("VTO Error:", error.response?.data || error.message);
         res.status(500).send({ 
             success: false, 
-            error: "The AI Tailor is busy. Please stay on the page while we retry." 
+            error: "The AI Tailor is busy. Please try again in a moment." 
         });
     }
 });

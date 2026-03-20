@@ -43,23 +43,42 @@ window.registerAdmin = async () => {
         const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, pass);
         const user = userCredential.user;
 
-        // 3. Save initial store data to Database
+        // 3. Prepare VTO-Ready Initial Data
+        const initialGreetings = [
+            `Welcome to ${bizName}!\nHow can I help you today?`,
+            "Chief, looking for premium native?",
+            "Nne, what are you looking for today?",
+            "Let's find your perfect style!"
+        ];
+
+        // 4. Save initial store data to Database
         await set(dbRef(db, `stores/${username}`), {
             uid: user.uid,
             firstName: fName,
             surname: lName,
             storeName: bizName,
             username: username,
+            label1: "Native Wear",
+            label2: "Corporate Wear",
+            searchHint: "Search items...",
             greetingsEnabled: true,
+            customGreetings: initialGreetings,
+            analytics: { whatsappClicks: 0, totalRevenue: 0 },
             createdAt: new Date().toISOString()
         });
 
-        // 4. Success & Redirect
+        // 5. Link UID to Store ID for Login logic in admin.js
+        await set(dbRef(db, `users/${user.uid}`), { 
+            storeId: username, 
+            email: fakeEmail 
+        });
+
+        // 6. Success & Redirect
         const toast = document.getElementById('status-toast');
-        toast.style.display = 'block';
+        if (toast) toast.style.display = 'block';
         
         setTimeout(() => {
-            window.location.href = "./admin.html"; // Redirect to login/dashboard
+            window.location.href = "./admin.html";
         }, 1500);
 
     } catch (error) {
