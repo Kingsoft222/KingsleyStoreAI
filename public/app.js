@@ -47,7 +47,7 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Image Optimization Logic (Stay as is) ---
+// --- Image Optimization Logic ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -66,7 +66,7 @@ async function optimizeForAI(base64Str) {
     });
 }
 
-// --- Chatway Dynamic Page Injection (Stay as is) ---
+// --- Chatway Dynamic Page Injection ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -164,24 +164,31 @@ function initGlobalUIStyles() {
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
         
-        /* Updated results container to stay tucked in viewport and avoid overflowing search bar */
+        /* THE DOCK FIX: Anchors results to the bottom search bar area */
         #ai-results { 
-            display: grid !important; 
+            display: none; 
             grid-template-columns: repeat(2, 1fr) !important; 
             gap: 12px !important; 
-            padding: 10px !important; 
+            padding: 20px 15px 40px !important;
             width: 100% !important; 
-            position: relative; 
-            z-index: 8000 !important; 
-            background: transparent; 
-            margin-bottom: 20px; 
-            max-height: 60vh !important; 
+            position: fixed !important;
+            bottom: 85px !important; /* Docks exactly above the input bar */
+            left: 0;
+            right: 0;
+            z-index: 9000 !important; 
+            background: #ffffff; 
+            border-top: 1px solid #f0f0f0;
+            border-radius: 28px 28px 0 0;
+            box-shadow: 0 -15px 35px rgba(0,0,0,0.12);
+            max-height: 60vh !important; /* Prevents covering header/logo */
             overflow-y: auto !important; 
-            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
+        #ai-results::-webkit-scrollbar { display: none; }
 
         #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
-        .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 7000 !important; overflow: hidden; }
+        .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 5 !important; overflow: hidden; }
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
         .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
