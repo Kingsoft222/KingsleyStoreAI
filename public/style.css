@@ -1,3 +1,6 @@
+/* ==========================================
+   1. GLOBAL & THEME VARIABLES
+   ========================================== */
 :root {
     --accent: #e60023;
     --bg-main: #ffffff;
@@ -23,12 +26,27 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER LID - UNTOUCHED UI */
+/* ==========================================
+   2. HEADER LID (Sidebar Left, Cart Right)
+   ========================================== */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
     padding-bottom: 10px;
+}
+
+.app-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px;
+}
+
+#menu-icon { font-size: 1.5rem; background: none; border: none; color: var(--text-main); cursor: pointer; padding: 10px; pointer-events: auto !important; }
+
+#cart-icon-container {
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    font-weight: 800; font-size: 1.2rem; color: var(--text-main); padding: 10px;
+    pointer-events: auto !important;
 }
 
 .store-profile { text-align: center; padding-top: 10px; }
@@ -38,18 +56,18 @@ body, html {
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
 .greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: LOCKED VIEWPORT FIX */
+/* ==========================================
+   3. THE SEARCH DOCK: PHYSICS LOCKED
+   ========================================== */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
     
-    /* 🔥 PHYSICS FIX: Lock between top and bottom */
     position: fixed !important;
-    top: 220px;           /* Stays below greeting */
-    bottom: 185px;        /* Stays above ads/dock */
-    left: 0;
-    right: 0;
+    top: 220px;           /* Pinned below greetings */
+    bottom: 185px;        /* Pinned above bottom lid */
+    left: 0; right: 0;
     
     width: 100%;
     max-width: 500px;
@@ -64,10 +82,35 @@ body, html {
     border-top: 1px solid var(--border);
     box-sizing: border-box;
     scrollbar-width: none;
+    pointer-events: auto !important;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 BOTTOM SHIELD - UNTOUCHED UI */
+/* Result Card UI (Restored Grid) */
+.result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; pointer-events: auto !important; }
+.result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 8px; background: #333; pointer-events: none; }
+.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff !important; }
+.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
+
+/* ==========================================
+   4. BOLD WHITE MODAL
+   ========================================== */
+#fitting-room-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 15000 !important; 
+    display: none; align-items: center; justify-content: center;
+}
+#ai-fitting-result {
+    width: 90%; max-width: 450px; background: #ffffff !important;
+    border-radius: 40px !important; position: relative; padding: 35px 25px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow-y: auto; text-align: center;
+}
+
+.close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
+
+/* ==========================================
+   5. BOTTOM SHIELD & PILL SEARCH BAR
+   ========================================== */
 .bottom-controls { 
     position: fixed; bottom: 0; width: 100%; 
     background: var(--bg-main) !important; padding-bottom: 25px; 
@@ -75,23 +118,35 @@ body, html {
     box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
-.split-cards { 
-    display: flex; justify-content: center; gap: 15px; padding: 15px; 
-    width: 100%; box-sizing: border-box; background: var(--bg-main);
+#quick-search-container { 
+    display: flex; justify-content: center; gap: 12px; padding: 12px; 
+    width: 100%; box-sizing: border-box; 
 }
 
-.search-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
-
-/* Result Card UI */
-.result-card { background: var(--card-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
-.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
+.split-card { 
+    flex: 1; height: 90px; 
+    background: var(--card-bg); color: white; 
+    padding: 12px; border-radius: 16px; 
+    cursor: pointer; text-align: left; 
+    border: 1px solid var(--border); 
+    display: flex; flex-direction: column; justify-content: center;
+    pointer-events: auto !important;
+}
+.split-card h4 { font-size: 0.95rem; margin: 0; font-weight: 800; color: #fff; }
+.split-card p { font-size: 0.7rem; margin: 2px 0 0; color: #aaa; }
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
-.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
-.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
+.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; pointer-events: auto !important; }
+.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; pointer-events: auto !important; }
 
-/* Background catalog items */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }
+/* ==========================================
+   6. ZOOM & PAN
+   ========================================== */
+.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
+.zoomed { transform: scale(3.5); cursor: grab; }
+
+/* Sidebar Logic */
+#sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
+#sidebar-drawer.open { left: 0; }
