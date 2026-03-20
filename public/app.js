@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isTopLeft = rect.top < 100 && rect.left < 100 && rect.width > 0;
             return isTopLeft && (el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.classList.contains('fa-bars'));
         });
-        if (menuBtn && !menuBtn.onclick) {
+        if (menuBtn) {
             menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
@@ -97,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // 🎯 RESTORED GREETING TOGGLE
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -135,7 +136,7 @@ window.renderProducts = (items) => {
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
-            <img src="${item.imgUrl}" alt="${item.name}">
+            <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
             <h4 style="color:#fff !important; font-weight:700;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');

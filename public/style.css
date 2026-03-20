@@ -23,7 +23,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 TOP SHIELD */
+/* 🎯 HEADER LID - UNTOUCHED UI */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
@@ -33,36 +33,41 @@ body, html {
 
 .store-profile { text-align: center; padding-top: 10px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; background: #ccc; display: flex; align-items: center; justify-content: center; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
 .greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: Forced 2-Column Grid */
+/* 🎯 THE SEARCH DOCK: LOCKED VIEWPORT FIX */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
+    
+    /* 🔥 PHYSICS FIX: Lock between top and bottom */
     position: fixed !important;
-    bottom: 200px !important; /* Anchored above Ads */
-    left: 50%;
-    transform: translateX(-50%);
+    top: 220px;           /* Stays below greeting */
+    bottom: 185px;        /* Stays above ads/dock */
+    left: 0;
+    right: 0;
+    
     width: 100%;
     max-width: 500px;
-    max-height: 44vh !important; 
+    margin: 0 auto;
+    
     overflow-y: auto !important; 
-    z-index: 1000 !important; 
+    -webkit-overflow-scrolling: touch;
+    
+    z-index: 2000 !important; 
     background: var(--bg-main);
     padding: 15px;
     border-top: 1px solid var(--border);
-    border-radius: 24px 24px 0 0;
     box-sizing: border-box;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 BOTTOM SHIELD */
+/* 🎯 BOTTOM SHIELD - UNTOUCHED UI */
 .bottom-controls { 
     position: fixed; bottom: 0; width: 100%; 
     background: var(--bg-main) !important; padding-bottom: 25px; 
@@ -78,16 +83,15 @@ body, html {
 .search-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
 
 /* Result Card UI */
-.result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; transition: transform 0.2s; }
-.result-card:active { transform: scale(0.96); }
-.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; pointer-events: none; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff !important; }
-.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
+.result-card { background: var(--card-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
+.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; }
+.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Catalog background */
+/* Background catalog items */
 .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }
