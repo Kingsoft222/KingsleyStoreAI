@@ -163,11 +163,12 @@ function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
-        #ai-results { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; position: relative; z-index: 8000 !important; background: transparent; margin-bottom: 20px; }
-        #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
-        .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 7000 !important; overflow: hidden; }
+        
+        /* ⚡️ CLEANUP: Logic remains, but position/z-index is now fully handled by your CSS */
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+
+        #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
         .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
@@ -290,7 +291,6 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-// --- Backend Connection Fix (Logic & UI strictly identical to your requested flow) ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
