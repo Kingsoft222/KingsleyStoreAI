@@ -43,9 +43,6 @@ let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || [];
 let localUserBase64 = "";
 window.activeGreetings = []; 
 let gIndex = 0;
-let vtoRetryCount = 0;
-
-const geminiApiKey = ""; 
 
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
@@ -85,9 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
+            // 🎯 FIXED: Restore Settings Toggle for Greetings
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
-                if (greetingEl) greetingEl.innerText = window.activeGreetings[0];
+                if (greetingEl) {
+                    greetingEl.innerText = window.activeGreetings[0];
+                    greetingEl.style.display = 'block';
+                }
+            } else {
+                if (greetingEl) greetingEl.style.display = 'none';
             }
 
             if (data.catalog) {
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && window.activeGreetings.length > 1) { 
+        if (el && window.activeGreetings.length > 1 && el.style.display !== 'none') { 
             gIndex = (gIndex + 1) % window.activeGreetings.length;
             el.innerText = window.activeGreetings[gIndex]; 
         }
@@ -112,8 +115,8 @@ window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
+            <img src="${item.imgUrl}" alt="${item.name}">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; font-size:0.9rem;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
@@ -123,14 +126,23 @@ window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    const filtered = storeCatalog.filter(c => c.name.toLowerCase().includes(query) || (c.tags && c.tags.toLowerCase().includes(query)));
-    results.style.display = 'grid';
-    results.innerHTML = filtered.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important;">
-            <img src="${item.imgUrl}" style="pointer-events:none;">
-            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
-            <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
-        </div>`).join('');
+    
+    const filtered = storeCatalog.filter(c => 
+        (c.name && c.name.toLowerCase().includes(query)) || 
+        (c.tags && c.tags.toLowerCase().includes(query))
+    );
+
+    if (filtered.length > 0) {
+        results.style.display = 'grid';
+        results.innerHTML = filtered.map(item => `
+            <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
+                <img src="${item.imgUrl}">
+                <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+                <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
+            </div>`).join('');
+    } else {
+        results.style.display = 'none';
+    }
 };
 
 window.promptShowroomChoice = (id) => {
@@ -144,7 +156,7 @@ window.promptShowroomChoice = (id) => {
             <div style="padding:15px 10px;">
                 <h3 class="summary-text" style="margin-bottom:2px; font-weight:800;">${selectedCloth.name}</h3>
                 <p style="color:#e60023; font-weight:800; font-size:1.5rem; margin-bottom:10px;">₦${selectedCloth.price.toLocaleString()}</p>
-                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Wear it! ✨</button>
+                <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase; letter-spacing:1px;">Wear it! ✨</button>
             </div>
         </div>`;
     const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
@@ -172,12 +184,7 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `
-        <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <div class="dotted-spinner"></div>
-            <p style="margin-top:25px; font-weight:800; color:#e60023; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching outfit...</p>
-        </div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:80px 20px;"><div class="dotted-spinner"></div><p>Stitching...</p></div>`;
     try {
         const optimizedUser = await optimizeForAI(localUserBase64);
         const response = await fetch('/api/process-vto', {
@@ -188,16 +195,16 @@ window.startTryOn = async () => {
         const result = await response.json();
         if (result.success) {
             resDiv.innerHTML = `
-                <div style="text-align:center; padding:5px; position:relative;">
+                <div style="text-align:center; padding:5px;">
                     <div class="zoom-container" id="result-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img"></div>
-                    <div style="padding:15px 10px;"><button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; font-size:1.2rem; text-transform:uppercase;">Buy Look</button></div>
+                    <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; margin-top:10px;">Buy This Look</button>
                 </div>`;
         }
-    } catch (err) { alert(err.message); window.proceedToUpload(); }
+    } catch (err) { alert(err.message); }
 };
 
 window.buyNow = () => {
-    const text = `Hello! I just tried on the *${selectedCloth.name}* in your AI Showroom and I love it! I'd like to make an order. \n\nPrice: ₦${selectedCloth.price.toLocaleString()}`;
+    const text = `Order: ${selectedCloth.name} \nPrice: ₦${selectedCloth.price.toLocaleString()}`;
     window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(text)}`, '_blank');
 };
 
@@ -207,7 +214,7 @@ function applyDynamicThemeStyles() {
     const styleId = 'dynamic-theme-style';
     let styleTag = document.getElementById(styleId);
     if (!styleTag) { styleTag = document.createElement('style'); styleTag.id = styleId; document.head.appendChild(styleTag); }
-    styleTag.innerHTML = `#dynamic-greeting, #store-name-display, .summary-text { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
+    styleTag.innerHTML = `#dynamic-greeting, #store-name-display { color: ${adaptiveTextColor} !important; } #ai-input { color: ${adaptiveTextColor}; background: ${isDarkMode ? '#222' : '#f9f9f9'}; }`;
 }
 
 function initGlobalUIStyles() {
