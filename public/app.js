@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             
-            // 🎯 FIXED: Restore Settings Toggle for Greetings
+            // 🎯 GREETING TOGGLE LOGIC
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 if (greetingEl) {
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && window.activeGreetings.length > 1 && el.style.display !== 'none') { 
+        if (el && window.activeGreetings && window.activeGreetings.length > 1 && el.style.display !== 'none') { 
             gIndex = (gIndex + 1) % window.activeGreetings.length;
             el.innerText = window.activeGreetings[gIndex]; 
         }
@@ -115,8 +115,8 @@ window.renderProducts = (items) => {
     const listContainer = document.getElementById('product-list') || document.getElementById('main-catalog');
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
-            <img src="${item.imgUrl}" alt="${item.name}">
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important;">
+            <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
             <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; font-size:0.9rem;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
@@ -125,7 +125,11 @@ window.renderProducts = (items) => {
 window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
-    if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
+    if (!query) { 
+        results.innerHTML = ""; 
+        results.style.display = 'none'; 
+        return; 
+    }
     
     const filtered = storeCatalog.filter(c => 
         (c.name && c.name.toLowerCase().includes(query)) || 
@@ -133,11 +137,12 @@ window.executeSearch = () => {
     );
 
     if (filtered.length > 0) {
-        results.style.display = 'grid';
+        // 🔥 TRIGGER GRID DISPLAY
+        results.style.display = 'grid'; 
         results.innerHTML = filtered.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
-                <img src="${item.imgUrl}">
-                <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; width:100%; box-sizing:border-box;">
+                <img src="${item.imgUrl}" style="pointer-events:none; width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px;">
+                <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
     } else {
@@ -184,7 +189,7 @@ window.handleCustomerUpload = (e) => {
 
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center; padding:80px 20px;"><div class="dotted-spinner"></div><p>Stitching...</p></div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:80px 20px;"><div class="dotted-spinner"></div><p>Stitching outfit...</p></div>`;
     try {
         const optimizedUser = await optimizeForAI(localUserBase64);
         const response = await fetch('/api/process-vto', {
@@ -197,7 +202,7 @@ window.startTryOn = async () => {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:5px;">
                     <div class="zoom-container" id="result-zoom-box"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img"></div>
-                    <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; margin-top:10px;">Buy This Look</button>
+                    <div style="padding:15px 10px;"><button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">Buy Look</button></div>
                 </div>`;
         }
     } catch (err) { alert(err.message); }
