@@ -172,6 +172,8 @@ function initGlobalUIStyles() {
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; font-family: 'Google Sans', sans-serif; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
+        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
+        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
@@ -221,27 +223,34 @@ window.openChatPage = () => {
 };
 
 window.executeSearch = () => {
-    const query = document.getElementById('ai-input').value.toLowerCase().trim();
+    const input = document.getElementById('ai-input');
     const results = document.getElementById('ai-results');
-    if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
+    if (!input || !results) return;
+
+    const query = input.value.toLowerCase().trim();
+    if (!query) { 
+        results.innerHTML = ""; 
+        results.style.display = 'none'; 
+        return; 
+    }
     
-    // RESTORED SEARCH LOGIC
     const filtered = storeCatalog.filter(c => 
         (c.name && c.name.toLowerCase().includes(query)) || 
         (c.tags && c.tags.toLowerCase().includes(query))
     );
 
     if (filtered.length > 0) {
-        results.style.display = 'grid';
+        // Force the grid display based on CSS layout
+        results.style.setProperty('display', 'grid', 'important'); 
         results.innerHTML = filtered.map(item => `
-            <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:all !important; width: 100%; box-sizing: border-box;">
+            <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; width: 100%; box-sizing: border-box;">
                 <img src="${item.imgUrl}" style="pointer-events:none;">
                 <h4 class="cart-item-name" style="color:#000 !important; font-weight:700; margin-top:10px;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800; font-size:1.1rem;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
     } else {
-        results.style.display = 'block';
-        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666;">No styles found for "${query}"</div>`;
+        results.style.setProperty('display', 'block', 'important');
+        results.innerHTML = `<div style="text-align:center; padding:20px; color:#666; background:#fff; border-radius:12px;">No styles found for "${query}"</div>`;
     }
 };
 
