@@ -23,6 +23,28 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
+/* 🎯 SEARCH DOCK FIX: This tucks the results in a scrollable dock above the controls */
+#ai-results {
+    display: none; /* Controlled by JS */
+    grid-template-columns: 1fr; /* Separated individually as requested */
+    gap: 16px;
+    padding: 20px 15px;
+    
+    /* Positioned relative to the scroll flow but height-limited */
+    max-height: 450px; 
+    overflow-y: auto;
+    scrollbar-width: none; /* Hide scrollbar for clean look */
+    
+    /* Ensuring it sits inside the main view dock area */
+    margin: 0 auto 10px;
+    width: 95%;
+    box-sizing: border-box;
+    background: var(--bg-main);
+    border-radius: 18px 18px 0 0;
+}
+
+#ai-results::-webkit-scrollbar { display: none; }
+
 .app-header { display: flex; justify-content: space-between; padding: 15px 20px; align-items: center; }
 .store-profile { text-align: center; padding-top: 20px; }
 .profile-pic-container { position: relative; width: 110px; margin: 0 auto; }
@@ -52,24 +74,22 @@ body, html {
 
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main); padding-bottom: 25px; z-index: 100; border-top: 1px solid var(--border); }
 
-/* 🎯 FIXED: Original Position with 15px GAP */
 .split-cards { 
     display: flex; 
-    justify-content: center; /* Centers the two cards */
-    gap: 15px;               /* 👈 THE 15PX SPACE */
+    justify-content: center; 
+    gap: 15px; 
     padding: 0 15px; 
     margin-bottom: 15px; 
     width: 100%;
     box-sizing: border-box;
 }
 
-/* 🎯 FIXED: Original Boxy Shape Restored */
 .search-card { 
-    flex: 0 1 47%;           /* Back to original 47% width */
+    flex: 0 1 47%; 
     background: var(--card-bg); 
     color: white; 
     padding: 18px; 
-    border-radius: 12px;     /* Original boxy shape */
+    border-radius: 12px; 
     border: none; 
     font-weight: bold; 
     font-size: 0.9rem;
