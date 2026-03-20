@@ -25,35 +25,56 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER LID */
+/* 🎯 HEADER: Sidebar Left, Cart Right */
 .app-header {
     position: relative;
     z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 15px 20px;
 }
 
-#menu-icon { font-size: 1.5rem; background: none; border: none; color: var(--text-main); cursor: pointer; padding: 10px; }
-
-#cart-icon-container {
-    cursor: pointer; display: flex; align-items: center; gap: 8px;
-    font-weight: 800; font-size: 1.2rem; color: var(--text-main); padding: 10px;
+#menu-icon { 
+    font-size: 1.5rem; 
+    background: none; border: none; 
+    color: var(--text-main); cursor: pointer; 
+    padding: 10px;
 }
 
-.store-profile { text-align: center; padding: 10px 0; display: flex; flex-direction: column; align-items: center; }
-.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: #ccc; margin-bottom: 15px; }
+#cart-icon-container {
+    cursor: pointer;
+    display: flex; align-items: center;
+    gap: 8px; font-weight: 800;
+    font-size: 1.2rem; color: var(--text-main);
+    padding: 10px;
+}
+
+/* 🎯 STORE PROFILE */
+.store-profile { 
+    text-align: center; 
+    padding: 10px 0; 
+    display: flex; flex-direction: column; align-items: center; 
+}
+
+.profile-pic { 
+    width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); 
+    overflow: hidden; display: flex; align-items: center; justify-content: center; 
+    background: #ccc; margin-bottom: 15px;
+}
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
+
 .store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
 .greeting { font-size: 1rem; font-weight: 500; color: var(--text-main); margin: 0; opacity: 0.85; }
 
-/* 🎯 DOCKVIEW PHYSICS (Middle Layer) */
+/* 🎯 DOCKVIEW PHYSICS: Pushed down 4px */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important;
-    top: 259px;           /* 4px push down from top */
-    bottom: 240px;        /* Clearance for Bottom Ads/Search */
+    top: 259px;           /* 4px push effect */
+    bottom: 220px;        /* Clearance for 90px ads + search bar */
     left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
     overflow-y: auto !important; -webkit-overflow-scrolling: touch;
@@ -63,38 +84,84 @@ body, html {
 #ai-results::-webkit-scrollbar { display: none; }
 
 /* 🎯 PRODUCT CARDS (Restored Pattern) */
-.result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; text-align: center; cursor: pointer; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+.result-card { 
+    background: var(--card-bg) !important; border-radius: 14px; padding: 10px; 
+    text-align: center; cursor: pointer; color: white; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+}
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; background: #333; }
 .result-card h4 { font-size: 0.8rem; margin: 10px 0 5px; color: #fff !important; font-weight: 700; }
 .result-card p { font-size: 0.95rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
 
-/* 🎯 BOLD WHITE MODAL (From Image) */
+/* 🎯 BOLD WHITE MODAL (Shape from your JPG) */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
     display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 90%; max-width: 450px; background: #ffffff !important;
-    border-radius: 40px !important; position: relative; padding: 40px 25px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow-y: auto;
+    width: 90%; max-width: 450px; height: auto;
+    background: #ffffff !important; /* Plain White Background */
+    border-radius: 40px !important; /* Bold Highly Rounded Corners */
+    position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    overflow-y: auto; padding: 40px 25px;
 }
 
-.close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
+.close-preview-x { 
+    position: absolute; top: 20px; right: 25px; 
+    font-size: 1.8rem; color: #000; font-weight: 900; 
+    cursor: pointer; z-index: 22000 !important;
+}
 
-/* 🎯 BOTTOM CONTROLS & ADS */
-.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
-#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 15px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
-.split-card { flex: 1; height: 110px; background: var(--card-bg); color: white; padding: 15px; border-radius: 16px; cursor: pointer; text-align: left; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
-.split-card h4 { font-size: 1rem; margin: 0; font-weight: 800; color: #fff; }
-.split-card p { font-size: 0.75rem; margin: 4px 0 0; color: #aaa; font-weight: 500; }
+/* 🎯 BOTTOM CONTROLS & STORE ADS */
+.bottom-controls { 
+    position: fixed; bottom: 0; width: 100%; 
+    background: var(--bg-main) !important; padding-bottom: 25px; 
+    z-index: 9000 !important; border-top: 1px solid var(--border);
+}
 
-.search-bar { background: var(--input-bg); border-radius: 50px; padding: 8px 12px 8px 22px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
+#quick-search-container { 
+    display: flex; justify-content: center; gap: 12px; padding: 12px; 
+    width: 100%; box-sizing: border-box; background: var(--bg-main); 
+}
+
+/* 🎯 ADS HEIGHT: Reduced to 90px to fit 4 products above */
+.split-card { 
+    flex: 1; height: 90px !important; 
+    background: var(--card-bg); color: white; 
+    padding: 12px; border-radius: 16px; 
+    cursor: pointer; text-align: left; border: 1px solid var(--border);
+    display: flex; flex-direction: column; justify-content: center;
+}
+.split-card h4 { font-size: 0.95rem; margin: 0; font-weight: 800; color: #fff; }
+.split-card p { font-size: 0.7rem; margin: 2px 0 0; color: #aaa; }
+
+/* 🎯 RESTORED PILL SEARCH BAR */
+.search-bar { 
+    background: var(--input-bg); border-radius: 50px; 
+    padding: 8px 12px 8px 22px; display: flex; 
+    align-items: center; margin: 0 15px; 
+    border: 1px solid var(--border); 
+}
+
+.search-bar input { 
+    border: none; background: transparent; flex: 1; outline: none; 
+    font-size: 16px; color: var(--text-main); height: 45px;
+}
+
 .mic-icon { font-size: 1.5rem !important; color: #5f6368; cursor: pointer; margin-right: 15px; }
-.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
+
+.send-circle { 
+    background: var(--accent); border: none; width: 45px; height: 45px; 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+    cursor: pointer; color: white; flex-shrink: 0;
+}
 
 /* 🎯 ZOOM & PAN */
 .zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
 .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
 .zoomed { transform: scale(3.5); cursor: grab; transition: none !important; }
+
+/* Sidebar Drawer */
+#sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
+#sidebar-drawer.open { left: 0; }
