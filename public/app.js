@@ -47,33 +47,26 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
-// --- Image Optimization Logic (Prevents Vercel Timeouts) ---
+// --- Image Optimization Logic (Stay as is) ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
         img.src = base64Str.startsWith('data:') ? base64Str : `data:image/jpeg;base64,${base64Str}`;
         img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 768; // Optimized for Vertex AI Try-on
+            const MAX_WIDTH = 768;
             let width = img.width;
             let height = img.height;
-
-            if (width > MAX_WIDTH) {
-                height *= MAX_WIDTH / width;
-                width = MAX_WIDTH;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+            canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
-            // Returns raw base64 without the header
             resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
         };
     });
 }
 
-// --- Chatway Dynamic Page Injection ---
+// --- Chatway Dynamic Page Injection (Stay as is) ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -99,14 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const hasIconContent = el.innerText.includes('☰') || el.innerHTML.includes('svg') || el.innerHTML.includes('line') || el.classList.contains('fa-bars');
             return isTopLeft && hasIconContent;
         });
-
         if (menuBtn && !menuBtn.getAttribute('data-menu-active')) {
             menuBtn.setAttribute('data-menu-active', 'true');
             menuBtn.style.cursor = 'pointer';
             menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
         }
     };
-
     findAndEnableMenu();
     setInterval(findAndEnableMenu, 3000);
 
@@ -120,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 searchInput.placeholder = data.searchHint || "Search Senator or Ankara...";
                 searchInput.oninput = window.executeSearch;
             }
-
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
@@ -133,21 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin:5px 0 0; font-size:0.75rem; color:#888;">Perfect styles for you</p>
                     </div>`;
             }
-            
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
-            
             if (data.greetingsEnabled !== false) {
                 window.activeGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
-                if (greetingEl) {
-                    greetingEl.innerText = window.activeGreetings[0];
-                    greetingEl.style.display = 'block';
-                }
-            } else if (greetingEl) {
-                greetingEl.style.display = 'none';
-            }
-
+                if (greetingEl) { greetingEl.innerText = window.activeGreetings[0]; greetingEl.style.display = 'block'; }
+            } else if (greetingEl) { greetingEl.style.display = 'none'; }
             if (data.catalog) {
                 storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
                 window.renderProducts(storeCatalog);
@@ -163,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = window.activeGreetings[gIndex]; 
         }
     }, 4000);
-
     initVoiceSearch();
 });
 
@@ -182,63 +163,22 @@ function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
-        
-        #ai-results {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 12px !important;
-            padding: 10px !important;
-            width: 100% !important;
-            position: relative;
-            z-index: 8000 !important;
-            background: transparent;
-            margin-bottom: 20px;
-        }
-
-        #product-list, #main-catalog {
-            display: grid !important;
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 12px !important;
-            padding: 10px !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-        }
-
-        .result-card { 
-            background: #ffffff !important; 
-            border-radius: 14px; 
-            padding: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
-            cursor: pointer !important; 
-            pointer-events: auto !important; 
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            position: relative;
-            z-index: 7000 !important; 
-            overflow: hidden;
-        }
+        #ai-results { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; position: relative; z-index: 8000 !important; background: transparent; margin-bottom: 20px; }
+        #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
+        .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 7000 !important; overflow: hidden; }
         .result-card:active { transform: scale(0.96); }
         .result-card img { pointer-events: none; border-radius: 10px; width: 100%; aspect-ratio: 1/1; object-fit: cover; }
-
-        .dotted-spinner {
-            width: 50px; height: 50px;
-            border: 5px dotted #e60023;
-            border-radius: 50%;
-            animation: spin-dotted 2s linear infinite;
-            margin: 0 auto;
-        }
+        .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
         @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
         .zoom-container { position: relative; overflow: hidden; width: 100%; height: 65vh; border-radius: 18px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: zoom-in; z-index: 21000; }
         .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease; transform-origin: center; pointer-events: none; }
         .zoomed { transform: scale(2.8); cursor: zoom-out; }
         .close-preview-x { position: absolute; top: 15px; right: 15px; width: 44px; height: 44px; background: rgba(0,0,0,0.85); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; z-index: 22000; border: 2px solid rgba(255,255,255,0.4); }
-
         #sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 20000; display: none; }
         #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: white; z-index: 20001; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; overflow-y: auto; }
         #sidebar-drawer.open { left: 0; }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
-
         .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
         @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
@@ -251,13 +191,11 @@ window.openOptionsMenu = () => {
     modal.style.display = 'flex';
     const resDiv = document.getElementById('ai-fitting-result');
     const agentIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 1c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9zm-4 11v6H6v-6h2zm10 6h-2v-6h2v6zm-6 2c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1zm7.5-5.8c-.3 0-.5.2-.5.5v1.3c0 1.1-.9 2-2 2h-1c-.3 0-.5.2-.5.5s.2.5.5.5h1c1.7 0 3-1.3 3-3V13.7c0-.3-.2-.5-.5-.5z"/></svg>`;
-    
     resDiv.innerHTML = `
         <div id="sidebar-overlay" style="display: block;" onclick="window.closeFittingRoom()">
             <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="background: #fff;">
                 <div style="padding: 28px 24px 12px; font-size: 1.4rem; font-weight: 700; color: #1f1f1f; display: flex; align-items: center; justify-content: space-between;">
-                    <span>Store Options</span>
-                    <span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
+                    <span>Store Options</span><span style="font-size: 1.2rem; cursor: pointer; color: #5f6368;" onclick="window.closeFittingRoom()">✕</span>
                 </div>
                 <div style="display: flex; flex-direction: column;">
                     <div onclick="window.openChatPage()" class="sidebar-item"><span style="color: #0b57d0;">${agentIcon}</span><span>Chat Support</span></div>
@@ -284,7 +222,7 @@ window.openChatPage = () => {
                 <div onclick="window.closeFittingRoom()" style="position: absolute; top: 20px; right: 25px; z-index: 30000; color: #999; font-size: 1.5rem; cursor: pointer;">✕</div>
                 <div class="dotted-spinner" style="margin-bottom: 30px;"></div>
                 <h2 style="font-weight: 900; color: #111; font-size: 1.8rem; letter-spacing: -1px; margin-bottom: 10px;">SUPPORT CENTER</h2>
-                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below. Please wait a moment...</p>
+                <p style="color: #666; font-weight: 500; line-height: 1.6; max-width: 300px; margin: 0 auto 30px;">The official chat agent for this store is loading below...</p>
                 <button onclick="window.closeFittingRoom()" style="background: #111; border: none; padding: 18px 40px; border-radius: 40px; font-weight: 800; color: #fff; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;">Return to Mall</button>
             </div>
         </div>`;
@@ -309,7 +247,6 @@ window.promptShowroomChoice = (id) => {
     if (window.chatway) window.chatway.hide();
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
     if (!selectedCloth) return;
-    
     const fullStoreName = document.getElementById('store-name-display').innerText;
     const vendorName = fullStoreName.split(' ')[0] || "Vendor";
     const personalizedTitle = `${vendorName}'s Showroom`;
@@ -328,16 +265,7 @@ window.promptShowroomChoice = (id) => {
         </div>`;
     
     const container = document.getElementById('preview-zoom-box'), img = document.getElementById('preview-img');
-    const handlePan = (e) => {
-        if (!img.classList.contains('zoomed')) return;
-        const rect = container.getBoundingClientRect();
-        const clientX = (e.clientX !== undefined) ? e.clientX : (e.touches[0].clientX);
-        const clientY = (e.clientY !== undefined) ? e.clientY : (e.touches[0].clientY);
-        const x = ((clientX - rect.left) / rect.width) * 100, y = ((clientY - rect.top) / rect.height) * 100;
-        img.style.transformOrigin = `${x}% ${y}%`;
-    };
     container.onclick = (e) => { if (e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); };
-    container.onmousemove = handlePan; container.ontouchmove = handlePan;
 };
 
 window.proceedToUpload = () => {
@@ -362,6 +290,7 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
+// --- RESTORED LOGIC: Backend-Fetch + Error Handling ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
@@ -372,18 +301,18 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
+        const optimizedUser = await optimizeForAI(localUserBase64);
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userImage: localUserBase64,
+                userImage: optimizedUser,
                 clothImageUrl: selectedCloth.imgUrl,
                 category: selectedCloth.category || "Native"
             })
         });
 
         const result = await response.json();
-
         if (result.success) {
             resDiv.innerHTML = `
                 <div style="text-align:center; padding:5px; position:relative;">
@@ -398,18 +327,15 @@ window.startTryOn = async () => {
                         </button>
                     </div>
                 </div>`;
-            
             const container = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
             container.onclick = () => img.classList.toggle('zoomed');
-        } else {
-            throw new Error(result.error);
-        }
+        } else { throw new Error(result.error); }
     } catch (err) {
         resDiv.innerHTML = `
             <div style="text-align:center; padding:40px 20px;">
                 <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
                 <h2 style="color:#111; font-weight:900;">OOPS!</h2>
-                <p style="color:#666; margin-bottom:20px;">AI stitching failed. Please try again with a clearer body photo.</p>
+                <p style="color:#666; margin-bottom:20px;">${err.message}</p>
                 <button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none; font-weight:800;">TRY AGAIN</button>
             </div>`;
     }
