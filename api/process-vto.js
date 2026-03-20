@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     try {
         const { userImage, clothImage, category } = req.body;
 
-        // Strip Base64 headers
+        // Strip headers and ensure clean raw base64
         const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
         const cleanCloth = clothImage.includes('base64,') ? clothImage.split('base64,')[1] : clothImage;
 
@@ -23,30 +23,33 @@ export default async function handler(req, res) {
 
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // Strict category mapping for Vertex VTO model
+        // Strictly defined categories for the v1 model
         let vtoCategory = "DRESS"; 
-        const cat = String(category).toUpperCase();
-        if (cat.includes("TOP") || cat.includes("SHIRT") || cat.includes("CORPORATE")) vtoCategory = "TOP";
-        else if (cat.includes("BOTTOM") || cat.includes("PANTS") || cat.includes("CASUAL")) vtoCategory = "BOTTOM";
+        const catInput = String(category).toUpperCase();
+        if (catInput.includes("TOP") || catInput.includes("CORPORATE")) vtoCategory = "TOP";
+        if (catInput.includes("BOTTOM") || catInput.includes("CASUAL")) vtoCategory = "BOTTOM";
 
-        const response = await axios.post(url, {
+        // --- THE STRUCTURE FIX ---
+        // Some versions of the API expect 'clothes' to be an object with 'image' inside it
+        // and others expect it to be a direct 'bytesBase64Encoded' at the top level of the cloth item.
+        const requestPayload = {
             instances: [{
                 image: {
                     bytesBase64Encoded: cleanUser.trim()
                 },
                 clothes: [{
-                    image: {
-                        bytesBase64Encoded: cleanCloth.trim()
-                    },
+                    // Note: No nested 'image' object here, just bytesBase64Encoded directly
+                    bytesBase64Encoded: cleanCloth.trim(),
                     category: vtoCategory
                 }]
             }],
             parameters: {
                 sampleCount: 1,
-                addWatermark: false,
-                enableImageRefinement: true
+                addWatermark: false
             }
-        }, {
+        };
+
+        const response = await axios.post(url, requestPayload, {
             headers: { 
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -54,24 +57,23 @@ export default async function handler(req, res) {
             timeout: 59000 
         });
 
-        // The model returns the result inside predictions[0].image.bytesBase64Encoded
+        // Response handling
         const prediction = response.data.predictions?.[0];
-        const resultImage = prediction?.image?.bytesBase64Encoded || prediction?.bytesBase64Encoded;
+        const resultImage = prediction?.bytesBase64Encoded || prediction?.image?.bytesBase64Encoded;
 
         if (resultImage) {
             return res.status(200).json({ success: true, image: resultImage });
         } else {
-            console.error("Vertex AI Response Structure:", JSON.stringify(response.data));
-            throw new Error("The AI Tailor didn't return an image. Try a clearer body photo.");
+            throw new Error("AI returned success but no image data.");
         }
 
     } catch (error) {
         const detail = error.response?.data?.[0]?.error?.message || error.response?.data?.error?.message || error.message;
-        console.error("VTO_LOG_ERROR:", detail);
+        console.error("STILL_FAILING_LOG:", detail);
         
         return res.status(500).json({ 
             success: false, 
-            error: `Error: ${detail}` 
+            error: `Stitching Error: ${detail}` 
         });
     }
 }
