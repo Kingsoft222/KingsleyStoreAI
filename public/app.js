@@ -122,16 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = window.activeGreetings[gIndex]; 
         }
     }, 4000);
-
     initVoiceSearch();
 });
 
 window.updateCartUI = () => {
-    const cartBadge = document.getElementById('cart-count');
-    if (cartBadge) {
-        cartBadge.innerText = cart.length;
-        cartBadge.style.display = cart.length > 0 ? 'flex' : 'none';
-    }
+    const c = document.getElementById('cart-count');
+    if (c) c.innerText = cart.length;
 };
 
 window.renderProducts = (items) => {
@@ -139,8 +135,8 @@ window.renderProducts = (items) => {
     if (!listContainer) return;
     listContainer.innerHTML = items.map(item => `
         <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
-            <img src="${item.imgUrl}" alt="${item.name}" style="pointer-events:none;">
-            <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+            <img src="${item.imgUrl}" alt="${item.name}">
+            <h4 style="color:#fff !important; font-weight:700;">${item.name}</h4>
             <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
@@ -149,19 +145,25 @@ window.executeSearch = () => {
     const query = document.getElementById('ai-input').value.toLowerCase().trim();
     const results = document.getElementById('ai-results');
     if (!query) { results.innerHTML = ""; results.style.display = 'none'; return; }
-    const filtered = storeCatalog.filter(c => (c.name && c.name.toLowerCase().includes(query)) || (c.tags && c.tags.toLowerCase().includes(query)));
+    
+    const filtered = storeCatalog.filter(c => 
+        (c.name && c.name.toLowerCase().includes(query)) || 
+        (c.tags && c.tags.toLowerCase().includes(query))
+    );
+
     if (filtered.length > 0) {
         results.style.display = 'grid';
         results.innerHTML = filtered.map(item => `
             <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
                 <img src="${item.imgUrl}" style="pointer-events:none;">
-                <h4 class="cart-item-name" style="color:#000 !important; font-weight:700;">${item.name}</h4>
+                <h4 style="color:#fff !important; font-weight:700;">${item.name}</h4>
                 <p style="color:#e60023 !important; font-weight:800;">₦${item.price.toLocaleString()}</p>
             </div>`).join('');
-    } else { results.style.display = 'none'; }
+    } else {
+        results.style.display = 'none';
+    }
 };
 
-// 🎯 EXACT LISTING RESTORED
 window.openOptionsMenu = () => {
     const modal = document.getElementById('fitting-room-modal');
     if (!modal) return;
@@ -180,7 +182,6 @@ window.openOptionsMenu = () => {
                     <div class="sidebar-category" style="padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px;">Bespoke Native</div>
                     <div onclick="window.location.assign('?store=adivichi')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">🧵<span>ADIVICHI FASHION</span></div>
                     <div onclick="window.location.assign('?store=thomasmongim')" style="display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; font-weight: 600;">👔<span>TOMMY BEST FASHION</span></div>
-                    <div style="padding: 40px 24px 20px; text-align: center; opacity: 0.3; font-size: 0.6rem; font-weight: 800; letter-spacing: 2px;">VIRTUAL MALL AI</div>
                 </div>
             </div>
         </div>`;
@@ -196,7 +197,7 @@ window.promptShowroomChoice = (id) => {
 
 window.proceedToUpload = () => {
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT FROM GALLERY</button></div>`;
+    resDiv.innerHTML = `<div style="text-align:center; padding:20px;"><h2>FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer;">SELECT PHOTO</button></div>`;
 };
 
 window.handleCustomerUpload = (e) => { 
@@ -232,7 +233,7 @@ function applyDynamicThemeStyles() {
     const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const adaptiveTextColor = isDarkMode ? 'white' : 'black';
     const styleTag = document.createElement('style');
-    styleTag.innerHTML = `#dynamic-greeting, #store-name-display { color: adaptiveTextColor !important; }`;
+    styleTag.innerHTML = `#dynamic-greeting, #store-name-display { color: ${adaptiveTextColor} !important; }`;
     document.head.appendChild(styleTag);
 }
 
@@ -246,11 +247,7 @@ function initVoiceSearch() {
 
 function initGlobalUIStyles() {
     const style = document.createElement('style');
-    style.innerHTML = `
-        #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
-        .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; }
-        @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    `;
+    style.innerHTML = `#draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; } .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin-dotted 2s linear infinite; margin: 0 auto; } @keyframes spin-dotted { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
     document.head.appendChild(style);
 }
 

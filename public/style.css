@@ -23,7 +23,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER LID */
+/* 🎯 TOP SHIELD */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
@@ -44,7 +44,7 @@ body, html {
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
     position: fixed !important;
-    bottom: 200px !important; 
+    bottom: 200px !important; /* Anchored above Ads */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -62,7 +62,7 @@ body, html {
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* Ad Boxes and Search Bar Shield */
+/* 🎯 BOTTOM SHIELD */
 .bottom-controls { 
     position: fixed; bottom: 0; width: 100%; 
     background: var(--bg-main) !important; padding-bottom: 25px; 
@@ -78,10 +78,11 @@ body, html {
 .search-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
 
 /* Result Card UI */
-.result-card { background: var(--card-bg); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
-.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
+.result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; transition: transform 0.2s; }
+.result-card:active { transform: scale(0.96); }
+.result-card img { width: 100%; height: 130px; object-fit: cover; border-radius: 8px; background: #333; pointer-events: none; }
+.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff !important; }
+.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
 
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
