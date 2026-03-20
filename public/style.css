@@ -23,12 +23,12 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 THE TOP SHIELD: Restored to Relative but with High Priority */
+/* 🎯 THE BRANDING MASK: Solid background + High Z-Index ensures products "vanish" behind it */
 .app-header, .store-profile {
-    position: relative; /* Restored from sticky to allow natural flow */
-    z-index: 5000 !important; /* Higher than search results */
-    background: var(--bg-main); /* Mask to hide products sliding up */
-    padding-bottom: 5px;
+    position: relative;
+    z-index: 5000 !important; 
+    background-color: var(--bg-main) !important;
+    padding-bottom: 10px;
 }
 
 .store-profile { text-align: center; padding-top: 10px; }
@@ -40,46 +40,48 @@ body, html {
 }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; }
+.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
 
-/* 🎯 THE SEARCH DOCK: Centered and Sandwiched */
+/* 🎯 THE SEARCH DOCK: Anchored specifically to scroll behind top & bottom masks */
 #ai-results {
     display: none; 
     grid-template-columns: 1fr; 
     gap: 16px;
     position: fixed !important;
     
-    /* Anchored strictly above the Ads area */
-    bottom: 180px !important; 
+    /* Anchored strictly above the split-card dock */
+    bottom: 190px !important; 
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 500px;
     
-    /* Height capped so it vanishes behind branding at the top */
-    max-height: 40vh !important; 
+    /* Height capped to stop right below the greeting */
+    max-height: 42vh !important; 
     overflow-y: auto !important; 
     
-    /* 🔥 MIDDLE LAYER: Above catalog (1), but below Branding (5000) and Ads (9000) */
+    /* MIDDLE LAYER physics */
     z-index: 1000 !important; 
     background: var(--bg-main);
     padding: 20px 15px;
     border-top: 1px solid var(--border);
-    border-radius: 28px 28px 0 0;
+    border-radius: 24px 24px 0 0;
     box-sizing: border-box;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
-/* 🎯 THE BOTTOM SHIELD: Fixed Ads and Search Bar */
+/* 🎯 THE BOTTOM SHIELD: Grouped Ads + Search Bar */
 .bottom-controls { 
     position: fixed; 
     bottom: 0; 
     width: 100%; 
     background: var(--bg-main) !important; 
     padding-bottom: 25px; 
-    z-index: 9000 !important; /* Top Layer */
+    z-index: 9000 !important; /* Forefront shield */
     border-top: 1px solid var(--border);
+    box-shadow: 0 -15px 30px rgba(0,0,0,0.08);
 }
 
 .split-cards { 
@@ -89,7 +91,7 @@ body, html {
     padding: 15px; 
     width: 100%;
     box-sizing: border-box;
-    background: var(--bg-main); /* Shield background */
+    background: var(--bg-main);
 }
 
 .search-card { 
@@ -99,8 +101,8 @@ body, html {
     text-align: center;
 }
 
-/* Background Catalog Items */
-.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 280px; position: relative; z-index: 1; }
+/* Background Items */
+.results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 15px; margin-bottom: 300px; position: relative; z-index: 1; }
 .result-card { background: var(--card-bg); color: white; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer;}
 .result-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; background: #333; }
 
@@ -109,7 +111,7 @@ body, html {
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
 
-/* Loaders remain untouched */
+/* Spinner remain exactly same */
 .loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; }
 .rotating-dots { width: 50px; height: 50px; position: relative; animation: rotateSpinner 2s linear infinite; }
 .dot { width: 8px; height: 8px; background-color: var(--accent); border-radius: 50%; position: absolute; }
