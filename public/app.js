@@ -290,7 +290,7 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-// --- RESTORED LOGIC: Backend-Fetch + Error Handling ---
+// --- Backend Connection Fix (Logic & UI strictly identical to your requested flow) ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
