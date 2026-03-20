@@ -21,13 +21,11 @@
 body, html {
     margin: 0; padding: 0; 
     font-family: 'Inter', -apple-system, sans-serif;
-    background-color: var(--bg-main); 
-    color: var(--text-main);
-    height: 100%; width: 100%; 
-    overflow-x: hidden;
+    background-color: var(--bg-main); color: var(--text-main);
+    height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 TOP LID (Fixed Header & Profile) */
+/* 🎯 HEADER LID */
 .app-header {
     position: relative;
     z-index: 5000 !important; 
@@ -37,200 +35,74 @@ body, html {
 .store-profile { 
     text-align: center; 
     padding: 25px 0 10px; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
+    display: flex; flex-direction: column; align-items: center; 
 }
 
 .profile-pic { 
-    width: 110px; height: 110px; 
-    border-radius: 50%; 
-    border: 3px solid var(--accent); 
-    overflow: hidden; 
-    display: flex; align-items: center; justify-content: center; 
-    background: #ccc;
-    margin-bottom: 15px;
+    width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); 
+    overflow: hidden; display: flex; align-items: center; justify-content: center; 
+    background: #ccc; margin-bottom: 15px;
 }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 
-.store-name { 
-    color: var(--text-main); 
-    font-weight: 900; 
-    font-size: 1.8rem; 
-    margin: 0 0 5px 0; 
-    letter-spacing: -1px;
-}
+.store-name { color: var(--text-main); font-weight: 900; font-size: 1.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
+.greeting { font-size: 1rem; font-weight: 500; color: var(--text-main); margin: 0; opacity: 0.85; }
 
-.greeting { 
-    font-size: 1rem; 
-    font-weight: 500; 
-    color: var(--text-main);
-    margin: 0;
-    opacity: 0.85;
-}
-
-/* 🎯 CART ICON: LOCKED TOP RIGHT */
+/* 🎯 CART ICON: TOP RIGHT CORNER */
 #cart-icon-container {
     position: fixed;
     top: 25px;
-    right: 20px; 
-    z-index: 6000;
+    right: 25px; 
+    z-index: 6000 !important;
     cursor: pointer;
     display: flex !important;
-}
-
-/* 🎯 SIDEBAR ICON: ENABLED */
-.fa-bars, #menu-icon, #sidebar-toggle {
-    cursor: pointer !important;
     pointer-events: auto !important;
 }
 
-/* 🎯 VIEW DOCK PHYSICS: Pushed down 4px */
+/* 🎯 VIEW DOCK PHYSICS (Pushed down 4px) */
 #ai-results {
     display: none; 
-    grid-template-columns: repeat(2, 1fr) !important; 
-    gap: 12px !important;
+    grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important;
-    top: 259px;           /* 4px push down from top lids */
-    bottom: 240px;        /* Anchored above ads/dock */
-    left: 0; right: 0;
-    width: 100%; 
-    max-width: 500px; 
-    margin: 0 auto;
-    overflow-y: auto !important; 
-    -webkit-overflow-scrolling: touch;
-    z-index: 2000 !important; 
-    background: var(--bg-main);
-    padding: 15px;
-    border-top: 1px solid var(--border);
-    box-sizing: border-box;
-    scrollbar-width: none;
-}
-#ai-results::-webkit-scrollbar { display: none; }
-
-/* 🎯 VISIBLE CLOSE ICON (X) */
-.close-preview-x { 
-    position: absolute; 
-    top: 15px; 
-    right: 15px; 
-    width: 44px; 
-    height: 44px; 
-    background: rgba(0, 0, 0, 0.85) !important; 
-    color: #ffffff !important; 
-    border-radius: 50%; 
-    display: flex !important; 
-    align-items: center; 
-    justify-content: center; 
-    font-size: 1.5rem; 
-    font-weight: bold;
-    z-index: 22000 !important; 
-    border: 2px solid rgba(255,255,255,0.4);
-    cursor: pointer;
+    top: 259px; /* 4px push effect */
+    bottom: 240px; left: 0; right: 0;
+    width: 100%; max-width: 500px; margin: 0 auto;
+    overflow-y: auto !important; -webkit-overflow-scrolling: touch;
+    z-index: 2000 !important; background: var(--bg-main);
+    padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box; scrollbar-width: none;
 }
 
-/* 🎯 BOTTOM LID (Ads & Search Bar Shield) */
-.bottom-controls { 
-    position: fixed; 
-    bottom: 0; 
-    width: 100%; 
-    background: var(--bg-main) !important; 
-    padding-bottom: 25px; 
-    z-index: 9000 !important; 
-    border-top: 1px solid var(--border);
-}
-
-#quick-search-container {
-    display: flex; 
-    justify-content: center; 
-    gap: 15px; 
-    padding: 15px;
-    width: 100%; 
-    box-sizing: border-box; 
-    background: var(--bg-main);
-}
-
-.split-card { 
-    flex: 1; 
-    background: var(--card-bg); 
-    color: white; 
-    padding: 18px 15px; 
-    border-radius: 14px; 
-    cursor: pointer; 
-    text-align: left; 
-    border: 1px solid var(--border);
-}
-
-/* Product Result Card */
-.result-card { 
-    background: var(--card-bg) !important; 
-    border-radius: 14px; 
-    padding: 10px; 
-    text-align: center; 
-    cursor: pointer; 
-    color: white; 
-}
-.result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; background: #333; }
-.result-card h4 { font-size: 0.8rem; margin: 10px 0 5px; color: #fff !important; }
-.result-card p { font-size: 0.9rem; font-weight: 800; color: var(--accent) !important; margin: 0; }
-
-/* Search Bar UI */
-.search-bar { 
-    background: var(--input-bg); 
-    border-radius: 50px; 
-    padding: 8px 12px 8px 22px; 
-    display: flex; 
-    align-items: center; 
-    margin: 0 15px; 
-    border: 1px solid var(--border); 
-}
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); }
-.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; margin-right: 10px; }
-.send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; }
-
-/* 🎯 ZOOM & PAN (Inspection UI) */
-.zoom-container { 
-    position: relative; 
-    overflow: hidden; 
-    width: 100%; 
-    height: 60vh; 
-    border-radius: 20px; 
-    background: #000; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    touch-action: none; 
-}
-.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
-.zoomed { transform: scale(3.5); cursor: grab; }
-
-/* 🎯 SIDEBAR & MODAL DEFAULTS */
-#sidebar-overlay { 
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: rgba(0,0,0,0.5); z-index: 20000; display: none; 
-}
-#sidebar-drawer { 
-    position: fixed; top: 0; left: -320px; width: 300px; height: 100%; 
-    background: var(--bg-main); z-index: 21000; transition: 0.3s; 
-}
-#sidebar-drawer.open { left: 0; }
-
+/* 🎯 BOLD WHITE MODAL (Shape from uploaded image) */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8); z-index: 15000; display: none;
-    align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.85); z-index: 15000 !important; 
+    display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 100%; height: 100%; background: var(--bg-main);
-    overflow-y: auto;
+    width: 90%; max-width: 450px; height: auto; max-height: 85vh;
+    background: #ffffff !important; /* Plain White */
+    border-radius: 40px !important; /* Extra Bold Rounded Corners */
+    position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    overflow-y: auto; padding: 35px 25px;
 }
 
-/* Processing Modal Spacing */
-.loader-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    text-align: center;
-    padding: 20px;
+/* 🎯 VISIBLE CLOSE ICON */
+.close-preview-x { 
+    position: absolute; top: 20px; right: 25px; 
+    font-size: 1.8rem; color: #000; font-weight: 900; 
+    cursor: pointer; z-index: 22000 !important;
 }
+
+/* 🎯 ZOOM & PAN (Inspection Physics) */
+.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
+.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
+.zoomed { transform: scale(3.5); cursor: grab; transition: none !important; }
+
+/* 🎯 BOTTOM SHIELD */
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
+#quick-search-container { display: flex; justify-content: center; gap: 15px; padding: 15px; width: 100%; box-sizing: border-box; background: var(--bg-main); }
+.split-card { flex: 1; background: var(--card-bg); color: white; padding: 18px 15px; border-radius: 14px; cursor: pointer; text-align: left; border: 1px solid var(--border); }
+
+/* Sidebar */
+#sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: var(--bg-main); z-index: 21000; transition: 0.3s; }
+#sidebar-drawer.open { left: 0; }

@@ -10,9 +10,11 @@
 </head>
 <body>
     <header class="app-header">
-        <button class="menu-btn">☰</button>
-        <div class="cart-icon" onclick="window.openCart()" style="position:relative; cursor:pointer;">
-            🛒<span id="cart-count">0</span>
+        <button class="menu-btn" id="menu-icon">☰</button>
+        
+        <div id="cart-icon-container" class="cart-icon">
+            <span style="font-size: 1.5rem;">🛒</span>
+            <span id="cart-count">0</span>
         </div>
     </header>
 
@@ -32,10 +34,8 @@
     </main>
 
     <div id="fitting-room-modal" class="voice-overlay">
-        <div class="voice-modal">
-            <span onclick="window.closeFittingRoom()" style="position:absolute; right:20px; top:15px; cursor:pointer; font-size:30px; font-weight:800; color:var(--text-main);">×</span>
-            <div id="ai-fitting-result" style="width: 100%;"></div>
-        </div>
+        <div id="ai-fitting-result" class="voice-modal">
+            </div>
     </div>
 
     <footer class="bottom-controls">
@@ -43,7 +43,7 @@
             </div>
         
         <div class="search-bar">
-            <input type="text" id="ai-input" placeholder="Search Senator or Ankara..." onkeyup="if(event.key === 'Enter') window.executeSearch()" />
+            <input type="text" id="ai-input" placeholder="Search..." onkeyup="if(event.key === 'Enter') window.executeSearch()" />
             <div class="input-icons" style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas fa-microphone mic-icon" id="mic-btn"></i>
                 
