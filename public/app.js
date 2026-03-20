@@ -47,6 +47,32 @@ let vtoRetryCount = 0;
 
 const geminiApiKey = ""; 
 
+// --- Image Optimization Logic (Prevents Vercel Timeouts) ---
+async function optimizeForAI(base64Str) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.src = base64Str.startsWith('data:') ? base64Str : `data:image/jpeg;base64,${base64Str}`;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 768; // Optimized for Vertex AI Try-on
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH) {
+                height *= MAX_WIDTH / width;
+                width = MAX_WIDTH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            // Returns raw base64 without the header
+            resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        };
+    });
+}
+
 // --- Chatway Dynamic Page Injection ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
@@ -212,6 +238,9 @@ function initGlobalUIStyles() {
         #sidebar-drawer.open { left: 0; }
         .sidebar-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; cursor: pointer; color: #1f1f1f; text-decoration: none; pointer-events: auto !important; font-family: 'Google Sans', sans-serif; font-weight: 600; }
         .sidebar-category { padding: 20px 24px 8px; font-size: 0.75rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.8px; border-top: 1px solid #f1f1f1; margin-top: 10px; }
+
+        .circular-loader { border: 4px solid rgba(230, 0, 35, 0.1); border-top: 4px solid #e60023; border-radius: 50%; width: 45px; height: 45px; animation: spin-loader 0.8s linear infinite; }
+        @keyframes spin-loader { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     `;
     document.head.appendChild(style);
 }
@@ -327,7 +356,7 @@ window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader(); 
     reader.onload = async (ev) => { 
-        localUserBase64 = ev.target.result.split(',')[1]; 
+        localUserBase64 = ev.target.result; // Header removed during startTryOn
         window.startTryOn(); 
     }; 
     reader.readAsDataURL(file); 
@@ -343,20 +372,25 @@ window.startTryOn = async () => {
         </div>`;
 
     try {
-        // --- LOGIC ADDED: Fetch cloth base64 and call Vercel API ---
-        const blob = await fetch(selectedCloth.imgUrl).then(r => r.blob());
-        const clothBase64 = await new Promise((res) => {
-            const reader = new FileReader();
-            reader.onloadend = () => res(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-        });
+        // --- LOGIC ADDED: Optimize images before sending to Vercel ---
+        const [cleanUser, cleanCloth] = await Promise.all([
+            optimizeForAI(localUserBase64),
+            fetch(selectedCloth.imgUrl)
+                .then(r => r.blob())
+                .then(blob => new Promise(res => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => res(reader.result);
+                    reader.readAsDataURL(blob);
+                }))
+                .then(b64 => optimizeForAI(b64))
+        ]);
 
         const response = await fetch('/api/process-vto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userImage: localUserBase64,
-                clothImage: clothBase64,
+                userImage: cleanUser,
+                clothImage: cleanCloth,
                 category: selectedCloth.category || "Native"
             })
         });
