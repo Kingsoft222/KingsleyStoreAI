@@ -163,7 +163,23 @@ function initGlobalUIStyles() {
     const style = document.createElement('style');
     style.innerHTML = `
         #draggable-chat-head, #chat-close-zone, [id*="dummy-chat"] { display: none !important; }
-        #ai-results { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; position: relative; z-index: 8000 !important; background: transparent; margin-bottom: 20px; }
+        
+        /* Updated results container to stay tucked in viewport and avoid overflowing search bar */
+        #ai-results { 
+            display: grid !important; 
+            grid-template-columns: repeat(2, 1fr) !important; 
+            gap: 12px !important; 
+            padding: 10px !important; 
+            width: 100% !important; 
+            position: relative; 
+            z-index: 8000 !important; 
+            background: transparent; 
+            margin-bottom: 20px; 
+            max-height: 60vh !important; 
+            overflow-y: auto !important; 
+            scroll-behavior: smooth;
+        }
+
         #product-list, #main-catalog { display: grid !important; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; padding: 10px !important; width: 100% !important; box-sizing: border-box !important; }
         .result-card { background: #ffffff !important; border-radius: 14px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); cursor: pointer !important; pointer-events: auto !important; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; z-index: 7000 !important; overflow: hidden; }
         .result-card:active { transform: scale(0.96); }
@@ -290,7 +306,7 @@ window.handleCustomerUpload = (e) => {
     reader.readAsDataURL(file); 
 };
 
-// --- Backend Connection Fix (Logic & UI strictly identical to your requested flow) ---
+// --- Backend Connection logic ---
 window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     resDiv.innerHTML = `
