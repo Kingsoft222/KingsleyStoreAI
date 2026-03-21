@@ -1,5 +1,5 @@
 /* ==========================================
-   1. GLOBAL & THEME VARIABLES
+   1. GLOBAL & THEME RESTORATION
    ========================================== */
 :root {
     --accent: #e60023;
@@ -26,25 +26,15 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER (Icons: image_d4eb41 & image_d55fc6) */
+/* 🎯 HEADER (Modernized Icons) */
 .app-header {
     position: relative; z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 20px;
 }
-
-/* Sidebar Icon - No box, clean professional look */
-#menu-icon { 
-    font-size: 1.8rem; cursor: pointer; padding: 0; 
-    background: none; border: none; color: var(--text-main); 
-}
-
-/* Cart Icon - Modern shopping cart */
-#cart-icon-container { 
-    cursor: pointer; display: flex; align-items: center; gap: 5px; 
-    color: var(--text-main); font-weight: 800; font-size: 1.2rem; 
-}
+#menu-icon { font-size: 1.8rem; cursor: pointer; background: none; border: none; color: var(--text-main); }
+#cart-icon-container { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 1.2rem; }
 
 .store-profile { text-align: center; padding-top: 10px; background: var(--bg-main); }
 .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; }
@@ -52,7 +42,7 @@ body, html {
 .store-name { color: var(--accent); font-weight: 900; font-size: 1.8rem; margin: 5px 0; }
 #dynamic-greeting { font-size: 1.1rem; margin: 5px 0; font-weight: 600; min-height: 1.2em; color: var(--text-main); }
 
-/* 🎯 DOCKVIEW PHYSICS */
+/* 🎯 DOCKVIEW PHYSICS - FULL SCROLL */
 #ai-results {
     display: none; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important; top: 259px; bottom: 185px; left: 0; right: 0;
@@ -67,7 +57,19 @@ body, html {
 .result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; text-align: center; cursor: pointer; }
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
 
-/* 🎯 ZOOM & 4-WAY PAN (Restored Size) */
+/* 🎯 BOLD MODAL & ZOOM PAN */
+#fitting-room-modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 15000 !important; 
+    display: none; align-items: center; justify-content: center;
+}
+#ai-fitting-result {
+    width: 92%; max-width: 450px; background: #ffffff !important;
+    border-radius: 40px !important; position: relative; padding: 30px 25px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4); max-height: 85vh; overflow-y: auto;
+}
+.close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
+
 .zoom-container { 
     position: relative; overflow: hidden; width: 100%; height: 50vh; 
     border-radius: 25px; background: #000; display: flex; 
@@ -76,7 +78,7 @@ body, html {
 .zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
 .zoomed { transform: scale(3.5); cursor: move; transition: none !important; }
 
-/* 🎯 SEARCH BAR (Fixed sticking out issue) */
+/* 🎯 SEARCH BAR & ADS */
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
 #quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 12px; width: 100%; box-sizing: border-box; }
 
@@ -98,6 +100,7 @@ body, html {
 .mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 12px; }
 .send-circle { background: var(--accent); border: none; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
 
+.professional-x { background: none; border: none; font-size: 1.5rem; color: #e60023; cursor: pointer; font-weight: 900; }
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 310px; height: 100%; background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; text-align: left; }
 #sidebar-drawer.open { left: 0; }
 .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; }
