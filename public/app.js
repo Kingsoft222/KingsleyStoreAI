@@ -97,33 +97,33 @@ window.openOptionsMenu = () => {
     
     document.getElementById('ai-fitting-result').innerHTML = `
         <div id="sidebar-overlay" style="display:block; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="position:absolute; top:0; left:0; width:280px; height:fit-content; max-height:90vh; background:#fff; border-radius:0 0 20px 0; overflow-y:auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1);">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()" style="position:absolute; top:0; left:0; width:280px; height:100%; background:#fff; overflow-y:auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1);">
                 
                 <div style="padding:20px 20px 10px 20px; display:flex; justify-content:space-between; align-items:center;">
                     <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:5px;">🎧 Chat Support</span>
                     <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer; line-height:1;">✕</span>
                 </div>
 
-                <div style="padding:0 24px 10px 24px;">
+                <div style="padding:10px 24px;">
                     <h2 style="font-size:1.4rem; font-weight:900; margin:0;"><span style="color:#e60023;">Store</span> Option</h2>
                 </div>
 
-                <div style="padding:10px 24px 30px 24px; display:flex; flex-direction:column; gap:18px;">
+                <div style="padding:20px 24px; display:flex; flex-direction:column; gap:20px;">
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; display:flex; align-items:center;">VERIFIED STORES ${badge}</div>
                     
                     <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;">
-                        <span style="margin-right:8px;">💎</span> Stella Wears ${badge}
+                        <span style="margin-right:10px;">💎</span> Stella Wears ${badge}
                     </div>
                     
                     <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;">
-                        <span style="margin-right:8px;">👗</span> IFY FASHION ${badge}
+                        <span style="margin-right:10px;">👗</span> IFY FASHION ${badge}
                     </div>
                     
                     <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;">
-                        <span style="margin-right:8px;">🧵</span> ADIVICHI FASHION ${badge}
+                        <span style="margin-right:10px;">🧵</span> ADIVICHI FASHION ${badge}
                     </div>
 
-                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px; margin-top:5px;">
+                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px;">
                         Unverified Stores
                     </div>
                 </div>
