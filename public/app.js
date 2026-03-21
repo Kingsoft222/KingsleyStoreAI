@@ -23,7 +23,7 @@ let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", st
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 let windowActiveGreetings = [], gIndex = 0;
 
-// --- 🚀 FAST STABLE ENGINE ---
+// --- 🚀 FAST TRY-ON MACHINE ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -68,17 +68,15 @@ window.startTryOn = async () => {
                         <button id="main-add-btn" onclick="window.handleAddToCartLoop()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer;">Add to Cart 🛍️</button>
                     </div>
                 </div>`;
-            const box = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
-            box.onclick = () => img.classList.toggle('zoomed');
+            initInspectionPan('result-zoom-box', 'result-img');
         } else { throw new Error(); }
     } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Try Again</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
 };
 
-// --- 🎯 BOOTUP & GREETINGS ---
+// --- 🎯 BOOTUP & GREETINGS (Restored Ads) ---
 document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-    
     document.getElementById('menu-icon').innerHTML = '☰';
     document.getElementById('cart-icon-container').innerHTML = `🛒 <span id="cart-count" style="font-size:1.1rem; margin-left:3px;">${cart.length}</span>`;
 
@@ -93,6 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = document.getElementById('ai-input');
             if (input) { input.placeholder = data.searchHint || "Search style..."; input.value = ""; }
             
+            const container = document.getElementById('quick-search-container');
+            if (container) {
+                container.innerHTML = `
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Luxury'}</h4><p>Shop now</p></div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Bespoke'}</h4><p>Exclusive</p></div>`;
+            }
+
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
@@ -113,11 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
             el.innerText = windowActiveGreetings[gIndex % windowActiveGreetings.length]; 
             gIndex++;
         }
-    }, 3500);
+    }, 4000);
     initVoiceSearch();
 });
 
-// --- 🎯 CART & RECEIPT LINK GENERATION ---
+// --- 🎯 CART & OFFICIAL RECEIPT LINK ---
 window.handleAddToCartLoop = () => {
     cart.push(selectedCloth);
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
@@ -141,14 +146,11 @@ window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     const total = cart.reduce((s, i) => s + i.price, 0);
-    const orderDate = new Date().toLocaleString();
     try {
         await update(dbRef(db, `stores/${currentStoreId}/analytics`), { totalRevenue: increment(total) });
-        await set(dbRef(db, `receipts/${orderId}`), { storeId: currentStoreId, items: cart, total: total, date: orderDate });
-        
+        await set(dbRef(db, `receipts/${orderId}`), { storeId: currentStoreId, items: cart, total: total, date: new Date().toLocaleString() });
         const receiptLink = `https://kingsley-store-ai.vercel.app/receipt.html?id=${orderId}`;
         const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0AOrder ID: *${orderId}*%0ATotal: *₦${total.toLocaleString()}*%0A%0A✅ *View Official Receipt:*%0A${receiptLink}`;
-        
         cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI();
         window.location.assign(`https://wa.me/${storePhone}?text=${summaryMsg}`);
     } catch(e) { alert("Sync failed."); }
@@ -162,7 +164,7 @@ window.openCart = () => {
     let itemsHTML = cart.map((item, idx) => `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
             <div style="text-align:left; color:#111;"><b>${item.name}</b><br><span style="color:#e60023;">₦${item.price.toLocaleString()}</span></div>
-            <button onclick="window.removeFromCart(${idx})" class="trash-btn">🗑️</button>
+            <button onclick="window.removeFromCart(${idx})" class="professional-x">✕</button>
         </div>`).join('');
     resDiv.innerHTML = `
         <div style="padding:10px;">
@@ -176,7 +178,16 @@ window.openCart = () => {
         </div>`;
 };
 
-// --- 🎯 SIDEBAR & HELPERS ---
+// --- 🎯 HELPERS ---
+function initInspectionPan(boxId, imgId) {
+    const box = document.getElementById(boxId), img = document.getElementById(imgId);
+    let isPanning = false, startX, startY, currentX = 0, currentY = 0;
+    box.onclick = () => { img.classList.toggle('zoomed'); currentX = 0; currentY = 0; img.style.transform = img.classList.contains('zoomed') ? 'scale(3.5)' : 'scale(1)'; };
+    box.addEventListener('touchstart', (e) => { if(!img.classList.contains('zoomed')) return; isPanning = true; startX = e.touches[0].clientX - currentX; startY = e.touches[0].clientY - currentY; });
+    box.addEventListener('touchmove', (e) => { if(!isPanning) return; currentX = e.touches[0].clientX - startX; currentY = e.touches[0].clientY - startY; img.style.transform = `scale(3.5) translate(${currentX/3.5}px, ${currentY/3.5}px)`; });
+    box.addEventListener('touchend', () => isPanning = false);
+}
+
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#00a2ff" style="margin-left:5px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
@@ -190,12 +201,9 @@ window.openOptionsMenu = () => {
                 <div style="padding:0 20px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
                 <div style="padding:20px; display:flex; flex-direction:column; gap:15px;">
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Verified Stores ${badge}</div>
-                    <div style="color:#555; font-weight:700; font-size:0.8rem;">LUXURY WEARS</div>
                     <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div>
                     <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 IFY FASHION ${badge}</div>
-                    <div style="color:#555; font-weight:700; font-size:0.8rem; margin-top:10px;">BESPOKE FASHION</div>
                     <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 ADIVICHI FASHION ${badge}</div>
-                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👔 TOMMY BEST ${badge}</div>
                     <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">Unverified Stores</div>
                 </div>
             </div>
@@ -226,5 +234,5 @@ window.updateCartUI = () => { const c = document.getElementById('cart-count'); i
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `#draggable-chat-head, #chat-close-zone { display: none !important; }`; document.head.appendChild(s); }
-function initVoiceSearch() { const mic = document.getElementById('mic-btn'); if (!mic) return; const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); mic.onclick = () => rec.start(); rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
-function applyDynamicThemeStyles() { const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; document.getElementById('store-name-display').style.color = isDark ? 'white' : 'black'; }
+function initVoiceSearch() { const mic = document.getElementById('mic-btn'); if (!mic) return; const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); mic.lang = 'en-NG'; mic.onclick = () => { rec.start(); mic.style.color = "#e60023"; }; rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
+function applyDynamicThemeStyles() { const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches; document.getElementById('store-name-display').style.color = isDark ? 'white' : 'black'; }
