@@ -22,26 +22,100 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// --- RESTORED ADD TO CART LOGIC ---
-window.handleAddToCartLoop = () => {
-    if (selectedCloth) {
-        cart.push(selectedCloth);
-        localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
-        window.updateCartUI();
+// --- 🎯 RESTORED WHATSAPP & RECEIPT LOGIC ---
+window.checkoutWhatsApp = async () => {
+    if (cart.length === 0) return;
+    const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+    const total = cart.reduce((s, i) => s + i.price, 0);
+    
+    try {
+        // 1. Sync Revenue to Analytics
+        await update(dbRef(db, `stores/${currentStoreId}/analytics`), { 
+            totalRevenue: increment(total) 
+        });
+
+        // 2. Generate Official Receipt Record
+        await set(dbRef(db, `receipts/${orderId}`), { 
+            storeId: currentStoreId, 
+            items: cart, 
+            total: total, 
+            date: new Date().toLocaleString() 
+        });
+
+        // 3. Construct Link and WhatsApp Message
+        const receiptLink = `https://kingsley-store-ai.vercel.app/receipt.html?id=${orderId}`;
+        const summaryMsg = `🛡️ *VERIFIED VIRTUALMALL ORDER*%0AOrder ID: *${orderId}*%0ATotal: *₦${total.toLocaleString()}*%0A%0A✅ *View Official Receipt:*%0A${receiptLink}`;
         
-        const stack = document.getElementById('cta-stack') || document.querySelector('#ai-fitting-result div[style*="display:flex"]');
-        if (stack) {
-            stack.innerHTML = `
-                <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#555; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">Check Another One</button>
-                <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">PROCEED TO CART ➔</button>
-            `;
-        }
+        // 4. Clear Cart and Redirect
+        cart = []; 
+        localStorage.removeItem(`cart_${currentStoreId}`); 
+        window.updateCartUI();
+        window.location.assign(`https://wa.me/${storePhone}?text=${summaryMsg}`);
+    } catch(e) { 
+        alert("Checkout failed. Check your connection."); 
     }
+};
+
+// --- 🎯 CART MODAL LOGIC ---
+window.openCart = () => {
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const resDiv = document.getElementById('ai-fitting-result');
+    
+    if (cart.length === 0) {
+        resDiv.innerHTML = `<div style="padding:50px; text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3>Your cart is empty</h3></div>`;
+        return;
+    }
+
+    let total = cart.reduce((s, i) => s + i.price, 0);
+    let itemsHTML = cart.map((item, idx) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+            <div style="text-align:left; color:#111;">
+                <b>${item.name}</b><br>
+                <span style="color:#e60023;">₦${item.price.toLocaleString()}</span>
+            </div>
+            <button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#e60023; font-weight:900; cursor:pointer;">✕</button>
+        </div>`).join('');
+
+    resDiv.innerHTML = `
+        <div style="padding:10px;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <h2 style="color:#e60023; font-weight:800;">CART SUMMARY</h2>
+            <div style="max-height:300px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div>
+            <div style="display:flex; justify-content:space-between; font-weight:900; color:#111; border-top:2px solid #e60023; padding-top:15px;">
+                <span>Total:</span>
+                <span>₦${total.toLocaleString()}</span>
+            </div>
+            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px; cursor:pointer; display:block;">
+                WhatsApp Checkout ➔
+            </button>
+        </div>`;
+};
+
+window.removeFromCart = (idx) => {
+    cart.splice(idx, 1);
+    localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
+    window.updateCartUI();
+    window.openCart();
 };
 
 window.updateCartUI = () => {
     const countEl = document.getElementById('cart-count');
     if (countEl) countEl.innerText = cart.length;
+};
+
+// --- ADD TO CART LOOP ---
+window.handleAddToCartLoop = () => {
+    if (selectedCloth) {
+        cart.push(selectedCloth);
+        localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
+        window.updateCartUI();
+        const stack = document.getElementById('cta-stack');
+        if (stack) {
+            stack.innerHTML = `
+                <button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#555; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">Check Another One</button>
+                <button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">PROCEED TO CART ➔</button>`;
+        }
+    }
 };
 
 // --- CORE VTO ENGINE ---
@@ -60,15 +134,7 @@ window.startTryOn = async () => {
     const resDiv = document.getElementById('ai-fitting-result');
     const storeName = document.getElementById('store-name-display')?.innerText || "Store";
     const firstName = storeName.split(' ')[0];
-    
-    resDiv.innerHTML = `
-        <div style="text-align:center;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-            <h2 style="color:#e60023; font-weight:900; margin:0;">${firstName}'s Showroom</h2>
-            <p style="margin:20px 0; font-weight:800; color:#000; text-transform:uppercase; font-size:0.9rem;">STITCHING YOUR OUTFIT...</p>
-            <div class="dotted-spinner"></div>
-        </div>`;
-
+    resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:900; margin:0;">${firstName}'s Showroom</h2><p style="margin:20px 0; font-weight:800; color:#000; text-transform:uppercase; font-size:0.9rem;">STITCHING YOUR OUTFIT...</p><div class="dotted-spinner"></div></div>`;
     try {
         const img = new Image();
         img.src = localUserBase64;
@@ -82,21 +148,13 @@ window.startTryOn = async () => {
                 resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
             };
         });
-
         const response = await fetch('/api/process-vto', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userImage: optUser, clothImageUrl: selectedCloth.imgUrl, category: selectedCloth.category || "Native" })
         });
         const result = await response.json();
         if (result.success) {
-            resDiv.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
-                    <div class="zoom-container" id="result-zoom-box"><img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img"></div>
-                    <div id="cta-stack" style="display:flex; flex-direction:column; gap:12px;">
-                        <button id="main-add-btn" onclick="window.handleAddToCartLoop()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer;">Add to Cart 🛍️</button>
-                    </div>
-                </div>`;
+            resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="result-zoom-box"><img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img"></div><div id="cta-stack" style="display:flex; flex-direction:column; gap:12px;"><button id="main-add-btn" onclick="window.handleAddToCartLoop()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer;">Add to Cart 🛍️</button></div></div>`;
             if (typeof initInspectionPan === 'function') initInspectionPan('result-zoom-box', 'result-img');
         } else { throw new Error(); }
     } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Server Busy</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
@@ -106,10 +164,8 @@ window.startTryOn = async () => {
 document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {});
     window.updateCartUI();
-    
     document.getElementById('menu-icon').onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
     document.getElementById('cart-icon-container').onclick = window.openCart;
-    
     const sendBtn = document.querySelector('.send-circle');
     if (sendBtn) sendBtn.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
 
@@ -118,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input'); if (input) input.placeholder = data.searchHint || "Search style...";
-            
+            if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
