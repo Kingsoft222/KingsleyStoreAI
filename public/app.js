@@ -22,7 +22,7 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// --- 🎯 RESTORED 4-WAY PAN LOGIC ---
+// --- 🎯 RESTORED 4-WAY PAN LOGIC (LOCKED) ---
 function initInspectionPan(boxId, imgId) {
     const box = document.getElementById(boxId), img = document.getElementById(imgId);
     let isPanning = false, startX, startY, currentX = 0, currentY = 0;
@@ -32,7 +32,7 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchend', () => isPanning = false);
 }
 
-// --- 🎯 FAST STABLE VTO ENGINE ---
+// --- 🎯 FAST STABLE VTO ENGINE (LOCKED) ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -89,8 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
-                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Luxury'}</h4><p>Shop now</p></div>
-                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Bespoke'}</h4><p>Exclusive</p></div>`;
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Street Wear'}</h4><p>Shop now</p></div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Luxury Native'}</h4><p>Exclusive</p></div>`;
             }
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- 🎯 CATEGORIZED SIDEBAR ---
+// --- 🎯 SIDEBAR UPDATED CATEGORIES (LOCKED) ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#00a2ff" style="display:inline-block; vertical-align:middle; margin-left:4px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
@@ -117,18 +117,18 @@ window.openOptionsMenu = () => {
                 <div style="padding:0 24px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
                 <div style="padding:20px 24px; display:flex; flex-direction:column; gap:20px;">
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">STREET WEARS ${badge}</div>
-                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">💎</span> Stella Wears ${badge}</div>
-                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">👗</span> Ify's Fashion ${badge}</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">💎</span> Stella Wears ${badge}</div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👗</span> Ify's Fashion ${badge}</div>
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">LUXURY NATIVE ${badge}</div>
-                    <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">🧵</span> Adivici Fashion ${badge}</div>
-                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">👔</span> Tommy Best Fashion ${badge}</div>
-                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">Unverified Stores</div>
+                    <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">🧵</span> Adivici Fashion ${badge}</div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👔</span> Tommy Best Fashion ${badge}</div>
+                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px;">Unverified Stores</div>
                 </div>
             </div>
         </div>`;
 };
 
-// --- 🎯 LOGIC & UPLOAD RESTORATION ---
+// --- 🎯 LOGIC CORE ---
 window.executeSearch = () => {
     const q = document.getElementById('ai-input').value.toLowerCase().trim();
     const res = document.getElementById('ai-results');
