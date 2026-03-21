@@ -24,7 +24,7 @@ let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", st
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 let windowActiveGreetings = [], gIndex = 0;
 
-// --- 🎯 RELIABLE STABLE ENGINE UTILITIES ---
+// --- 🚀 THE UNTOUCHED MACHINE ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -42,132 +42,122 @@ async function optimizeForAI(base64Str) {
     });
 }
 
-async function getBase64FromUrl(url) {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result.split(',')[1]);
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) { return ""; }
-}
-
-// --- 🚀 FAST STABLE ENGINE (No annoying validation) ---
-window.startTryOn = async () => {
-    const resDiv = document.getElementById('ai-fitting-result');
-    const fullStoreName = document.getElementById('store-name-display').innerText;
-    const vendorFirstName = fullStoreName.split(' ')[0] || "Vendor";
-    
-    resDiv.innerHTML = `
-        <div style="text-align:center; padding:40px 10px;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
-            <h2 style="color:#e60023; font-weight:900; font-size:1.8rem; margin-bottom:5px;">${vendorFirstName}'s ShowRoom</h2>
-            <p style="color:#000; font-weight:800; font-size:1rem; margin-bottom:30px; text-transform:uppercase; letter-spacing:1px;">STITCHING YOUR OUTFIT</p>
-            <div class="dotted-spinner"></div>
-        </div>`;
-
-    try {
-        const optimizedUser = await optimizeForAI(localUserBase64);
-        const rawCloth = await getBase64FromUrl(selectedCloth.imgUrl);
-        
-        if (!rawCloth) throw new Error("Cloud storage access error");
-
-        const response = await fetch('/api/process-vto', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userImage: optimizedUser, clothImage: rawCloth, category: selectedCloth.category || "Native" }) 
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-            resDiv.innerHTML = `
-                <div style="text-align:center;">
-                    <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
-                    <div class="zoom-container" id="result-zoom-box">
-                        <img src="data:image/jpeg;base64,${result.image}" class="zoom-image" id="result-img">
-                    </div>
-                    <button onclick="window.addToCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; margin-top:20px; border:none; cursor:pointer; text-transform:uppercase;">Add to Cart 🛍️</button>
-                </div>`;
-            const container = document.getElementById('result-zoom-box'), img = document.getElementById('result-img');
-            container.onclick = () => img.classList.toggle('zoomed');
-        } else { alert("AI Error: Server Busy"); window.closeFittingRoom(); }
-    } catch (e) { alert("Connection Error: Check Network"); window.closeFittingRoom(); }
+// --- 🎧 CHAT SUPPORT LOGIC ---
+const injectChatSupport = () => {
+    if (document.getElementById('chatway-script')) return;
+    const s = document.createElement("script");
+    s.id = "chatway-script"; s.async = true;
+    s.src = "https://cdn.chatway.app/widget.js?id=govCX46EKb8v";
+    document.head.appendChild(s);
 };
 
-// --- 🎯 APP BOOTUP ---
+window.openChatPage = () => {
+    injectChatSupport();
+    const resDiv = document.getElementById('ai-fitting-result');
+    resDiv.innerHTML = `
+        <div style="height:400px; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:20px; font-weight:700; color:#111;">Launching Support...</p>
+            <button onclick="window.closeFittingRoom()" style="margin-top:25px; padding:12px 30px; border-radius:30px; border:1px solid #ddd; background:#f9f9f9; font-weight:800; cursor:pointer; color:#333;">Return to Store</button>
+        </div>`;
+    
+    // Check for Chatway activation
+    const check = setInterval(() => { 
+        if(window.chatway) { 
+            window.chatway.show(); 
+            window.chatway.open(); 
+            clearInterval(check); 
+        } 
+    }, 500);
+};
+
+window.startTryOn = async () => {
+    const resDiv = document.getElementById('ai-fitting-result');
+    const storeNameDisplay = document.getElementById('store-name-display').innerText;
+    const firstName = storeNameDisplay.split(' ')[0] || "Store";
+    resDiv.innerHTML = `
+        <div style="position:relative; text-align:center; padding:80px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:400px; width:100%;">
+            <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+            <h2 style="color:#e60023; font-weight:900; margin-bottom:5px;">${firstName}'s Showroom</h2>
+            <p style="margin-bottom:25px; font-weight:800; color:#000; text-transform:uppercase; letter-spacing:1px; font-size:0.9rem;">Stitching your outfit...</p>
+            <div class="dotted-spinner"></div>
+        </div>`;
+    try {
+        const optimizedUser = await optimizeForAI(localUserBase64);
+        const response = await fetch('/api/process-vto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userImage: optimizedUser, clothImageUrl: selectedCloth.imgUrl, category: selectedCloth.category || "Native" })
+        });
+        const result = await response.json();
+        if (result.success) {
+            resDiv.innerHTML = `
+                <div style="text-align:center; padding:5px; position:relative;">
+                    <h2 style="font-weight:900; font-size:1.2rem; color:#111; margin:15px 0; text-transform:uppercase;">How do you look?</h2>
+                    <div class="zoom-container" id="result-zoom-box">
+                        <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
+                        <img src="data:image/png;base64,${result.image}" class="zoom-image" id="result-img">
+                    </div>
+                    <div style="padding:15px 10px;">
+                        <button onclick="window.buyNow()" style="background:#25D366; color:white; padding:20px; width:100%; border-radius:14px; font-weight:900; border:none; cursor:pointer; text-transform:uppercase;">Buy This Look</button>
+                    </div>
+                </div>`;
+            initInspectionPan('result-zoom-box', 'result-img');
+        } else { throw new Error(); }
+    } catch (err) { resDiv.innerHTML = `<div style="text-align:center; padding:40px 20px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Try Again</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
+};
+
+// --- 🎯 BOOTUP ---
 document.addEventListener('DOMContentLoaded', () => {
     applyDynamicThemeStyles();
-    signInAnonymously(auth).catch(() => {});
+    signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
-
-    // Explicitly re-link listeners to prevent them from breaking
-    const menuBtn = document.getElementById('menu-icon');
-    if (menuBtn) menuBtn.onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
     
-    const cartBtn = document.getElementById('cart-icon-container');
-    if (cartBtn) cartBtn.onclick = () => window.openCart();
-
-    const sendBtn = document.querySelector('.send-circle');
-    if (sendBtn) sendBtn.onclick = () => window.executeSearch();
+    document.getElementById('menu-icon').onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
+    document.getElementById('cart-icon-container').onclick = window.showCart;
+    document.querySelector('.send-circle').onclick = window.executeSearch;
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
-            const searchInput = document.getElementById('ai-input');
-            if (searchInput) {
-                searchInput.placeholder = data.searchHint || "Search...";
-                // Fix for search bar from image_0.png - ensure no random J sticks out
-                searchInput.value = ""; 
-                searchInput.oninput = window.executeSearch;
-            }
-            
+            const input = document.getElementById('ai-input');
+            if (input) { input.placeholder = data.searchHint || "Search..."; input.value = ""; }
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
-                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Hoodies'}</h4><p>Shop now</p></div>
-                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Corporate'}</h4><p>Shop now</p></div>`;
+                    <div class="split-card" onclick="window.quickSearch('${data.label1}')">${data.label1 || 'Luxury'}</div>
+                    <div class="split-card" onclick="window.quickSearch('${data.label2}')">${data.label2 || 'Bespoke'}</div>`;
             }
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
-
             if (data.greetingsEnabled !== false) {
                 windowActiveGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 const el = document.getElementById('dynamic-greeting');
-                if (el) el.style.display = 'block';
+                if (el) { el.innerText = windowActiveGreetings[0]; el.style.display = 'block'; }
             }
-            if (data.catalog) {
-                storeCatalog = Object.keys(data.catalog).map(key => ({ id: key, ...data.catalog[key] }));
-                window.renderProducts(storeCatalog);
-            }
-            updateCartUI();
+            if (data.catalog) { storeCatalog = Object.keys(data.catalog).map(k => ({ id: k, ...data.catalog[k] })); }
         }
     });
 
     setInterval(() => {
         const el = document.getElementById('dynamic-greeting');
-        if (el && windowActiveGreetings.length > 0) { 
-            el.innerText = windowActiveGreetings[gIndex % windowActiveGreetings.length]; 
-            gIndex++;
+        if (el && windowActiveGreetings.length > 1 && el.style.display !== 'none') { 
+            gIndex = (gIndex + 1) % windowActiveGreetings.length;
+            el.innerText = windowActiveGreetings[gIndex]; 
         }
     }, 4000);
     initVoiceSearch();
 });
 
-// Grid logic remains same
 window.renderProducts = (items) => {
-    const results = document.getElementById('ai-results');
-    if (!results) return;
-    results.style.display = 'grid';
-    results.innerHTML = items.map(item => `
-        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')" style="cursor:pointer !important; pointer-events:auto !important;">
-            <img src="${item.imgUrl}" alt="${item.name}">
-            <h4 class="cart-item-name">${item.name}</h4>
-            <p>₦${item.price.toLocaleString()}</p>
+    const res = document.getElementById('ai-results');
+    if (!res) return;
+    res.style.display = 'grid';
+    res.innerHTML = items.map(item => `
+        <div class="result-card" onclick="window.promptShowroomChoice('${item.id}')">
+            <img src="${item.imgUrl}"><h4>${item.name}</h4><p>₦${item.price.toLocaleString()}</p>
         </div>`).join('');
 };
 
@@ -178,16 +168,48 @@ window.executeSearch = () => {
     window.renderProducts(filtered);
 };
 
-// --- 🎯 MODAL FLOW LOGICS ---
+window.openOptionsMenu = () => {
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const badge = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#00a2ff" style="margin-left:5px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <div id="sidebar-overlay" style="display:block;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()">
+                <div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center;">
+                    <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span>
+                    <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer;">✕</span>
+                </div>
+                <div style="padding:0 20px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
+                <div style="padding:20px; display:flex; flex-direction:column; gap:15px;">
+                    <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Verified Stores ${badge}</div>
+                    <div style="color:#555; font-weight:700; font-size:0.8rem;">LUXURY WEARS</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 IFY FASHION ${badge}</div>
+                    <div style="color:#555; font-weight:700; font-size:0.8rem; margin-top:10px;">BESPOKE FASHION</div>
+                    <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 ADIVICHI FASHION ${badge}</div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👔 TOMMY BEST ${badge}</div>
+                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">Unverified Stores</div>
+                </div>
+            </div>
+        </div>`;
+};
+
+function initInspectionPan(boxId, imgId) {
+    const box = document.getElementById(boxId), img = document.getElementById(imgId);
+    let isPanning = false, startX, startY, currentX = 0, currentY = 0;
+    box.onclick = () => { img.classList.toggle('zoomed'); currentX = 0; currentY = 0; img.style.transform = img.classList.contains('zoomed') ? 'scale(3.5)' : 'scale(1)'; };
+    box.addEventListener('touchstart', (e) => { if(!img.classList.contains('zoomed')) return; isPanning = true; startX = e.touches[0].clientX - currentX; startY = e.touches[0].clientY - currentY; });
+    box.addEventListener('touchmove', (e) => { if(!isPanning) return; currentX = e.touches[0].clientX - startX; currentY = e.touches[0].clientY - startY; img.style.transform = `scale(3.5) translate(${currentX/3.5}px, ${currentY/3.5}px)`; });
+    box.addEventListener('touchend', () => isPanning = false);
+}
+
 window.promptShowroomChoice = (id) => {
     selectedCloth = storeCatalog.find(c => String(c.id) === String(id));
-    if (!selectedCloth) return;
     document.getElementById('fitting-room-modal').style.display = 'flex';
     document.getElementById('ai-fitting-result').innerHTML = `
         <div>
             <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
             <div class="zoom-container" id="preview-zoom-box"><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div>
-            <h3 style="margin-top:15px; color:#000; font-weight:800;">${selectedCloth.name}</h3>
+            <h3 style="margin-top:15px; color:#000;">${selectedCloth.name}</h3>
             <p style="color:#e60023; font-weight:900; font-size:1.5rem;">₦${selectedCloth.price.toLocaleString()}</p>
             <button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:20px; width:90%; border-radius:14px; font-weight:900; border:none; cursor:pointer; margin-top:10px;">Wear it! ✨</button>
         </div>`;
@@ -206,80 +228,12 @@ window.proceedToUpload = () => {
         </div>`;
 };
 
-window.handleCustomerUpload = (e) => { 
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader(); 
-    reader.onload = async (ev) => { localUserBase64 = ev.target.result; window.startTryOn(); }; 
-    reader.readAsDataURL(file); 
-};
-
-window.addToCart = () => {
-    cart.push(selectedCloth);
-    localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
-    updateCartUI(); 
-    window.closeFittingRoom();
-};
-
-window.openCart = () => {
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    const resDiv = document.getElementById('ai-fitting-result');
-    if (cart.length === 0) { resDiv.innerHTML = `<div style="text-align:center; padding:50px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">×</div><h3 style="color:#000;">Cart is empty</h3></div>`; return; }
-    let total = cart.reduce((s, i) => s + i.price, 0);
-    resDiv.innerHTML = `
-        <div style="padding:10px; color:#000;">
-            <div class="close-preview-x" onclick="window.closeFittingRoom()">×</div>
-            <h2 style="color:#e60023; font-weight:900;">CART SUMMARY</h2>
-            ${cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><div><b>${item.name}</b><br>₦${item.price.toLocaleString()}</div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:red;">✕</button></div>`).join('')}
-            <div style="display:flex; justify-content:space-between; font-weight:900; border-top:1px solid #eee; padding-top:10px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div>
-            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px;">Checkout WhatsApp</button>
-        </div>`;
-};
-
-window.checkoutWhatsApp = async () => {
-    const total = cart.reduce((s, i) => s + i.price, 0);
-    const msg = `🛡 *VIRTUALMALL ORDER*\nTotal: *₦${total.toLocaleString()}*\nItems:\n${cart.map(i => `- ${i.name}`).join('\n')}`;
-    window.location.assign(`https://wa.me/${storePhone}?text=${encodeURIComponent(msg)}`);
-};
-
-// Pan logic remains same
-function initInspectionPan(boxId, imgId) {
-    const box = document.getElementById(boxId), img = document.getElementById(imgId);
-    let isPanning = false, startX, startY, currentX = 0, currentY = 0;
-    box.onclick = (e) => { if(e.target.classList.contains('close-preview-x')) return; img.classList.toggle('zoomed'); currentX = 0; currentY = 0; img.style.transform = img.classList.contains('zoomed') ? 'scale(3.5)' : 'scale(1)'; };
-    box.addEventListener('touchstart', (e) => { if(!img.classList.contains('zoomed')) return; isPanning = true; startX = e.touches[0].clientX - currentX; startY = e.touches[0].clientY - currentY; });
-    box.addEventListener('touchmove', (e) => { if(!isPanning) return; currentX = e.touches[0].clientX - startX; currentY = e.touches[0].clientY - startY; img.style.transform = `scale(3.5) translate(${currentX/3.5}px, ${currentY/3.5}px)`; });
-    box.addEventListener('touchend', () => isPanning = false);
-}
-
-// Sidebar logic updated for formatting
-window.openOptionsMenu = () => {
-    document.getElementById('fitting-room-modal').style.display = 'flex';
-    document.getElementById('ai-fitting-result').innerHTML = `
-        <div id="sidebar-overlay" style="display:block;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" class="open" onclick="event.stopPropagation()">
-                <div style="padding:28px 24px; font-size:1.4rem; font-weight:700; display:flex; justify-content:space-between; color:#111;"><span>Store Options</span><span onclick="window.closeFittingRoom()" style="cursor:pointer;">✕</span></div>
-                <div style="padding:0 24px 20px;">
-                    <button onclick="window.openChatPage()" style="width:100%; padding:15px; background:#0b57d0; color:white; border-radius:12px; border:none; font-weight:bold; display:flex; align-items:center; justify-content:center; gap:10px;">🎧 Chat Support</button>
-                </div>
-                <div style="color:#888; font-size:0.75rem; font-weight:700; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px; padding-left:24px;">Luxury Wears</div>
-                <div onclick="window.location.assign('?store=kingss1')" style="padding:15px 24px; color:#111; font-weight:600; cursor:pointer;">Stella Wears</div>
-                <div style="color:#888; font-size:0.75rem; font-weight:700; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px; padding-left:24px;">Bespoke Fashion</div>
-                <div onclick="window.location.assign('?store=adivichi')" style="padding:15px 24px; color:#111; font-weight:600; cursor:pointer;">ADIVICHI FASHION</div>
-            </div>
-        </div>`;
-};
-
-window.openChatPage = () => {
-    injectChatSupport();
-    const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="height:400px; display:flex; align-items:center; justify-content:center; flex-direction:column;"><div class="dotted-spinner"></div><p>Launching Support...</p></div>`;
-    const check = setInterval(() => { if(window.chatway) { window.chatway.show(); window.chatway.open(); clearInterval(check); } }, 500);
-};
-
+window.handleCustomerUpload = (e) => { const f = e.target.files[0]; if(!f) return; const rd = new FileReader(); rd.onload = (ev) => { localUserBase64 = ev.target.result; window.startTryOn(); }; rd.readAsDataURL(f); };
+window.buyNow = () => { const text = `Hello! I just tried on the *${selectedCloth.name}* and I love it! Price: ₦${selectedCloth.price.toLocaleString()}`; window.open(`https://wa.me/${storePhone}?text=${encodeURIComponent(text)}`, '_blank'); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; if(window.chatway){ window.chatway.hide(); window.chatway.close(); } };
+window.showCart = () => { alert(cart.length > 0 ? `Items: ${cart.length}` : "Cart empty"); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.openCart(); updateCartUI(); };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
-function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `.dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; } @keyframes spin { 100% { transform: rotate(360deg); } }`; document.head.appendChild(s); }
-function initVoiceSearch() { const micBtn = document.getElementById('mic-btn'); if (!micBtn) return; const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRec) return; const recognition = new SpeechRec(); micBtn.onclick = () => { try { recognition.start(); micBtn.style.color = "#e60023"; } catch(e) {} }; recognition.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
+function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `.dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; } @keyframes spin { 100% { transform: rotate(360deg); } } #draggable-chat-head, #chat-close-zone { display: none !important; }`; document.head.appendChild(s); }
+function initVoiceSearch() { const mic = document.getElementById('mic-btn'); if (!mic) return; const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); mic.onclick = () => { rec.start(); mic.style.color = "#e60023"; }; rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
 function applyDynamicThemeStyles() { const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; const el = document.getElementById('store-name-display'); if(el) el.style.color = isDark ? 'white' : 'black'; }
