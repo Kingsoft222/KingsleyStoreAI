@@ -71,7 +71,7 @@ body, html {
 /* 🎯 SEARCH BAR & ADS RESTORATION */
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
 #quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
-.split-card { flex: 1; height: 65px; background: var(--card-bg); color: white; padding: 10px; border-radius: 12px; cursor: pointer; border: 1px solid #333; display: flex; flex-direction: column; justify-content: center; text-align: left; }
+.split-card { flex: 1; height: 65px !important; background: var(--card-bg); color: white; padding: 10px; border-radius: 12px; cursor: pointer; border: 1px solid #333; display: flex; flex-direction: column; justify-content: center; text-align: left; }
 
 .search-bar { 
     background: var(--input-bg); border-radius: 50px; 
@@ -82,15 +82,14 @@ body, html {
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 100%; }
 .mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 12px; }
 
-/* Fixed Send circle position physics */
+/* Fixed Send circle position restored */
 .send-circle { background: var(--accent); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; margin-right: 2px; }
 
-/* 🎯 SIDEBAR (STRICT CLEANUP - RUBBISH REMOVED) */
+/* 🎯 SIDEBAR (CLEAN - Extra elements removed) */
 #sidebar-drawer { 
     position: fixed; top: 0; left: -320px; width: 300px; height: 100%; 
     background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; 
     text-align: left; box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-    border: none !important; /* Removes any sticking borders */
 }
 #sidebar-drawer.open { left: 0; }
 
@@ -98,8 +97,9 @@ body, html {
 #fitting-room-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: none; align-items: center; justify-content: center; }
 #ai-fitting-result { width: 92%; max-width: 450px; background: #ffffff !important; border-radius: 40px; position: relative; padding: 30px 25px; box-shadow: 0 25px 60px rgba(0,0,0,0.4); max-height: 85vh; overflow-y: auto; }
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000; }
+
+/* Professional Instruction Text */
+.modal-instruction { font-size: 1.1rem; font-weight: 500; color: #333; margin: 15px 0; }
+
 .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
-
-/* Light Font for Modal Instruction */
-.modal-instruction { font-size: 1.1rem; font-weight: 500; color: #333; margin: 15px 0; }

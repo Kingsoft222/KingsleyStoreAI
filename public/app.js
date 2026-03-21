@@ -32,7 +32,7 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchend', () => isPanning = false);
 }
 
-// --- 🎯 FAST STABLE VTO MACHINE ---
+// --- 🎯 FAST STABLE VTO ENGINE ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -69,7 +69,7 @@ window.startTryOn = async () => {
     } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Server Busy</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
 };
 
-// --- 🎯 BOOTUP & STORE FRONT ADS ---
+// --- 🎯 BOOTUP & SEARCH GRID ---
 document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- 🎯 SIDEBAR UPDATED CATEGORIES ---
+// --- 🎯 CATEGORIZED SIDEBAR ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#00a2ff" style="display:inline-block; vertical-align:middle; margin-left:4px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
@@ -117,18 +117,18 @@ window.openOptionsMenu = () => {
                 <div style="padding:0 24px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
                 <div style="padding:20px 24px; display:flex; flex-direction:column; gap:20px;">
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">STREET WEARS ${badge}</div>
-                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">💎</span> Stella Wears ${badge}</div>
-                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👗</span> Ify's Fashion ${badge}</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">💎</span> Stella Wears ${badge}</div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">👗</span> Ify's Fashion ${badge}</div>
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">LUXURY NATIVE ${badge}</div>
-                    <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">🧵</span> Adivici Fashion ${badge}</div>
-                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👔</span> Tommy Best Fashion ${badge}</div>
-                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px; margin-top:10px;">Unverified Stores</div>
+                    <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">🧵</span> Adivici Fashion ${badge}</div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;"><span style="margin-right:10px;">👔</span> Tommy Best Fashion ${badge}</div>
+                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">Unverified Stores</div>
                 </div>
             </div>
         </div>`;
 };
 
-// --- 🎯 SEARCH & UPLOAD ---
+// --- 🎯 LOGIC & UPLOAD RESTORATION ---
 window.executeSearch = () => {
     const q = document.getElementById('ai-input').value.toLowerCase().trim();
     const res = document.getElementById('ai-results');
