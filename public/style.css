@@ -26,7 +26,7 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER */
+/* 🎯 HEADER Icons Restoration */
 .app-header {
     position: relative; z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
@@ -42,7 +42,7 @@ body, html {
 .store-name { color: var(--accent); font-weight: 900; font-size: 1.8rem; margin: 5px 0; }
 #dynamic-greeting { display: none !important; }
 
-/* 🎯 DOCKVIEW (Restored Labels/Prices) */
+/* 🎯 DOCKVIEW SEARCH RESULTS */
 #ai-results {
     display: none; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
     position: fixed !important; top: 240px; bottom: 175px; left: 0; right: 0;
@@ -59,7 +59,7 @@ body, html {
 .result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
 
-/* 🎯 SEARCH BAR & ADS (Locked 65px Height) */
+/* 🎯 ADS & SEARCH BAR (Restored Professional Look) */
 .bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main) !important; padding-bottom: 25px; z-index: 9000 !important; border-top: 1px solid var(--border); }
 #quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
 
@@ -75,19 +75,30 @@ body, html {
     background: var(--input-bg); border-radius: 50px; 
     padding: 0 4px 0 22px; display: flex; 
     align-items: center; margin: 0 15px; border: 1px solid var(--border); 
-    height: 54px; overflow: hidden;
+    height: 54px; overflow: hidden; position: relative;
 }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 100%; }
-.mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 12px; }
+.mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 8px; }
 
-/* Original Send Position Fixed */
-.send-circle { background: var(--accent); border: none; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; margin-right: 2px; }
+/* 🎯 Send Button Professional Restoration */
+.send-circle { 
+    background: var(--accent); 
+    border: none; 
+    width: 44px; 
+    height: 44px; 
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    color: white; 
+    flex-shrink: 0;
+    margin-right: 4px;
+}
 
-/* 🎯 SIDEBAR Drawer */
+/* 🎯 MODALS & SIDEBAR */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; text-align: left; }
 #sidebar-drawer.open { left: 0; }
-
-/* Modal & Processing */
 #fitting-room-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: none; align-items: center; justify-content: center; }
 #ai-fitting-result { width: 92%; max-width: 450px; background: #ffffff !important; border-radius: 40px; position: relative; padding: 30px 25px; box-shadow: 0 25px 60px rgba(0,0,0,0.4); max-height: 85vh; overflow-y: auto; }
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000; }
