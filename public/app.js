@@ -22,7 +22,7 @@ const currentStoreId = urlParams.get('store') || 'kingsley';
 let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", storeCatalog = [];
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 
-// --- 🎯 CHAT SUPPORT LOGIC ---
+// --- 🎯 RESTORED CHAT SUPPORT WITH "BACK TO STORE" ---
 const injectChatSupport = () => {
     if (document.getElementById('chatway-script')) return;
     const s = document.createElement("script");
@@ -34,8 +34,19 @@ const injectChatSupport = () => {
 window.openChatPage = () => {
     injectChatSupport();
     const resDiv = document.getElementById('ai-fitting-result');
-    resDiv.innerHTML = `<div style="height:400px; display:flex; align-items:center; justify-content:center; flex-direction:column;"><div class="dotted-spinner"></div><p style="margin-top:20px; font-weight:700;">Connecting Support...</p></div>`;
-    const check = setInterval(() => { if(window.chatway) { window.chatway.show(); window.chatway.open(); clearInterval(check); } }, 500);
+    resDiv.innerHTML = `
+        <div style="height:400px; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:20px; font-weight:700;">Connecting Support...</p>
+            <button onclick="window.closeFittingRoom()" style="margin-top:20px; padding:12px 24px; border-radius:30px; border:1px solid #ddd; background:#f9f9f9; color:#111; font-weight:700; cursor:pointer;">Back to Store</button>
+        </div>`;
+    const check = setInterval(() => { 
+        if(window.chatway) { 
+            window.chatway.show(); 
+            window.chatway.open(); 
+            clearInterval(check); 
+        } 
+    }, 500);
 };
 
 // --- 🎯 4-WAY PAN & ZOOM PHYSICS ---
@@ -65,7 +76,7 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchend', () => isPanning = false);
 }
 
-// --- 🎯 WHATSAPP & RECEIPT GENERATION ---
+// --- 🎯 WHATSAPP & RECEIPT ---
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -121,13 +132,12 @@ window.startTryOn = async () => {
     } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Server Busy</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
 };
 
-// --- 🎯 DOM BOOTUP ---
+// --- 🎯 BOOTUP & STORE FRONT ADS ---
 document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {});
     window.updateCartUI();
     document.getElementById('menu-icon').onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
     document.getElementById('cart-icon-container').onclick = window.openCart;
-    
     const sendBtn = document.querySelector('.send-circle');
     if (sendBtn) sendBtn.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
 
@@ -136,15 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data) {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
-            
-            // 🎯 STORE FRONT ADS
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
                     <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Vintage'}</h4><p>Shop now</p></div>
                     <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Senator'}</h4><p>Exclusive</p></div>`;
             }
-
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
             if (data.catalog) storeCatalog = Object.keys(data.catalog).map(k => ({ id: k, ...data.catalog[k] }));
@@ -200,5 +207,5 @@ window.openOptionsMenu = () => {
 
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.updateCartUI(); window.openCart(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
-window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; if(window.chatway) { window.chatway.hide(); window.chatway.close(); } };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
