@@ -23,7 +23,7 @@ let localUserBase64 = "", selectedCloth = null, storePhone = "2348000000000", st
 let cart = JSON.parse(localStorage.getItem(`cart_${currentStoreId}`)) || []; 
 let windowActiveGreetings = [], gIndex = 0;
 
-// --- 🚀 FAST TRY-ON MACHINE ---
+// --- 🚀 FAST STABLE ENGINE (REPRODUCED EXACTLY) ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -70,10 +70,10 @@ window.startTryOn = async () => {
                 </div>`;
             initInspectionPan('result-zoom-box', 'result-img');
         } else { throw new Error(); }
-    } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Try Again</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
+    } catch (err) { resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#111;">Server Busy</h2><button onclick="window.proceedToUpload()" style="background:#111; color:white; padding:15px 30px; border-radius:12px; border:none;">RETRY</button></div>`; }
 };
 
-// --- 🎯 BOOTUP & GREETINGS (Restored Ads) ---
+// --- 🎯 BOOTUP & GREETINGS LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
     signInAnonymously(auth).catch(() => {}); 
     initGlobalUIStyles(); 
@@ -90,18 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input');
             if (input) { input.placeholder = data.searchHint || "Search style..."; input.value = ""; }
-            
             const container = document.getElementById('quick-search-container');
             if (container) {
                 container.innerHTML = `
                     <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Luxury'}</h4><p>Shop now</p></div>
                     <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Bespoke'}</h4><p>Exclusive</p></div>`;
             }
-
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
-
             if (data.greetingsEnabled !== false) {
                 windowActiveGreetings = (data.customGreetings && data.customGreetings.length > 0) ? data.customGreetings : ["Welcome!"];
                 const el = document.getElementById('dynamic-greeting');
@@ -122,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
 });
 
-// --- 🎯 CART & OFFICIAL RECEIPT LINK ---
+// --- 🎯 CHECKOUT & RECEIPT ---
 window.handleAddToCartLoop = () => {
     cart.push(selectedCloth);
     localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart));
@@ -163,7 +160,7 @@ window.openCart = () => {
     let total = cart.reduce((s, i) => s + i.price, 0);
     let itemsHTML = cart.map((item, idx) => `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-            <div style="text-align:left; color:#111;"><b>${item.name}</b><br><span style="color:#e60023;">₦${item.price.toLocaleString()}</span></div>
+            <div style="text-align:left; color:#111;"><b>${item.name}</b><br><span style="color:#e60023; font-weight:800;">₦${item.price.toLocaleString()}</span></div>
             <button onclick="window.removeFromCart(${idx})" class="professional-x">✕</button>
         </div>`).join('');
     resDiv.innerHTML = `
@@ -171,14 +168,14 @@ window.openCart = () => {
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <h2 style="color:#e60023; font-weight:800; margin-top:0;">CART SUMMARY</h2>
             <div style="max-height:300px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div>
-            <div style="display:flex; justify-content:space-between; font-weight:900; color:#111; border-top:2px solid #e60023; padding-top:15px; font-size:1.2rem;">
+            <div style="display:flex; justify-content:space-between; font-weight:900; color:#111; border-top:2px solid #e60023; padding-top:15px;">
                 <span>Total:</span><span>₦${total.toLocaleString()}</span>
             </div>
-            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px; cursor:pointer;">Check out via WhatsApp</button>
+            <button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px;">Check out via WhatsApp</button>
         </div>`;
 };
 
-// --- 🎯 HELPERS ---
+// --- 🎯 PAN & SIDEBAR ---
 function initInspectionPan(boxId, imgId) {
     const box = document.getElementById(boxId), img = document.getElementById(imgId);
     let isPanning = false, startX, startY, currentX = 0, currentY = 0;
@@ -201,9 +198,12 @@ window.openOptionsMenu = () => {
                 <div style="padding:0 20px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
                 <div style="padding:20px; display:flex; flex-direction:column; gap:15px;">
                     <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Verified Stores ${badge}</div>
+                    <div style="color:#555; font-weight:700; font-size:0.8rem;">LUXURY WEARS</div>
                     <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div>
                     <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 IFY FASHION ${badge}</div>
+                    <div style="color:#555; font-weight:700; font-size:0.8rem; margin-top:10px;">BESPOKE FASHION</div>
                     <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 ADIVICHI FASHION ${badge}</div>
+                    <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👔 TOMMY BEST ${badge}</div>
                     <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:15px;">Unverified Stores</div>
                 </div>
             </div>
@@ -226,7 +226,7 @@ window.executeSearch = () => {
     res.innerHTML = filtered.map(item => `<div class="result-card" onclick="window.promptShowroomChoice('${item.id}')"><img src="${item.imgUrl}"><h4>${item.name}</h4><p>₦${item.price.toLocaleString()}</p></div>`).join('');
 };
 
-window.promptShowroomChoice = (id) => { selectedCloth = storeCatalog.find(c => String(c.id) === String(id)); document.getElementById('fitting-room-modal').style.display = 'flex'; document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><img src="${selectedCloth.imgUrl}" style="width:100%; border-radius:20px; margin-bottom:15px;"><h3 style="color:#111; margin-top:0;">${selectedCloth.name}</h3><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold; cursor:pointer;">Wear it! ✨</button></div>`; };
+window.promptShowroomChoice = (id) => { selectedCloth = storeCatalog.find(c => String(c.id) === String(id)); document.getElementById('fitting-room-modal').style.display = 'flex'; document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="preview-zoom-box"><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div><h3 style="color:#111; margin:0;">${selectedCloth.name}</h3><p style="color:#e60023; font-weight:900; font-size:1.5rem; margin:10px 0;">₦${selectedCloth.price.toLocaleString()}</p><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold; cursor:pointer;">Wear it! ✨</button></div>`; initInspectionPan('preview-zoom-box', 'preview-img'); };
 window.proceedToUpload = () => { document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem;">🤳</div><h2 style="color:#e60023;">FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold; cursor:pointer;">SELECT PHOTO</button></div>`; };
 window.handleCustomerUpload = (e) => { const f = e.target.files[0]; const rd = new FileReader(); rd.onload = (ev) => { localUserBase64 = ev.target.result; window.startTryOn(); }; rd.readAsDataURL(f); };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; if(window.chatway){ window.chatway.hide(); window.chatway.close(); } };
@@ -234,5 +234,5 @@ window.updateCartUI = () => { const c = document.getElementById('cart-count'); i
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); window.openCart(); };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 function initGlobalUIStyles() { const s = document.createElement('style'); s.innerHTML = `#draggable-chat-head, #chat-close-zone { display: none !important; }`; document.head.appendChild(s); }
-function initVoiceSearch() { const mic = document.getElementById('mic-btn'); if (!mic) return; const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); mic.lang = 'en-NG'; mic.onclick = () => { rec.start(); mic.style.color = "#e60023"; }; rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
+function initVoiceSearch() { const mic = document.getElementById('mic-btn'); if (!mic) return; const Speech = window.SpeechRecognition || window.webkitSpeechRecognition; if (!Speech) return; const rec = new Speech(); mic.onclick = () => { try { mic.style.color = "#e60023"; rec.start(); } catch(e){} }; rec.onresult = (e) => { document.getElementById('ai-input').value = e.results[0][0].transcript; window.executeSearch(); }; }
 function applyDynamicThemeStyles() { const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches; document.getElementById('store-name-display').style.color = isDark ? 'white' : 'black'; }
