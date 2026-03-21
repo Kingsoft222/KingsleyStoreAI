@@ -89,13 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input');
             if (input) { input.placeholder = data.searchHint || "Search style..."; input.value = ""; }
-            
-            const container = document.getElementById('quick-search-container');
-            if (container) {
-                container.innerHTML = `
-                    <div class="split-card" onclick="window.quickSearch('${data.label1}')"><h4>🔥 ${data.label1 || 'Street Wear'}</h4><p>Shop now</p></div>
-                    <div class="split-card" onclick="window.quickSearch('${data.label2}')"><h4>🔥 ${data.label2 || 'Luxury Native'}</h4><p>Exclusive</p></div>`;
-            }
             if (data.profileImage) document.getElementById('owner-img').src = data.profileImage;
             let p = data.phone ? data.phone.toString().trim() : "2348000000000";
             storePhone = (!p.startsWith('+') && !p.startsWith('234')) ? "234" + p.replace(/^0+/, '') : p;
