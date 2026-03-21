@@ -1,5 +1,5 @@
 /* ==========================================
-   1. GLOBAL THEME & PHYSICS
+   1. GLOBAL THEME & GRID
    ========================================== */
 :root {
     --accent: #e60023;
@@ -26,67 +26,38 @@ body, html {
     height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER (CLEAN ☰ MENU & 🛒) */
+/* 🎯 HEADER (CLEAN ☰ MENU) */
 .app-header {
-    position: relative; z-index: 5000 !important; 
-    background-color: var(--bg-main) !important;
+    position: relative; z-index: 5000; 
+    background-color: var(--bg-main);
     display: flex; justify-content: space-between; align-items: center;
     padding: 15px 20px;
 }
-#menu-icon { 
-    font-size: 1.8rem; cursor: pointer; color: var(--text-main); 
-    background: none; border: none; padding: 0; 
-}
-#cart-icon-container { 
-    cursor: pointer; display: flex; align-items: center; 
-    gap: 5px; font-weight: 800; font-size: 1.2rem; 
-}
+#menu-icon { font-size: 1.8rem; cursor: pointer; color: var(--text-main); background: none; border: none; padding: 0; }
+#cart-icon-container { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 800; font-size: 1.2rem; }
 
-/* 🎯 PROFILE & BRANDING */
 .store-profile { text-align: center; padding-top: 10px; background: var(--bg-main); }
-.profile-pic { 
-    width: 110px; height: 110px; border-radius: 50%; 
-    border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; 
-}
+.profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 900; font-size: 1.8rem; margin: 5px 0; }
 #dynamic-greeting { display: none !important; }
 
 /* 🎯 SEARCH RESULTS GRID (2 PER ROW) */
 #ai-results {
-    display: none; 
-    grid-template-columns: repeat(2, 1fr) !important; 
-    gap: 12px !important;
-    position: fixed !important; 
-    top: 240px; bottom: 175px; left: 0; right: 0;
+    display: none; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
+    position: fixed !important; top: 240px; bottom: 175px; left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
-    overflow-y: auto !important; -webkit-overflow-scrolling: touch;
-    z-index: 2000 !important; background: var(--bg-main);
+    overflow-y: auto !important; z-index: 2000 !important; background: var(--bg-main);
     padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box;
 }
-#ai-results::-webkit-scrollbar { display: none; }
-
-.result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; text-align: center; cursor: pointer; }
+.result-card { background: var(--card-bg) !important; border-radius: 14px; padding: 10px; text-align: center; }
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 10px; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff; }
 .result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
 
-/* 🎯 ZOOM & 4-WAY PAN PHYSICS */
-.zoom-container { 
-    position: relative; overflow: hidden; width: 100%; height: 50vh; 
-    border-radius: 25px; background: #000; display: flex; 
-    align-items: center; justify-content: center; touch-action: none; margin-bottom: 15px; 
-}
-.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
-.zoomed { transform: scale(3.5); cursor: move; transition: none !important; }
-
 /* 🎯 SEARCH DOCK & STORE FRONT ADS (65px) */
-.bottom-controls { 
-    position: fixed; bottom: 0; width: 100%; 
-    background: var(--bg-main) !important; padding-bottom: 25px; 
-    z-index: 9000 !important; border-top: 1px solid var(--border); 
-}
-#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 10px 12px; width: 100%; box-sizing: border-box; }
+.bottom-controls { position: fixed; bottom: 0; width: 100%; background: var(--bg-main); padding-bottom: 25px; z-index: 9000; border-top: 1px solid var(--border); }
+#quick-search-container { display: flex; justify-content: center; gap: 12px; padding: 10px 12px; width: 100%; }
 
 .split-card { 
     flex: 1; height: 65px !important; background: var(--card-bg); color: white; padding: 10px; 
@@ -94,46 +65,29 @@ body, html {
     display: flex; flex-direction: column; justify-content: center; text-align: left;
 }
 .split-card h4 { margin: 0; font-size: 0.85rem; font-weight: 800; color: #fff; }
-.split-card p { margin: 2px 0 0; font-size: 0.6rem; color: #aaa; }
 
-/* 🎯 PERFECT PILL SEARCH BAR */
-.search-bar { 
-    background: var(--input-bg); border-radius: 50px; 
-    padding: 0 4px 0 22px; display: flex; 
-    align-items: center; margin: 0 15px; border: 1px solid var(--border); 
-    height: 54px; overflow: hidden; position: relative;
-}
+.search-bar { background: var(--input-bg); border-radius: 50px; padding: 0 4px 0 22px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); height: 54px; position: relative; overflow: hidden; }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 100%; }
 .mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 10px; }
 
-/* Enabled Circular Send Button */
+/* Circular Send Button Enabled */
 .send-circle { 
-    background: var(--accent) !important; 
-    border: none; 
-    width: 44px; 
-    height: 44px; 
-    border-radius: 50% !important; 
-    display: flex !important; 
-    align-items: center !important; 
-    justify-content: center !important; 
-    cursor: pointer; 
-    color: white !important; 
-    flex-shrink: 0; 
-    margin-right: 2px;
-    z-index: 10 !important;
-    pointer-events: auto !important;
+    background: var(--accent) !important; border: none; width: 44px; height: 44px; 
+    border-radius: 50% !important; display: flex !important; align-items: center !important; 
+    justify-content: center !important; cursor: pointer; color: white !important; 
+    flex-shrink: 0; margin-right: 2px; z-index: 10; pointer-events: auto !important; 
 }
 
-/* 🎯 MODALS & SIDEBAR (No Half Moon) */
-#sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; overflow: hidden; }
+/* 🎯 MODALS & SIDEBAR */
+#sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; }
 #sidebar-drawer { position: absolute; left: 0; top: 0; width: 280px; height: 100%; background: #fff; overflow-y: auto; text-align: left; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
-
 #fitting-room-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: none; align-items: center; justify-content: center; }
 #ai-fitting-result { width: 92%; max-width: 450px; background: #ffffff !important; border-radius: 40px; position: relative; padding: 30px 25px; box-shadow: 0 25px 60px rgba(0,0,0,0.4); max-height: 85vh; overflow-y: auto; }
-
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000; }
-.professional-x { background: none; border: none; font-size: 1.5rem; color: #e60023; cursor: pointer; font-weight: 900; }
 
-/* 🎯 SPINNER */
+/* Physics */
+.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; margin-bottom: 15px; }
+.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s; pointer-events: none; }
+.zoomed { transform: scale(3.5); }
 .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
