@@ -32,7 +32,7 @@ function initInspectionPan(boxId, imgId) {
     box.addEventListener('touchend', () => isPanning = false);
 }
 
-// --- 🎯 FAST STABLE VTO ENGINE ---
+// --- 🎯 FAST STABLE VTO MACHINE ---
 async function optimizeForAI(base64Str) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -128,7 +128,7 @@ window.openOptionsMenu = () => {
         </div>`;
 };
 
-// --- 🎯 LOGIC CORE ---
+// --- 🎯 SEARCH & UPLOAD ---
 window.executeSearch = () => {
     const q = document.getElementById('ai-input').value.toLowerCase().trim();
     const res = document.getElementById('ai-results');
@@ -140,15 +140,14 @@ window.executeSearch = () => {
 window.handleAddToCartLoop = () => { cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); updateCartUI(); const stack = document.getElementById('cta-stack'); stack.innerHTML = `<button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#555; color:white; border-radius:14px; border:none; font-weight:900;">Check Another One</button><button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; border:none; font-weight:900;">PROCEED TO CART ➔</button>`; };
 window.checkoutWhatsApp = async () => { if (cart.length === 0) return; const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase(); const total = cart.reduce((s, i) => s + i.price, 0); await update(dbRef(db, `stores/${currentStoreId}/analytics`), { totalRevenue: increment(total) }); await set(dbRef(db, `receipts/${orderId}`), { storeId: currentStoreId, items: cart, total: total, date: new Date().toLocaleString() }); window.location.assign(`https://wa.me/${storePhone}?text=${encodeURIComponent('🛡️ *ORDER* ' + orderId + '\nTotal: ₦' + total.toLocaleString() + '\nReceipt: https://kingsley-store-ai.vercel.app/receipt.html?id=' + orderId)}`); cart = []; localStorage.removeItem(`cart_${currentStoreId}`); updateCartUI(); };
 window.openCart = () => { document.getElementById('fitting-room-modal').style.display = 'flex'; const resDiv = document.getElementById('ai-fitting-result'); if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:50px; text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3>Cart empty</h3></div>`; return; } let total = cart.reduce((s, i) => s + i.price, 0); let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><div style="text-align:left; color:#111;"><b>${item.name}</b><br><span style="color:#e60023;">₦${item.price.toLocaleString()}</span></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#e60023; font-size:1.5rem; cursor:pointer;">✕</button></div>`).join(''); resDiv.innerHTML = `<div style="padding:10px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">CART SUMMARY</h2><div style="max-height:300px; overflow-y:auto;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:900; color:#111; border-top:2px solid #e60023; padding-top:15px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px;">WhatsApp Checkout</button></div>`; };
-window.promptShowroomChoice = (id) => { selectedCloth = storeCatalog.find(c => String(c.id) === String(id)); document.getElementById('fitting-room-modal').style.display = 'flex'; document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="preview-zoom-box"><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div><h3 style="color:#111; margin:0;">${selectedCloth.name}</h3><p style="color:#e60023; font-weight:900; font-size:1.5rem;">₦${selectedCloth.price.toLocaleString()}</p><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold;">Wear it! ✨</button></div>`; initInspectionPan('preview-zoom-box', 'preview-img'); };
+window.promptShowroomChoice = (id) => { selectedCloth = storeCatalog.find(c => String(c.id) === String(id)); document.getElementById('fitting-room-modal').style.display = 'flex'; document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="preview-zoom-box"><img src="${selectedCloth.imgUrl}" class="zoom-image" id="preview-img"></div><h3 style="color:#111; margin:0;">${selectedCloth.name}</h3><p style="color:#e60023; font-weight:900; font-size:1.5rem; margin:10px 0;">₦${selectedCloth.price.toLocaleString()}</p><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold;">Wear it! ✨</button></div>`; initInspectionPan('preview-zoom-box', 'preview-img'); };
 
-// --- 🎯 RESTORED MODAL INSTRUCTION ---
 window.proceedToUpload = () => { 
     document.getElementById('ai-fitting-result').innerHTML = `
         <div style="text-align:center;">
             <div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div>
             <div style="font-size:3rem;">🤳</div>
-            <h2 style="color:#e60023;">Upload image showing from head to toe</h2>
+            <h2 class="modal-instruction">Upload image showing from head to toe</h2>
             <input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" />
             <button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold;">SELECT PHOTO</button>
         </div>`; 
