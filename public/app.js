@@ -199,10 +199,31 @@ window.proceedToUpload = () => {
     document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem;">🤳</div><h2 style="color:#e60023;">FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold;">SELECT PHOTO</button></div>`;
 };
 
+// --- 🎯 RESTORED SIDEBAR WITH CATEGORIES ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="16" height="16" fill="#00a2ff" style="margin-left:4px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
-    document.getElementById('ai-fitting-result').innerHTML = `<div id="sidebar-overlay" style="display:block;" onclick="window.closeFittingRoom()"><div id="sidebar-drawer" onclick="event.stopPropagation()"><div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center;"><span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span><span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer;">✕</span></div><div style="padding:0 24px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div><div style="padding:20px 24px; display:flex; flex-direction:column; gap:20px;"><div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Verified Stores ${badge}</div><div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div><div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 IFY FASHION ${badge}</div><div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px;">Unverified Stores</div></div></div></div>`;
+    document.getElementById('ai-fitting-result').innerHTML = `
+        <div id="sidebar-overlay" style="display:block;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" onclick="event.stopPropagation()">
+                <div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center;">
+                    <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span>
+                    <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer;">✕</span>
+                </div>
+                <div style="padding:0 24px;"><h2 style="font-size:1.4rem; font-weight:900;"><span style="color:#e60023;">Store</span> Option</h2></div>
+                <div style="padding:20px 24px; display:flex; flex-direction:column; gap:20px;">
+                    <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase;">Verified Stores ${badge}</div>
+                    <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div>
+                    <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 Ify Fashion ${badge}</div>
+                    
+                    <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px;">Categories</div>
+                    <div onclick="window.quickSearch('Street Wear')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👟</span> Street Wear</div>
+                    <div onclick="window.quickSearch('Native Luxury')" style="font-weight:600; cursor:pointer; display:flex; align-items:center;"><span style="margin-right:10px;">👔</span> Native Luxury</div>
+                    
+                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px; margin-top:10px;">Unverified Stores</div>
+                </div>
+            </div>
+        </div>`;
 };
 
 window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.updateCartUI(); window.openCart(); };
