@@ -1,6 +1,3 @@
-/* ==========================================
-   1. GLOBAL & THEME VARIABLES
-   ========================================== */
 :root {
     --accent: #e60023;
     --bg-main: #ffffff;
@@ -23,15 +20,14 @@
 body, html {
     margin: 0; padding: 0; font-family: 'Inter', sans-serif;
     background-color: var(--bg-main); color: var(--text-main);
-    height: 100%; width: 100%; overflow-x: hidden;
+    height: 100%; width: 100%; overflow: hidden;
 }
 
-/* 🎯 HEADER LID */
+/* 🎯 HEADER & PROFILE */
 .app-header, .store-profile {
     position: relative;
     z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
-    padding-bottom: 10px;
 }
 
 .app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
@@ -42,56 +38,75 @@ body, html {
 .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
-.greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; position: relative; z-index: 5001; }
+#dynamic-greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; min-height: 1.2em; }
 
-/* 🎯 DOCKVIEW PHYSICS */
+/* 🎯 DOCKVIEW PHYSICS - FIXED SCROLLING */
 #ai-results {
-    display: none; grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important;
-    position: fixed !important; top: 220px; bottom: 185px; left: 0; right: 0;
+    display: none; 
+    grid-template-columns: repeat(2, 1fr) !important; 
+    gap: 12px !important;
+    position: fixed !important; 
+    top: 259px;           /* Adjusted to ensure top items aren't cut */
+    bottom: 185px;        /* Leaves space for search dock */
+    left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
-    overflow-y: auto !important; -webkit-overflow-scrolling: touch;
-    z-index: 2000 !important; background: var(--bg-main);
-    padding: 15px; border-top: 1px solid var(--border); box-sizing: border-box;
-    scrollbar-width: none; pointer-events: auto !important;
+    overflow-y: auto !important; 
+    -webkit-overflow-scrolling: touch;
+    z-index: 2000 !important; 
+    background: var(--bg-main);
+    padding: 15px; 
+    border-top: 1px solid var(--border);
+    box-sizing: border-box;
+    scrollbar-width: none;
 }
 #ai-results::-webkit-scrollbar { display: none; }
 
 .result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 8px; background: #333; }
-.result-card h4 { font-size: 0.75rem; margin: 8px 0 4px; color: #fff; }
-.result-card p { font-size: 0.85rem; font-weight: 800; color: var(--accent); margin: 0; }
 
-/* 🎯 BOLD WHITE MODAL */
+/* 🎯 BOLD MODAL & PROCESSING SCREEN */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
     display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 90%; max-width: 450px; background: #ffffff !important;
-    border-radius: 40px !important; position: relative; padding: 35px 25px;
-    box-shadow: 0 25px 60px rgba(0,0,0,0.4); overflow-y: auto;
+    width: 90%; max-width: 450px; 
+    background: #ffffff !important;
+    border-radius: 40px !important; 
+    position: relative; 
+    padding: 30px 25px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.4); 
+    max-height: 85vh; /* Professional crop */
+    overflow-y: auto;
 }
 
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
 
-/* 🎯 BOTTOM CONTROLS */
+/* 🎯 BOTTOM DOCK (REMOVED STICKING OUT ELEMENT) */
 .bottom-controls { 
     position: fixed; bottom: 0; width: 100%; 
     background: var(--bg-main) !important; padding-bottom: 25px; 
     z-index: 9000 !important; border-top: 1px solid var(--border);
 }
-#quick-search-container { display: flex; justify-content: center; gap: 15px; padding: 15px; width: 100%; box-sizing: border-box; }
-.split-card { flex: 1; background: var(--card-bg); color: white; padding: 18px; border-radius: 12px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
 
-.search-bar { background: var(--input-bg); border-radius: 50px; padding: 6px 10px 6px 20px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); }
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
-.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; }
+.search-bar { 
+    background: var(--input-bg); 
+    border-radius: 50px; 
+    padding: 6px 10px 6px 20px; 
+    display: flex; 
+    align-items: center; 
+    margin: 0 15px; 
+    border: 1px solid var(--border);
+    overflow: hidden; /* Ensures nothing sticks out */
+}
+
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; width: 100%; }
+.mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; margin-right: 10px; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
 
-/* 🎯 SIDEBAR & PAN */
+/* Sidebar Drawer */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; text-align: left; }
 #sidebar-drawer.open { left: 0; }
-.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; }
-.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
-.zoomed { transform: scale(3.5); cursor: move; }
+.dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; }
+@keyframes spin { 100% { transform: rotate(360deg); } }
