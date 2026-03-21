@@ -40,7 +40,7 @@ body, html {
 .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 900; font-size: 1.8rem; margin: 5px 0; }
-#dynamic-greeting { display: none !important; }
+#dynamic-greeting { display: none !important; } /* GREETINGS DEACTIVATED */
 
 /* 🎯 DOCKVIEW PHYSICS */
 #ai-results {
@@ -78,9 +78,11 @@ body, html {
 .search-bar { background: var(--input-bg); border-radius: 50px; padding: 0 4px 0 22px; display: flex; align-items: center; margin: 0 15px; border: 1px solid var(--border); height: 54px; overflow: hidden; }
 .search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 100%; }
 .mic-icon { font-size: 1.6rem !important; color: #5f6368; cursor: pointer; margin-right: 12px; }
+
+/* Restored Send circle position */
 .send-circle { background: var(--accent); border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; margin-right: 4px; }
 
-/* 🎯 MODAL & SIDEBAR */
+/* 🎯 MODAL & SIDEBAR (Extra elements REMOVED) */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 310px; height: 100%; background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; text-align: left; }
 #sidebar-drawer.open { left: 0; }
 #fitting-room-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 15000; display: none; align-items: center; justify-content: center; }
