@@ -20,34 +20,34 @@
 body, html {
     margin: 0; padding: 0; font-family: 'Inter', sans-serif;
     background-color: var(--bg-main); color: var(--text-main);
-    height: 100%; width: 100%; overflow: hidden;
+    height: 100%; width: 100%; overflow-x: hidden;
 }
 
-/* 🎯 HEADER & PROFILE */
-.app-header, .store-profile {
-    position: relative;
-    z-index: 5000 !important; 
+/* 🎯 HEADER LID */
+.app-header {
+    position: relative; z-index: 5000 !important; 
     background-color: var(--bg-main) !important;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px;
 }
 
-.app-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
-#menu-icon { font-size: 1.5rem; cursor: pointer; padding: 10px; }
-#cart-icon-container { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.2rem; padding: 10px; }
+#menu-icon { font-size: 1.5rem; cursor: pointer; padding: 10px; color: var(--text-main); }
+#cart-icon-container { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.2rem; padding: 10px; color: var(--text-main); }
 
-.store-profile { text-align: center; padding-top: 10px; }
+.store-profile { text-align: center; padding-top: 10px; position: relative; z-index: 5000; background: var(--bg-main); }
 .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; margin: 0 auto; }
 .profile-pic img { width: 100%; height: 100%; object-fit: cover; }
 .store-name { color: var(--accent); font-weight: 800; font-size: 1.8rem; margin: 5px 0; }
 #dynamic-greeting { font-size: 1rem; margin: 5px 0; font-weight: 500; min-height: 1.2em; }
 
-/* 🎯 DOCKVIEW PHYSICS - FIXED SCROLLING */
+/* 🎯 DOCKVIEW - FIXED SCROLLING PHYSICS */
 #ai-results {
     display: none; 
     grid-template-columns: repeat(2, 1fr) !important; 
     gap: 12px !important;
     position: fixed !important; 
-    top: 259px;           /* Adjusted to ensure top items aren't cut */
-    bottom: 185px;        /* Leaves space for search dock */
+    top: 259px;           
+    bottom: 185px;        
     left: 0; right: 0;
     width: 100%; max-width: 500px; margin: 0 auto;
     overflow-y: auto !important; 
@@ -64,26 +64,22 @@ body, html {
 .result-card { background: var(--card-bg) !important; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; color: white; }
 .result-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 8px; background: #333; }
 
-/* 🎯 BOLD MODAL & PROCESSING SCREEN */
+/* 🎯 BOLD MODAL & PROFESSIONAL CROP */
 #fitting-room-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.85); z-index: 15000 !important; 
     display: none; align-items: center; justify-content: center;
 }
 #ai-fitting-result {
-    width: 90%; max-width: 450px; 
-    background: #ffffff !important;
-    border-radius: 40px !important; 
-    position: relative; 
-    padding: 30px 25px;
+    width: 90%; max-width: 450px; background: #ffffff !important;
+    border-radius: 40px !important; position: relative; padding: 30px 25px;
     box-shadow: 0 25px 60px rgba(0,0,0,0.4); 
-    max-height: 85vh; /* Professional crop */
-    overflow-y: auto;
+    max-height: 82vh; overflow-y: auto; text-align: center;
 }
 
 .close-preview-x { position: absolute; top: 20px; right: 25px; font-size: 1.8rem; color: #000; font-weight: 900; cursor: pointer; z-index: 22000 !important; }
 
-/* 🎯 BOTTOM DOCK (REMOVED STICKING OUT ELEMENT) */
+/* 🎯 BOTTOM DOCK (No sticking out) */
 .bottom-controls { 
     position: fixed; bottom: 0; width: 100%; 
     background: var(--bg-main) !important; padding-bottom: 25px; 
@@ -91,22 +87,21 @@ body, html {
 }
 
 .search-bar { 
-    background: var(--input-bg); 
-    border-radius: 50px; 
-    padding: 6px 10px 6px 20px; 
-    display: flex; 
-    align-items: center; 
-    margin: 0 15px; 
-    border: 1px solid var(--border);
-    overflow: hidden; /* Ensures nothing sticks out */
+    background: var(--input-bg); border-radius: 50px; 
+    padding: 6px 10px 6px 20px; display: flex; 
+    align-items: center; margin: 0 15px; border: 1px solid var(--border); 
+    overflow: hidden;
 }
 
-.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; width: 100%; }
+.search-bar input { border: none; background: transparent; flex: 1; outline: none; font-size: 16px; color: var(--text-main); height: 45px; }
 .mic-icon { font-size: 1.8rem !important; color: #5f6368; cursor: pointer; margin-right: 10px; }
 .send-circle { background: var(--accent); border: none; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; flex-shrink: 0; }
 
-/* Sidebar Drawer */
 #sidebar-drawer { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #fff; z-index: 21000; transition: 0.3s; overflow-y: auto; text-align: left; }
 #sidebar-drawer.open { left: 0; }
 .dotted-spinner { width: 50px; height: 50px; border: 5px dotted #e60023; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
+
+.zoom-container { position: relative; overflow: hidden; width: 100%; height: 50vh; border-radius: 25px; background: #000; display: flex; align-items: center; justify-content: center; touch-action: none; margin-bottom: 15px; }
+.zoom-image { width: 100%; height: 100%; object-fit: contain; transition: transform 0.3s ease-out; pointer-events: none; }
+.zoomed { transform: scale(3.5); cursor: move; transition: none !important; }
