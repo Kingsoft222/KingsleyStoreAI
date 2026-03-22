@@ -2,6 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { 
     getAuth, 
     signInWithPopup, 
+    signInWithRedirect, 
+    getRedirectResult, 
     GoogleAuthProvider, 
     signOut, 
     onAuthStateChanged,
@@ -13,7 +15,6 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    // FIXED: Changed to your Vercel domain to prevent the "Unsafe attempt" and "Timed Out" errors
     authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
@@ -25,7 +26,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// 🔥 IMPORTANT (fixes popup issues across devices)
 auth.useDeviceLanguage();
 
 const provider = new GoogleAuthProvider();
@@ -54,10 +54,18 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
     });
 }
 
+// 🔥 Handle Mobile Redirect Result immediately on load
+getRedirectResult(auth).catch((err) => console.error("Redirect Result Error:", err));
+
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
+
+    // Prevent early display of sections before auth is confirmed
+    if (loginSec) loginSec.style.display = 'none';
+    if (onboardSec) onboardSec.style.display = 'none';
+    if (dashSec) dashSec.style.display = 'none';
 
     if (user) {
         if (user.email === MASTER_EMAIL) {
@@ -69,21 +77,14 @@ onAuthStateChanged(auth, async (user) => {
 
         if (snap.exists()) {
             activeStoreId = snap.val().storeId;
-            loginSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'none';
-            dashSec.style.display = 'block';
-            // Note: Ensure loadDashboardData() is defined elsewhere in your script
+            if (dashSec) dashSec.style.display = 'block';
             if (typeof loadDashboardData === "function") loadDashboardData();
         } else {
-            loginSec.style.display = 'none';
-            dashSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'block';
+            if (onboardSec) onboardSec.style.display = 'block';
         }
 
     } else { 
-        loginSec.style.display = 'block';
-        dashSec.style.display = 'none';
-        if(onboardSec) onboardSec.style.display = 'none';
+        if (loginSec) loginSec.style.display = 'block';
     }
 });
 
@@ -124,35 +125,38 @@ window.createStoreProfile = async () => {
     }
 };
 
-// 🔥🔥🔥 ONLY CRITICAL FIX HERE
 window.loginWithGoogle = async () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     try {
         const user = auth.currentUser;
 
         if (user && user.isAnonymous) {
-            await linkWithPopup(user, provider); // upgrade anonymous
+            await linkWithPopup(user, provider);
         } else {
-            await signInWithPopup(auth, provider);
+            // Use Redirect for Mobile and Popup for Laptop
+            if (isMobile) {
+                await signInWithRedirect(auth, provider);
+            } else {
+                await signInWithPopup(auth, provider);
+            }
         }
 
     } catch (err) {
         console.error("LOGIN ERROR:", err);
 
         if (err.code === "auth/popup-blocked") {
-            alert("Popup blocked. Please allow popups.");
+            // Fallback for desktop browsers blocking popups
+            await signInWithRedirect(auth, provider);
         }
 
-        if (err.code === "auth/popup-closed-by-user") {
-            return;
-        }
+        if (err.code === "auth/popup-closed-by-user") return;
 
         if (err.code === "auth/credential-already-in-use") {
-            await signInWithPopup(auth, provider);
-        }
-
-        if (err.code === "auth/cancelled-popup-request") {
+            isMobile ? await signInWithRedirect(auth, provider) : await signInWithPopup(auth, provider);
             return;
         }
+
+        if (err.code === "auth/cancelled-popup-request") return;
 
         alert("Login failed. Try again.");
     }
