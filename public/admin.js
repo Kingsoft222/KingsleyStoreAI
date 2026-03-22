@@ -1,21 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-    getAuth, 
-    signInWithPopup, 
-    signInWithRedirect, 
-    getRedirectResult, 
-    GoogleAuthProvider, 
-    signOut, 
-    onAuthStateChanged,
-    linkWithPopup
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsley-store-ai.vercel.app", 
+    authDomain: "kingsleystoreai.firebaseapp.com", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -25,12 +15,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-auth.useDeviceLanguage();
-
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
-
 const db = getDatabase(app); 
 const storage = getStorage(app);
 
@@ -54,37 +40,31 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
     });
 }
 
-// 🔥 Handle Mobile Redirect Result immediately on load
-getRedirectResult(auth).catch((err) => console.error("Redirect Result Error:", err));
-
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
-
-    // Prevent early display of sections before auth is confirmed
-    if (loginSec) loginSec.style.display = 'none';
-    if (onboardSec) onboardSec.style.display = 'none';
-    if (dashSec) dashSec.style.display = 'none';
-
     if (user) {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
-
         const snap = await get(dbRef(db, `users/${user.uid}`));
-
         if (snap.exists()) {
             activeStoreId = snap.val().storeId;
-            if (dashSec) dashSec.style.display = 'block';
-            if (typeof loadDashboardData === "function") loadDashboardData();
+            loginSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'none';
+            dashSec.style.display = 'block';
+            loadDashboardData();
         } else {
-            if (onboardSec) onboardSec.style.display = 'block';
+            loginSec.style.display = 'none';
+            dashSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'block';
         }
-
     } else { 
-        if (loginSec) loginSec.style.display = 'block';
+        loginSec.style.display = 'block';
+        dashSec.style.display = 'none';
+        if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
@@ -125,39 +105,162 @@ window.createStoreProfile = async () => {
     }
 };
 
-window.loginWithGoogle = async () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    try {
-        const user = auth.currentUser;
-
-        if (user && user.isAnonymous) {
-            await linkWithPopup(user, provider);
-        } else {
-            // Use Redirect for Mobile and Popup for Laptop
-            if (isMobile) {
-                await signInWithRedirect(auth, provider);
-            } else {
-                await signInWithPopup(auth, provider);
-            }
-        }
-
-    } catch (err) {
-        console.error("LOGIN ERROR:", err);
-
-        if (err.code === "auth/popup-blocked") {
-            // Fallback for desktop browsers blocking popups
-            await signInWithRedirect(auth, provider);
-        }
-
-        if (err.code === "auth/popup-closed-by-user") return;
-
-        if (err.code === "auth/credential-already-in-use") {
-            isMobile ? await signInWithRedirect(auth, provider) : await signInWithPopup(auth, provider);
-            return;
-        }
-
-        if (err.code === "auth/cancelled-popup-request") return;
-
-        alert("Login failed. Try again.");
+async function loadDashboardData() {
+    if(!activeStoreId) return;
+    const snap = await get(dbRef(db, `stores/${activeStoreId}`));
+    const data = snap.val();
+    if (data) {
+        document.getElementById('admin-store-name').value = data.storeName || "";
+        document.getElementById('admin-phone').value = data.phone || "";
+        document.getElementById('admin-search-hint').value = data.searchHint || "";
+        document.getElementById('admin-label-1').value = data.label1 || "";
+        document.getElementById('admin-label-2').value = data.label2 || "";
+        const greetText = document.getElementById('admin-greetings');
+        if (greetText) greetText.value = (data.customGreetings || []).join('\n');
+        document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
+        
+        const imgP = document.getElementById('admin-img-preview');
+        imgP.style.display = "block";
+        imgP.src = data.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        
+        const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
+        const linkEl = document.getElementById('my-store-link');
+        if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
+        renderInventoryList(data.catalog || {});
     }
+}
+
+window.uploadNewProduct = async () => {
+    const nameInput = document.getElementById('prod-name');
+    const priceInput = document.getElementById('prod-price');
+    const tagsInput = document.getElementById('prod-tags');
+    const brandInput = document.getElementById('prod-brand');
+    const btn = document.getElementById('upload-prod-btn');
+
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
+
+    btn.innerText = "Processing AI Image..."; 
+    btn.disabled = true;
+    
+    try {
+        const optimizedImg = await optimizeImage(pendingProductBase64);
+        const id = Date.now();
+        const path = `inventory/${activeStoreId}/${id}.jpg`;
+        const sRef = storageRef(storage, path);
+        
+        await uploadString(sRef, optimizedImg, 'data_url', { contentType: 'image/jpeg' });
+        const url = await getDownloadURL(sRef);
+        
+        // Ensure category matches what process-vto.js expects (Native, Corporate, Casual)
+        let selectedCategory = brandInput.value;
+        if(selectedCategory === "Native Wear") selectedCategory = "Native";
+        if(selectedCategory === "Suits") selectedCategory = "Corporate";
+
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
+            name: nameInput.value, 
+            price: Number(priceInput.value),
+            category: selectedCategory, // Used by VTO logic
+            tags: tagsInput.value || "", 
+            imgUrl: url, 
+            storagePath: path 
+        });
+
+        nameInput.value = ""; priceInput.value = ""; tagsInput.value = "";
+        document.getElementById('prod-img-preview').style.display = "none";
+        pendingProductBase64 = null;
+        
+        showToast("Product Added!");
+        loadDashboardData();
+    } catch (e) { 
+        alert("Upload error: " + e.message); 
+    } finally {
+        btn.innerText = "Add Item to Store"; btn.disabled = false;
+    }
+};
+
+window.saveStoreSettings = async () => {
+    const btn = document.getElementById('save-btn');
+    btn.innerText = "Saving..."; btn.disabled = true;
+
+    try {
+        const updateData = {
+            storeName: document.getElementById('admin-store-name').value,
+            phone: document.getElementById('admin-phone').value,
+            searchHint: document.getElementById('admin-search-hint').value,
+            label1: document.getElementById('admin-label-1').value,
+            label2: document.getElementById('admin-label-2').value,
+            greetingsEnabled: document.getElementById('greetings-toggle').checked,
+            customGreetings: document.getElementById('admin-greetings').value.split('\n').filter(g => g.trim() !== "")
+        };
+
+        if(pendingBase64Image) {
+            const optimizedProfile = await optimizeImage(pendingBase64Image, 512); 
+            const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+            await uploadString(ref, optimizedProfile, 'data_url', { contentType: 'image/jpeg' });
+            updateData.profileImage = await getDownloadURL(ref);
+            pendingBase64Image = null;
+        }
+
+        await update(dbRef(db, `stores/${activeStoreId}`), updateData);
+        showToast("Settings Updated!");
+        loadDashboardData();
+    } catch (e) {
+        alert("Save failed: " + e.message);
+    } finally {
+        btn.innerText = "Save Settings"; btn.disabled = false;
+    }
+};
+
+window.handleAdminImage = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingBase64Image = ev.target.result;
+        document.getElementById('admin-img-preview').src = ev.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+window.handleProductImagePreview = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingProductBase64 = ev.target.result;
+        const p = document.getElementById('prod-img-preview');
+        p.src = ev.target.result; p.style.display = 'block';
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+function renderInventoryList(catalog) {
+    document.getElementById('inventory-list').innerHTML = Object.keys(catalog).map(k => `
+        <div class="inventory-item">
+            <img src="${catalog[k].imgUrl}">
+            <div class="inventory-item-details">
+                <h4>${catalog[k].name}</h4>
+                <p>₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
+            </div>
+            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')"><i class="fas fa-trash"></i></button>
+        </div>`).join('');
+}
+
+window.deleteProduct = async (k, path) => {
+    if (!confirm("Delete product?")) return;
+    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
+    try { if(path) await deleteObject(storageRef(storage, path)); } catch(e) {}
+    loadDashboardData();
+};
+
+window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
+window.loginWithGoogle = () => signInWithPopup(auth, provider);
+function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
+
+window.toggleMasterVault = async () => {
+    const vaultSection = document.getElementById('master-vault-section');
+    if (vaultSection.style.display === 'none') {
+        vaultSection.style.display = 'block';
+        const snap = await get(dbRef(db, 'stores'));
+        const stores = snap.val() || {};
+        document.getElementById('vault-body').innerHTML = Object.entries(stores).map(([id, s]) => `
+            <tr><td>${id}</td><td>${s.storeName || 'N/A'}</td><td>${s.analytics?.whatsappClicks || 0}</td><td>₦${(s.analytics?.totalRevenue || 0).toLocaleString()}</td>
+            <td><button onclick="alert('Auditing ${id}...')">Audit</button></td></tr>`).join('');
+    } else { vaultSection.style.display = 'none'; }
 };
