@@ -19,11 +19,10 @@
       "**/.*",
       "**/node_modules/**"
     ],
-
     "rewrites": [
       {
         "source": "/__/auth/**",
-        "destination": "/__/auth/handler"
+        "destination": "/__/auth/handler.js"
       },
       {
         "source": "**",

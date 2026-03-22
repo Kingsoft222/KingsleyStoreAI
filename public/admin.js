@@ -13,7 +13,8 @@ import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObje
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsleystoreai.firebaseapp.com", 
+    // FIXED: Changed to your Vercel domain to prevent the "Unsafe attempt" and "Timed Out" errors
+    authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -71,7 +72,8 @@ onAuthStateChanged(auth, async (user) => {
             loginSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'none';
             dashSec.style.display = 'block';
-            loadDashboardData();
+            // Note: Ensure loadDashboardData() is defined elsewhere in your script
+            if (typeof loadDashboardData === "function") loadDashboardData();
         } else {
             loginSec.style.display = 'none';
             dashSec.style.display = 'none';
