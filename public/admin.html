@@ -8,7 +8,7 @@
     <style>
         :root { --primary: #e60023; --bg: #f4f4f4; --card: #ffffff; }
         
-        /* 🔥 CRITICAL: This hides the sections until JS decides where to send the user */
+        /* 🔥 This hides everything initially so existing users don't see a flash */
         #login-section, #onboarding-section, #dashboard-section { display: none; }
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
@@ -40,26 +40,6 @@
 <body>
 
 <div class="container">
-    <button id="master-btn" class="btn-master" onclick="window.toggleMasterVault()">
-        <i class="fas fa-crown"></i> MASTER VAULT (FOUNDER ONLY)
-    </button>
-
-    <div id="master-vault-section" class="card" style="background: #000; color: #fff; border: 1px solid #333;">
-        <h3 style="color:#FFD700;"><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Store ID</th>
-                    <th>Name</th>
-                    <th>Clicks</th>
-                    <th>Revenue</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="vault-body"></tbody>
-        </table>
-    </div>
-
     <div id="login-section" class="card" style="text-align: center;">
         <img src="https://cdn-icons-png.flaticon.com/512/3081/3081648.png" width="80">
         <h2>VirtualMall Admin</h2>
@@ -88,6 +68,26 @@
     </div>
 
     <div id="dashboard-section">
+        <button id="master-btn" class="btn-master" onclick="window.toggleMasterVault()">
+            <i class="fas fa-crown"></i> MASTER VAULT (FOUNDER ONLY)
+        </button>
+
+        <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff; border: 1px solid #333;">
+            <h3 style="color:#FFD700;"><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Store ID</th>
+                        <th>Name</th>
+                        <th>Clicks</th>
+                        <th>Revenue</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="vault-body"></tbody>
+            </table>
+        </div>
+
         <div class="card">
             <h3>Profile Settings</h3>
             <div style="text-align:center;">
