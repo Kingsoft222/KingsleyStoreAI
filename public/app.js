@@ -139,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
+            // 🔥 PASTE THE LINE HERE:
+        window.currentStoreOwnerEmail = data.ownerEmail;
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input'); 
             if (input) input.placeholder = data.searchHint || "Search style...";
@@ -179,14 +181,14 @@ window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`ca
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 
-// --- 🎯 SIDEBAR (STREET WEARS & LUXURY NATIVE) ---
+// --- 🎯 SIDEBAR NAVIGATOR (UPDATED FOR THOMAS & ADMINS) ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
     
     document.getElementById('ai-fitting-result').innerHTML = `
         <div id="sidebar-overlay" style="display:block; background:rgba(0,0,0,0.6); width:100%; height:100%; position:fixed; top:0; left:0; z-index:9999;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:absolute; left:0; top:0; color:#111; overflow-y:auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); border-radius: 0;" onclick="event.stopPropagation()">
+            <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:absolute; left:0; top:0; color:#111; overflow-y:auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1);" onclick="event.stopPropagation()">
                 
                 <div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
                     <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span>
@@ -208,14 +210,20 @@ window.openOptionsMenu = () => {
                         <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Luxury Native</div>
                         <div style="display:flex; flex-direction:column; gap:15px; color:#111;">
                             <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 Adivici Fashion ${badge}</div>
-                            <div onclick="window.location.assign('?store=tommybest')" style="font-weight:600; cursor:pointer;">👕 Tommy Best Fashion ${badge}</div>
+                            <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👕 Thomas Mongi ${badge}</div>
                         </div>
                     </div>
                     
                     <div id="unverified-stores-container">
                         <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px; border-top:1px solid #eee; padding-top:20px;">Unverified Stores</div>
                         <div id="unverified-list" style="display:flex; flex-direction:column; gap:15px; color:#111; font-size:0.95rem;">
-                            <div style="font-style:italic; color:#aaa;">Searching for new stores...</div>
+                             <div style="font-style:italic; color:#aaa;">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div id="admin-sidebar-link" style="display:none; margin-top:10px; border-top:2px dashed #eee; padding-top:20px;">
+                        <div onclick="window.location.href='admin.html'" style="display:flex; align-items:center; gap:10px; color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:10px; font-size:0.9rem;">
+                            <i class="fas fa-arrow-left"></i> RETURN TO ADMIN
                         </div>
                     </div>
                 </div>
@@ -223,6 +231,17 @@ window.openOptionsMenu = () => {
             </div>
         </div>`;
     
-    // Trigger the dynamic list
+    // Trigger dynamic data
     window.loadUnverifiedStores();
+    
+    // Security check: Only show the "Return to Admin" if current user is the owner
+    // Uses the global 'auth' object and 'window.currentStoreOwnerEmail' from onValue
+    if (typeof onAuthStateChanged !== 'undefined' && typeof auth !== 'undefined') {
+        onAuthStateChanged(auth, (user) => {
+            const adminLink = document.getElementById('admin-sidebar-link');
+            if (user && user.email === window.currentStoreOwnerEmail && adminLink) {
+                adminLink.style.display = 'block';
+            }
+        });
+    }
 };

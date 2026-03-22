@@ -6,8 +6,8 @@ import {
     getRedirectResult, 
     GoogleAuthProvider, 
     signOut, 
-    onAuthStateChanged,
-    setPersistence,
+    onAuthStateChanged, 
+    setPersistence, 
     browserLocalPersistence 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
@@ -25,9 +25,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// 🔥 PERSISTENCE: Ensures users stay logged in until manual logout
-setPersistence(auth, browserLocalPersistence).catch((err) => console.error("Persistence Error:", err));
+setPersistence(auth, browserLocalPersistence);
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
@@ -37,7 +35,7 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- 🎯 IMAGE OPTIMIZATION ---
+// --- 🎯 IMAGE OPTIMIZATION (Restored) ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -56,14 +54,18 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
 
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
-// --- 🎯 AUTH & ROUTING ---
+// --- 🎯 AUTH ROUTING (Instant Access Fix) ---
 onAuthStateChanged(auth, async (user) => {
+    const loader = document.getElementById('loading-screen');
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
-    // Force hide all sections initially to prevent "Onboarding Flash" for existing users
-    [loginSec, onboardSec, dashSec].forEach(s => { if(s) s.style.display = 'none'; });
+    const reveal = (section) => {
+        if (loader) loader.style.display = 'none';
+        [loginSec, onboardSec, dashSec].forEach(s => { if(s) s.style.display = 'none'; });
+        if (section) section.style.display = 'block';
+    };
 
     if (user) {
         if (user.email === MASTER_EMAIL) {
@@ -73,24 +75,19 @@ onAuthStateChanged(auth, async (user) => {
         try {
             const snap = await get(dbRef(db, `users/${user.uid}`));
             if (snap.exists()) {
-                // EXISTING USER RECORD CAPTURED: Send to Dashboard
                 activeStoreId = snap.val().storeId;
-                if(dashSec) dashSec.style.display = 'block';
-                loadDashboardData();
+                await loadDashboardData();
+                reveal(dashSec);
             } else {
-                // NEW USER: Send to Onboarding
-                if(onboardSec) onboardSec.style.display = 'block';
+                reveal(onboardSec);
             }
-        } catch (error) {
-            if(loginSec) loginSec.style.display = 'block';
-        }
-    } else { 
-        // NO SESSION: Show Login
-        if(loginSec) loginSec.style.display = 'block';
+        } catch (e) { reveal(loginSec); }
+    } else {
+        setTimeout(() => { if (!auth.currentUser) reveal(loginSec); }, 800);
     }
 });
 
-// --- 🎯 DASHBOARD DATA LOADING (Captures all existing records) ---
+// --- 🎯 RECORDS & DATA LOADING ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -101,42 +98,63 @@ async function loadDashboardData() {
         document.getElementById('admin-search-hint').value = data.searchHint || "";
         document.getElementById('admin-label-1').value = data.label1 || "";
         document.getElementById('admin-label-2').value = data.label2 || "";
-        
-        // Restore custom greetings mapping precisely
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
-        
         const imgP = document.getElementById('admin-img-preview');
         imgP.style.display = "block";
         imgP.src = data.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
-        
         renderInventoryList(data.catalog || {});
     }
 }
 
-// --- 🎯 INVENTORY RENDERING (Keeps UI Consistency) ---
+// --- 🎯 INVENTORY RENDERING ---
 function renderInventoryList(catalog) {
     const list = document.getElementById('inventory-list');
     if(!list) return;
     list.innerHTML = Object.keys(catalog).map(k => `
-        <div class="inventory-item" style="display:flex; align-items:center; gap:15px; padding:10px; border-bottom:1px solid #eee;">
-            <img src="${catalog[k].imgUrl}" style="width:50px; height:50px; border-radius:5px; object-fit:cover;">
-            <div class="inventory-item-details" style="flex-grow:1;">
-                <h4 style="margin:0; color:#111;">${catalog[k].name}</h4>
-                <p style="margin:5px 0; font-size:0.85rem; color:#666;">₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
+        <div class="inventory-item">
+            <img src="${catalog[k].imgUrl}">
+            <div class="inventory-item-details">
+                <h4>${catalog[k].name}</h4>
+                <p>₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
             </div>
-            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger" style="background:none; color:#e60023; border:1px solid #e60023; padding:5px 10px; border-radius:5px; cursor:pointer;">
-                <i class="fas fa-trash"></i>
-            </button>
+            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
 
-// --- 🎯 STORE ACTIONS ---
+// --- 🎯 PRODUCT UPLOAD (Restored) ---
+window.uploadNewProduct = async () => {
+    const nameInput = document.getElementById('prod-name');
+    const priceInput = document.getElementById('prod-price');
+    const brandInput = document.getElementById('prod-brand');
+    const btn = document.getElementById('upload-prod-btn');
+    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
+    btn.innerText = "Processing AI Image..."; btn.disabled = true;
+    try {
+        const optimizedImg = await optimizeImage(pendingProductBase64);
+        const id = Date.now();
+        const path = `inventory/${activeStoreId}/${id}.jpg`;
+        const sRef = storageRef(storage, path);
+        await uploadString(sRef, optimizedImg, 'data_url', { contentType: 'image/jpeg' });
+        const url = await getDownloadURL(sRef);
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
+            name: nameInput.value, price: Number(priceInput.value),
+            category: brandInput.value, imgUrl: url, storagePath: path 
+        });
+        nameInput.value = ""; priceInput.value = ""; 
+        document.getElementById('prod-img-preview').style.display = "none";
+        pendingProductBase64 = null;
+        showToast("Product Added!");
+        loadDashboardData();
+    } catch (e) { alert("Upload error: " + e.message); } 
+    finally { btn.innerText = "Add Item to Store"; btn.disabled = false; }
+};
+
+// --- 🎯 STORE SETTINGS (Restored) ---
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
     btn.innerText = "Saving..."; btn.disabled = true;
@@ -160,43 +178,11 @@ window.saveStoreSettings = async () => {
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
         showToast("Settings Updated!");
         loadDashboardData();
-    } catch (e) {
-        alert("Save failed: " + e.message);
-    } finally {
-        btn.innerText = "Save Settings"; btn.disabled = false;
-    }
+    } catch (e) { alert("Save failed: " + e.message); } 
+    finally { btn.innerText = "Save Settings"; btn.disabled = false; }
 };
 
-window.uploadNewProduct = async () => {
-    const nameInput = document.getElementById('prod-name');
-    const priceInput = document.getElementById('prod-price');
-    const brandInput = document.getElementById('prod-brand');
-    const btn = document.getElementById('upload-prod-btn');
-    if (!nameInput.value || !priceInput.value || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
-    btn.innerText = "Uploading..."; btn.disabled = true;
-    try {
-        const optimizedImg = await optimizeImage(pendingProductBase64);
-        const id = Date.now();
-        const path = `inventory/${activeStoreId}/${id}.jpg`;
-        const sRef = storageRef(storage, path);
-        await uploadString(sRef, optimizedImg, 'data_url', { contentType: 'image/jpeg' });
-        const url = await getDownloadURL(sRef);
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
-            name: nameInput.value, 
-            price: Number(priceInput.value),
-            category: brandInput.value, 
-            imgUrl: url, 
-            storagePath: path 
-        });
-        nameInput.value = ""; priceInput.value = ""; 
-        document.getElementById('prod-img-preview').style.display = "none";
-        pendingProductBase64 = null;
-        showToast("Product Added!");
-        loadDashboardData();
-    } catch (e) { alert("Upload error: " + e.message); } 
-    finally { btn.innerText = "Add Item to Store"; btn.disabled = false; }
-};
-
+// --- 🎯 STORE CREATION (Restored) ---
 window.createStoreProfile = async () => {
     const user = auth.currentUser;
     const username = document.getElementById('setup-username').value.trim().toLowerCase().replace(/\s+/g, '');
@@ -214,14 +200,7 @@ window.createStoreProfile = async () => {
     } catch (e) { alert("Setup failed: " + e.message); }
 };
 
-window.deleteProduct = async (k, path) => {
-    if (!confirm("Delete product?")) return;
-    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
-    try { if(path) await deleteObject(storageRef(storage, path)); } catch(e) {}
-    loadDashboardData();
-};
-
-// --- 🎯 HELPER ACTIONS ---
+// --- 🎯 HELPERS & VAULT (Restored) ---
 window.handleAdminImage = (e) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
@@ -241,14 +220,12 @@ window.handleProductImagePreview = (e) => {
     reader.readAsDataURL(e.target.files[0]);
 };
 
-window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
-window.loginWithGoogle = () => {
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) { signInWithRedirect(auth, provider); } 
-    else { signInWithPopup(auth, provider); }
+window.deleteProduct = async (k, path) => {
+    if (!confirm("Delete product?")) return;
+    await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
+    try { if(path) await deleteObject(storageRef(storage, path)); } catch(e) {}
+    loadDashboardData();
 };
-
-function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
 
 window.toggleMasterVault = async () => {
     const vaultSection = document.getElementById('master-vault-section');
@@ -261,3 +238,10 @@ window.toggleMasterVault = async () => {
             <td><button onclick="alert('Auditing ${id}...')">Audit</button></td></tr>`).join('');
     } else { vaultSection.style.display = 'none'; }
 };
+
+window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
+window.loginWithGoogle = () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) signInWithRedirect(auth, provider); else signInWithPopup(auth, provider);
+};
+function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
