@@ -36,6 +36,7 @@ const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
+let isInitialLoad = true; // 🔥 Added to track the very first auth check
 
 // --- IMAGE OPTIMIZATION ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
@@ -62,27 +63,24 @@ onAuthStateChanged(auth, async (user) => {
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
-    // Initially hide sections to prepare for routing
+    // 🔥 ALWAYS HIDE EVERYTHING FIRST
     [loginSec, onboardSec, dashSec].forEach(sec => { if(sec) sec.style.display = 'none'; });
 
     if (user) {
-        // Master Admin Check
+        isInitialLoad = false; // Auth found, we can stop "waiting"
+        
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
 
         try {
-            // Check if user exists in our database
             const snap = await get(dbRef(db, `users/${user.uid}`));
-            
             if (snap.exists()) {
-                // EXISTING USER: Go to Dashboard
                 activeStoreId = snap.val().storeId;
                 if(dashSec) dashSec.style.display = 'block';
                 loadDashboardData();
             } else {
-                // NEW USER: Go to Onboarding to create profile
                 if(onboardSec) onboardSec.style.display = 'block';
             }
         } catch (error) {
@@ -90,8 +88,16 @@ onAuthStateChanged(auth, async (user) => {
             if(loginSec) loginSec.style.display = 'block';
         }
     } else { 
-        // NO USER SIGNED IN: Show Login Section
-        if(loginSec) loginSec.style.display = 'block';
+        // 🔥 If it's the very first check, stay hidden for a moment to let persistence kick in
+        if (isInitialLoad) {
+            isInitialLoad = false; 
+            // Small delay to prevent Login flashing for existing users on slow mobile networks
+            setTimeout(() => {
+                if (!auth.currentUser && loginSec) loginSec.style.display = 'block';
+            }, 500);
+        } else {
+            if(loginSec) loginSec.style.display = 'block';
+        }
     }
 });
 
