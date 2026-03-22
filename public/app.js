@@ -182,30 +182,47 @@ window.quickSearch = (q) => { document.getElementById('ai-input').value = q; win
 // --- 🎯 SIDEBAR (STREET WEARS & LUXURY NATIVE) ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
-    const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
+    const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
+    
     document.getElementById('ai-fitting-result').innerHTML = `
-        <div id="sidebar-overlay" style="display:block;" onclick="window.closeFittingRoom()">
-            <div id="sidebar-drawer" onclick="event.stopPropagation()">
-                <div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <div id="sidebar-overlay" style="display:block; background:rgba(0,0,0,0.6); width:100%; height:100%; position:fixed; top:0; left:0; z-index:9999;" onclick="window.closeFittingRoom()">
+            <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:absolute; left:0; top:0; color:#111; overflow-y:auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1); border-radius: 0;" onclick="event.stopPropagation()">
+                
+                <div style="padding:25px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
                     <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span>
-                    <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer;">✕</span>
+                    <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer; color:#111;">✕</span>
                 </div>
-                <div style="padding:0 24px; margin-bottom:20px;"><h2 style="font-size:1.2rem; font-weight:900;"><span style="color:#e60023;">Mall</span> Navigator</h2></div>
+                
+                <div style="padding:20px 24px;"><h2 style="font-size:1.2rem; font-weight:900; color:#111; margin:0;"><span style="color:#e60023;">Mall</span> Navigator</h2></div>
+                
                 <div style="padding:0 24px; display:flex; flex-direction:column; gap:25px;">
-                    <div><div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Street Wears</div>
-                        <div style="display:flex; flex-direction:column; gap:12px; padding-left:5px;">
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Street Wears</div>
+                        <div style="display:flex; flex-direction:column; gap:15px; color:#111;">
                             <div onclick="window.location.assign('?store=ifeomaezema1791')" style="font-weight:600; cursor:pointer;">👗 Ify Fashion ${badge}</div>
                             <div onclick="window.location.assign('?store=kingss1')" style="font-weight:600; cursor:pointer;">💎 Stella Wears ${badge}</div>
                         </div>
                     </div>
-                    <div><div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Luxury Native</div>
-                        <div style="display:flex; flex-direction:column; gap:12px; padding-left:5px;">
+                    
+                    <div>
+                        <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Luxury Native</div>
+                        <div style="display:flex; flex-direction:column; gap:15px; color:#111;">
                             <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 Adivici Fashion ${badge}</div>
                             <div onclick="window.location.assign('?store=tommybest')" style="font-weight:600; cursor:pointer;">👕 Tommy Best Fashion ${badge}</div>
                         </div>
                     </div>
-                    <div style="font-size:0.75rem; font-weight:800; color:#ccc; text-transform:uppercase; border-top:1px solid #eee; padding-top:20px;">Unverified Stores</div>
+                    
+                    <div id="unverified-stores-container">
+                        <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px; border-top:1px solid #eee; padding-top:20px;">Unverified Stores</div>
+                        <div id="unverified-list" style="display:flex; flex-direction:column; gap:15px; color:#111; font-size:0.95rem;">
+                            <div style="font-style:italic; color:#aaa;">Searching for new stores...</div>
+                        </div>
+                    </div>
                 </div>
+                <div style="padding:40px 24px; color:#ccc; font-size:0.7rem; text-align:center;">VIRTUALMALL © 2026</div>
             </div>
         </div>`;
+    
+    // Trigger the dynamic list
+    window.loadUnverifiedStores();
 };
