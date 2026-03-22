@@ -7,8 +7,8 @@ import {
     GoogleAuthProvider, 
     signOut, 
     onAuthStateChanged,
-    setPersistence,         // Added for persistent login
-    browserLocalPersistence // Added for persistent login
+    setPersistence,
+    browserLocalPersistence 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -26,9 +26,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// 🔥 PERSISTENCE LOGIC: Keeps user signed in even after closing the browser
-setPersistence(auth, browserLocalPersistence)
-  .catch((error) => console.error("Persistence Error:", error));
+// 🔥 PERSISTENCE LOGIC: Ensures user stays signed in across sessions
+setPersistence(auth, browserLocalPersistence).catch((err) => console.error("Persistence Error:", err));
 
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
@@ -55,7 +54,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
     });
 }
 
-// Critical: Handle Mobile Redirect Result to catch existing user data after login
+// Critical: Handle Mobile Redirect Result
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
 onAuthStateChanged(auth, async (user) => {
@@ -63,27 +62,33 @@ onAuthStateChanged(auth, async (user) => {
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
+    // HIDDEN BY DEFAULT: Prevents "onboarding flash" while database is loading
+    if(loginSec) loginSec.style.display = 'none';
+    if(onboardSec) onboardSec.style.display = 'none';
+    if(dashSec) dashSec.style.display = 'none';
+
     if (user) {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
-        const snap = await get(dbRef(db, `users/${user.uid}`));
-        if (snap.exists()) {
-            activeStoreId = snap.val().storeId;
-            if(loginSec) loginSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'block';
-            loadDashboardData();
-        } else {
-            if(loginSec) loginSec.style.display = 'none';
-            if(dashSec) dashSec.style.display = 'none';
-            if(onboardSec) onboardSec.style.display = 'block';
+
+        try {
+            const snap = await get(dbRef(db, `users/${user.uid}`));
+            
+            if (snap.exists()) {
+                activeStoreId = snap.val().storeId;
+                if(dashSec) dashSec.style.display = 'block';
+                loadDashboardData();
+            } else {
+                if(onboardSec) onboardSec.style.display = 'block';
+            }
+        } catch (error) {
+            console.error("Routing Error:", error);
+            if(loginSec) loginSec.style.display = 'block';
         }
     } else { 
         if(loginSec) loginSec.style.display = 'block';
-        if(dashSec) dashSec.style.display = 'none';
-        if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
@@ -112,7 +117,7 @@ window.createStoreProfile = async () => {
             storeName: bizName, 
             phone: phone,
             ownerEmail: user.email, 
-            verified: false, // 🔥 Automatically lists in Unverified Stores list
+            verified: false,
             label1: "Ladies Wear",
             label2: "Men Wear",
             customGreetings: finalGreetings,
@@ -271,7 +276,6 @@ window.deleteProduct = async (k, path) => {
 };
 
 window.logoutAdmin = () => signOut(auth).then(() => {
-    // Force clear session on logout
     window.location.reload();
 });
 
