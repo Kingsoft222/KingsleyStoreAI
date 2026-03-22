@@ -22,13 +22,12 @@
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
         button { width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
         .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: #ad001a; }
         .btn-outline { background: #eee; color: #333; }
         .btn-danger { background: none; color: #e60023; border: 1px solid #e60023; width: auto; padding: 5px 15px; margin-top: 5px; font-size: 0.8rem; }
         .btn-master { background: #000; color: #FFD700; display: none; margin-bottom: 20px; width: 100%; border: 1px solid #FFD700; }
-        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; color: #fff; }
         #master-vault-section th { color: #FFD700; border-bottom: 2px solid #333; padding: 10px; text-align: left; }
-        #master-vault-section td { padding: 10px; border-bottom: 1px solid #222; text-align: left; }
+        #master-vault-section td { padding: 10px; border-bottom: 1px solid #222; }
         #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
         .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
         .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
@@ -46,16 +45,16 @@
     <div id="login-section" class="card" style="text-align: center;">
         <img src="https://cdn-icons-png.flaticon.com/512/3081/3081648.png" width="80">
         <h2>VirtualMall Admin</h2>
-        <p style="color:#666; font-size:0.9rem;">Management Center</p>
+        <p style="color:#666; font-size:0.9rem;">Management & Accountability Center</p>
         <button class="btn-primary" onclick="window.loginWithGoogle()">Login with Google</button>
     </div>
 
     <div id="onboarding-section" class="card" style="text-align:center;">
         <h2 style="color:var(--primary);">Set Up Your Store</h2>
-        <div class="form-group"><label>Store Username</label><input type="text" id="setup-username"></div>
+        <div class="form-group"><label>Choose Store Username</label><input type="text" id="setup-username" placeholder="e.g. kingsley-fashion"></div>
         <div class="form-group"><label>Business Name</label><input type="text" id="setup-bizname"></div>
-        <div class="form-group"><label>WhatsApp Number</label><input type="number" id="setup-phone"></div>
-        <button class="btn-primary" onclick="window.createStoreProfile()">Launch Store</button>
+        <div class="form-group"><label>WhatsApp Number</label><input type="number" id="setup-phone" placeholder="e.g. 2348000000000"></div>
+        <button class="btn-primary" onclick="window.createStoreProfile()">Launch My Store <i class="fas fa-rocket"></i></button>
     </div>
 
     <div id="dashboard-section">
@@ -70,8 +69,8 @@
                     <thead>
                         <tr>
                             <th>Email</th>
-                            <th>Live Link</th>
-                            <th>Date</th>
+                            <th>Profile Link</th>
+                            <th>Joined</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -88,10 +87,14 @@
                 <button class="btn-outline" onclick="document.getElementById('admin-pic-upload').click()">Change Photo</button>
             </div>
             <div class="form-group"><label>Store Name</label><input type="text" id="admin-store-name"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>Ad 1</label><input type="text" id="admin-label-1"></div>
+                <div class="form-group"><label>Ad 2</label><input type="text" id="admin-label-2"></div>
+            </div>
             <div class="form-group"><label>WhatsApp</label><input type="number" id="admin-phone"></div>
             <div class="form-group"><label>Search Hint</label><input type="text" id="admin-search-hint"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="checkbox" id="greetings-toggle" style="width:auto;"> <label>Enable Greetings</label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="greetings-toggle" style="width:auto;"> <label>AI Greetings</label>
             </div>
             <textarea id="admin-greetings" rows="3"></textarea>
             <button id="save-btn" class="btn-primary" onclick="window.saveStoreSettings()">Save Settings</button>
@@ -108,7 +111,7 @@
                 <option value="Casual">Casual</option>
             </select>
             <input type="file" onchange="window.handleProductImagePreview(event)">
-            <img id="prod-img-preview" style="width:100px; display:none;">
+            <img id="prod-img-preview" style="width:100px; height:100px; display:none; border-radius:8px;">
             <button id="upload-prod-btn" class="btn-primary" onclick="window.uploadNewProduct()">Add Item</button>
         </div>
 

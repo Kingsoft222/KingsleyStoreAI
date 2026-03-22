@@ -27,7 +27,7 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- 🎯 IMAGE OPTIMIZATION ---
+// --- 🎯 RESTORED IMAGE OPTIMIZATION LOGIC ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -46,7 +46,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
 
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
-// --- 🎯 AUTH ROUTING ---
+// --- 🎯 RESTORED AUTH ROUTING ---
 onAuthStateChanged(auth, async (user) => {
     const loader = document.getElementById('loading-screen');
     const loginSec = document.getElementById('login-section');
@@ -78,7 +78,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 👑 FOUNDER RECORDS ---
+// --- 👑 FIXED FOUNDER RECORDS (LINK FEATURE) ---
 function listenForNewUsers() {
     const userTableBody = document.getElementById('user-records-body');
     if (!userTableBody) return;
@@ -88,16 +88,19 @@ function listenForNewUsers() {
             const fullLink = `${window.location.origin}/?store=${data.storeId}`;
             return `
             <tr style="border-bottom:1px solid #333;">
-                <td style="padding:10px;">${data.email || 'N/A'}</td>
-                <td style="padding:10px;"><a href="${fullLink}" target="_blank" style="color:#FFD700;">view.mall/${data.storeId}</a></td>
-                <td style="padding:10px; color:#888;">${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Old User'}</td>
-                <td style="padding:10px;"><button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; padding:4px 8px; font-size:0.7rem;">Audit</button></td>
+                <td style="padding:10px; font-size:0.8rem;">${data.email || 'N/A'}</td>
+                <td style="padding:10px;">
+                    <button onclick="navigator.clipboard.writeText('${fullLink}'); alert('Link Copied!')" style="background:#444; color:#fff; border:none; padding:4px 8px; font-size:0.6rem; cursor:pointer; border-radius:4px;">Copy Link</button>
+                    <a href="${fullLink}" target="_blank" style="color:#FFD700; font-size:0.7rem; display:block; margin-top:5px;">view.mall/${data.storeId}</a>
+                </td>
+                <td style="padding:10px; color:#888; font-size:0.7rem;">${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Old'}</td>
+                <td style="padding:10px;"><button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; padding:4px 8px; font-size:0.7rem; cursor:pointer;">Audit</button></td>
             </tr>`;
         }).join('');
     });
 }
 
-// --- 🎯 DASHBOARD DATA ---
+// --- 🎯 RESTORED FULL DATA LOADING ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -106,6 +109,8 @@ async function loadDashboardData() {
         document.getElementById('admin-store-name').value = data.storeName || "";
         document.getElementById('admin-phone').value = data.phone || "";
         document.getElementById('admin-search-hint').value = data.searchHint || "";
+        document.getElementById('admin-label-1').value = data.label1 || "";
+        document.getElementById('admin-label-2').value = data.label2 || "";
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
@@ -127,40 +132,61 @@ function renderInventoryList(catalog) {
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details">
                 <h4>${catalog[k].name}</h4>
-                <p>₦${catalog[k].price.toLocaleString()}</p>
+                <p>₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
             </div>
-            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger">Delete</button>
+            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
 
+// --- 🎯 RESTORED PRODUCT UPLOAD ---
 window.uploadNewProduct = async () => {
     const name = document.getElementById('prod-name').value;
     const price = document.getElementById('prod-price').value;
-    if (!name || !price || !pendingProductBase64) return alert("Missing Info!");
+    const brand = document.getElementById('prod-brand').value;
+    const btn = document.getElementById('upload-prod-btn');
+    if (!name || !price || !pendingProductBase64) return alert("Fill all fields!");
+    btn.innerText = "Optimizing AI Image..."; btn.disabled = true;
     try {
-        const opt = await optimizeImage(pendingProductBase64);
+        const optimized = await optimizeImage(pendingProductBase64);
         const id = Date.now();
         const path = `inventory/${activeStoreId}/${id}.jpg`;
         const sRef = storageRef(storage, path);
-        await uploadString(sRef, opt, 'data_url', { contentType: 'image/jpeg' });
+        await uploadString(sRef, optimized, 'data_url', { contentType: 'image/jpeg' });
         const url = await getDownloadURL(sRef);
-        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { name, price: Number(price), imgUrl: url, storagePath: path });
+        await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
+            name, price: Number(price), category: brand, imgUrl: url, storagePath: path 
+        });
+        showToast("Product Added!");
         loadDashboardData();
     } catch (e) { alert(e.message); }
+    finally { btn.innerText = "Add Item"; btn.disabled = false; }
 };
 
+// --- 🎯 RESTORED STORE SETTINGS ---
 window.saveStoreSettings = async () => {
+    const btn = document.getElementById('save-btn');
+    btn.innerText = "Saving..."; btn.disabled = true;
     try {
         const updateData = {
             storeName: document.getElementById('admin-store-name').value,
             phone: document.getElementById('admin-phone').value,
             searchHint: document.getElementById('admin-search-hint').value,
+            label1: document.getElementById('admin-label-1').value,
+            label2: document.getElementById('admin-label-2').value,
             greetingsEnabled: document.getElementById('greetings-toggle').checked,
             customGreetings: document.getElementById('admin-greetings').value.split('\n')
         };
+        if(pendingBase64Image) {
+            const optP = await optimizeImage(pendingBase64Image, 512);
+            const ref = storageRef(storage, `profiles/${activeStoreId}.jpg`);
+            await uploadString(ref, optP, 'data_url', { contentType: 'image/jpeg' });
+            updateData.profileImage = await getDownloadURL(ref);
+        }
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-        showToast("Saved!");
+        showToast("Settings Updated!");
+        loadDashboardData();
     } catch (e) { alert(e.message); }
+    finally { btn.innerText = "Save Settings"; btn.disabled = false; }
 };
 
 window.createStoreProfile = async () => {
@@ -170,7 +196,10 @@ window.createStoreProfile = async () => {
     const phone = document.getElementById('setup-phone').value.trim();
     try {
         await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email, createdAt: Date.now() });
-        await set(dbRef(db, `stores/${username}`), { storeName: bizName, phone: phone, ownerEmail: user.email });
+        await set(dbRef(db, `stores/${username}`), { 
+            storeName: bizName, phone: phone, ownerEmail: user.email, 
+            label1: "Ladies Wear", label2: "Men Wear", greetingsEnabled: true 
+        });
         window.location.reload(); 
     } catch (e) { alert(e.message); }
 };
@@ -180,6 +209,7 @@ window.handleAdminImage = (e) => {
     reader.onload = (ev) => {
         pendingBase64Image = ev.target.result;
         document.getElementById('admin-img-preview').src = ev.target.result;
+        document.getElementById('admin-img-preview').style.display = 'block';
     };
     reader.readAsDataURL(e.target.files[0]);
 };
@@ -195,6 +225,7 @@ window.handleProductImagePreview = (e) => {
 };
 
 window.deleteProduct = async (k, path) => {
+    if(!confirm("Delete?")) return;
     await remove(dbRef(db, `stores/${activeStoreId}/catalog/${k}`));
     try { if(path) await deleteObject(storageRef(storage, path)); } catch(e) {}
     loadDashboardData();
