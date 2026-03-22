@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <style>
-  /* This ensures the sections stay invisible until Firebase decides where to send you */
-  #login-section, #onboarding-section, #dashboard-section {
-    display: none;
-  }
-</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VirtualMall Admin - Control Center</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --primary: #e60023; --bg: #f4f4f4; --card: #ffffff; }
+        
+        /* 🔥 CRITICAL: This hides the sections until JS decides where to send the user */
+        #login-section, #onboarding-section, #dashboard-section { display: none; }
+
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; }
         .card { background: var(--card); padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
@@ -46,7 +44,7 @@
         <i class="fas fa-crown"></i> MASTER VAULT (FOUNDER ONLY)
     </button>
 
-    <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff; border: 1px solid #333;">
+    <div id="master-vault-section" class="card" style="background: #000; color: #fff; border: 1px solid #333;">
         <h3 style="color:#FFD700;"><i class="fas fa-chart-line"></i> Global Sales Tracking</h3>
         <table>
             <thead>
@@ -69,7 +67,7 @@
         <button class="btn-primary" onclick="window.loginWithGoogle()">Login with Google</button>
     </div>
 
-    <div id="onboarding-section" class="card" style="display:none; text-align:center;">
+    <div id="onboarding-section" class="card" style="text-align:center;">
         <h2 style="color:var(--primary);">Set Up Your Store</h2>
         <p style="margin-bottom:20px; color:#666;">Provide your business details to launch your AI storefront.</p>
         
@@ -89,7 +87,7 @@
         <button class="btn-primary" onclick="window.createStoreProfile()">Launch My Store <i class="fas fa-rocket"></i></button>
     </div>
 
-    <div id="dashboard-section" style="display:none;">
+    <div id="dashboard-section">
         <div class="card">
             <h3>Profile Settings</h3>
             <div style="text-align:center;">
