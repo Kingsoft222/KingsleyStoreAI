@@ -138,7 +138,6 @@ window.startTryOn = async () => {
 
 // --- 🎯 BOOTUP ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if user is already logged in (Admin SSO), otherwise sign in anonymously
     onAuthStateChanged(auth, (user) => {
         if (!user) {
             signInAnonymously(auth).catch(() => {});
@@ -149,15 +148,21 @@ document.addEventListener('DOMContentLoaded', () => {
     initVoiceSearch();
     document.getElementById('menu-icon').onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
     document.getElementById('cart-icon-container').onclick = window.openCart;
+    
+    // 🔥 RESTORED SEARCH ICON CLICK LOGIC
     const sendBtn = document.querySelector('.send-circle');
-    if (sendBtn) sendBtn.onclick = (e) => { e.preventDefault(); window.executeSearch(); };
+    if (sendBtn) {
+        sendBtn.style.cursor = "pointer";
+        sendBtn.onclick = (e) => { 
+            e.preventDefault(); 
+            window.executeSearch(); 
+        };
+    }
 
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            // 🔥 CAPTURE OWNER EMAIL FOR SIDEBAR SECURITY
             window.currentStoreOwnerEmail = data.ownerEmail;
-            
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input'); 
             if (input) input.placeholder = data.searchHint || "Search style...";
@@ -227,14 +232,15 @@ window.openOptionsMenu = () => {
                         <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Luxury Native</div>
                         <div style="display:flex; flex-direction:column; gap:15px; color:#111;">
                             <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 Adivici Fashion ${badge}</div>
-                            <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👕 Tommy Best Fashion ${badge}</div>
+                            <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👕 Thomas Mongi ${badge}</div>
                         </div>
                     </div>
                     
                     <div id="unverified-stores-container">
                         <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px; border-top:1px solid #eee; padding-top:20px;">Unverified Stores</div>
                         <div id="unverified-list" style="display:flex; flex-direction:column; gap:15px; color:#111; font-size:0.95rem;">
-                             <div style="font-style:italic; color:#aaa;">Loading...</div>
+                             <div onclick="window.location.assign('?store=johnsonclothing')" style="cursor:pointer;">🏪 Johnson Clothing Line <span style="color:#e60023; font-size:0.6rem;">[NEW]</span></div>
+                             <div onclick="window.location.assign('?store=johnsonsneakers')" style="cursor:pointer;">🏪 Johnson Sneakers <span style="color:#e60023; font-size:0.6rem;">[NEW]</span></div>
                         </div>
                     </div>
 
@@ -248,25 +254,11 @@ window.openOptionsMenu = () => {
             </div>
         </div>`;
     
-    window.loadUnverifiedStores();
-    
-    // Security check: Only show the "Return to Admin" if current user is the owner
+    // 🔥 UPDATED: REVEAL ADMIN BUTTON LOGIC
     onAuthStateChanged(auth, (user) => {
         const adminLink = document.getElementById('admin-sidebar-link');
-        if (user && !user.isAnonymous && user.email === window.currentStoreOwnerEmail && adminLink) {
+        if (adminLink && user && !user.isAnonymous && user.email === window.currentStoreOwnerEmail) {
             adminLink.style.display = 'block';
         }
     });
-};
-
-window.loadUnverifiedStores = () => {
-    onValue(dbRef(db, 'stores'), (snap) => {
-        const stores = snap.val();
-        const list = document.getElementById('unverified-list');
-        if (!stores || !list) return;
-        list.innerHTML = Object.entries(stores)
-            .filter(([id, data]) => data.verified !== true)
-            .map(([id, data]) => `<div onclick="window.location.assign('?store=${id}')" style="cursor:pointer;">🏪 ${data.storeName || id} <span style="color:#e60023; font-size:0.6rem;">[NEW]</span></div>`)
-            .join('') || '<div style="color:#aaa;">Searching...</div>';
-    }, { onlyOnce: true });
 };
