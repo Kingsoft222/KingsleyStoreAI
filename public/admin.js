@@ -34,7 +34,39 @@ const storage = getStorage(app);
 
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
+// --- 👑 FOUNDER'S REAL-TIME RECORDS (FIXED LINKS) ---
+function listenForNewUsers() {
+    const userTableBody = document.getElementById('user-records-body');
+    if (!userTableBody) return;
 
+    onValue(dbRef(db, 'users'), (snapshot) => {
+        const users = snapshot.val() || {};
+        userTableBody.innerHTML = Object.entries(users).map(([uid, data]) => {
+            const storeId = data.storeId || "unknown";
+            // 🔥 This generates the clickable profile link
+            const fullLink = `${window.location.origin}/?store=${storeId}`;
+            
+            return `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:15px; font-size:0.9rem; color:#111;">${data.email || 'Anonymous'}</td>
+                <td style="padding:15px;">
+                    <a href="${fullLink}" target="_blank" style="color:#e60023; font-weight:800; text-decoration:none;">
+                        view.mall/${storeId} 🔗
+                    </a>
+                </td>
+                <td style="padding:15px; font-size:0.8rem; color:#888;">
+                    ${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Existing User'}
+                </td>
+                <td style="padding:15px;">
+                    <button onclick="window.open('${fullLink}', '_blank')" 
+                            style="background:#111; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:700;">
+                        AUDIT STORE
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    });
+}
 // --- 🎯 IMAGE OPTIMIZATION (Restored) ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
@@ -71,6 +103,7 @@ onAuthStateChanged(auth, async (user) => {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
+            listenForNewUsers(); // 🔥 Triggers live links for Founder
         }
         try {
             const snap = await get(dbRef(db, `users/${user.uid}`));
@@ -226,18 +259,47 @@ window.deleteProduct = async (k, path) => {
     try { if(path) await deleteObject(storageRef(storage, path)); } catch(e) {}
     loadDashboardData();
 };
-
-window.toggleMasterVault = async () => {
+// --- 👑 FOUNDER'S CONTROL ROOM (FIXED LINKS) ---
+window.toggleMasterVault = () => {
     const vaultSection = document.getElementById('master-vault-section');
-    if (vaultSection.style.display === 'none') {
-        vaultSection.style.display = 'block';
-        const snap = await get(dbRef(db, 'stores'));
-        const stores = snap.val() || {};
-        document.getElementById('vault-body').innerHTML = Object.entries(stores).map(([id, s]) => `
-            <tr><td>${id}</td><td>${s.storeName || 'N/A'}</td><td>${s.analytics?.whatsappClicks || 0}</td><td>₦${(s.analytics?.totalRevenue || 0).toLocaleString()}</td>
-            <td><button onclick="alert('Auditing ${id}...')">Audit</button></td></tr>`).join('');
-    } else { vaultSection.style.display = 'none'; }
+    if (vaultSection) {
+        vaultSection.style.display = (vaultSection.style.display === 'none') ? 'block' : 'none';
+    }
 };
+
+function listenForNewUsers() {
+    const userTableBody = document.getElementById('user-records-body');
+    if (!userTableBody) return;
+
+    // 🔥 Real-time listener for the users node
+    onValue(dbRef(db, 'users'), (snapshot) => {
+        const users = snapshot.val() || {};
+        userTableBody.innerHTML = Object.entries(users).map(([uid, data]) => {
+            const storeId = data.storeId || "unknown";
+            // 🔥 This generates the clickable profile link
+            const fullLink = `${window.location.origin}/?store=${storeId}`;
+            
+            return `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:15px; font-size:0.9rem; color:#111;">${data.email || 'Anonymous'}</td>
+                <td style="padding:15px;">
+                    <a href="${fullLink}" target="_blank" style="color:#e60023; font-weight:800; text-decoration:none;">
+                        view.mall/${storeId} 🔗
+                    </a>
+                </td>
+                <td style="padding:15px; font-size:0.8rem; color:#888;">
+                    ${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Existing User'}
+                </td>
+                <td style="padding:15px;">
+                    <button onclick="window.open('${fullLink}', '_blank')" 
+                            style="background:#111; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:0.8rem; font-weight:700;">
+                        AUDIT STORE
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    });
+}
 
 window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
 window.loginWithGoogle = () => {
