@@ -27,7 +27,7 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- 🎯 RESTORED IMAGE OPTIMIZATION LOGIC ---
+// --- 🎯 RESTORED IMAGE OPTIMIZATION ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -46,7 +46,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
 
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
-// --- 🎯 RESTORED AUTH ROUTING ---
+// --- 🎯 RESTORED AUTH ROUTING (FIXED LOGIN LOOP) ---
 onAuthStateChanged(auth, async (user) => {
     const loader = document.getElementById('loading-screen');
     const loginSec = document.getElementById('login-section');
@@ -74,11 +74,12 @@ onAuthStateChanged(auth, async (user) => {
             } else { reveal(onboardSec); }
         } catch (e) { reveal(loginSec); }
     } else {
+        // 🔥 Original 800ms timeout restored to prevent loop
         setTimeout(() => { if (!auth.currentUser) reveal(loginSec); }, 800);
     }
 });
 
-// --- 👑 FIXED FOUNDER RECORDS (LINK FEATURE) ---
+// --- 👑 FOUNDER RECORDS ---
 function listenForNewUsers() {
     const userTableBody = document.getElementById('user-records-body');
     if (!userTableBody) return;
@@ -89,18 +90,15 @@ function listenForNewUsers() {
             return `
             <tr style="border-bottom:1px solid #333;">
                 <td style="padding:10px; font-size:0.8rem;">${data.email || 'N/A'}</td>
-                <td style="padding:10px;">
-                    <button onclick="navigator.clipboard.writeText('${fullLink}'); alert('Link Copied!')" style="background:#444; color:#fff; border:none; padding:4px 8px; font-size:0.6rem; cursor:pointer; border-radius:4px;">Copy Link</button>
-                    <a href="${fullLink}" target="_blank" style="color:#FFD700; font-size:0.7rem; display:block; margin-top:5px;">view.mall/${data.storeId}</a>
-                </td>
-                <td style="padding:10px; color:#888; font-size:0.7rem;">${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Old'}</td>
+                <td style="padding:10px;"><a href="${fullLink}" target="_blank" style="color:#FFD700; font-size:0.75rem;">view.mall/${data.storeId}</a></td>
+                <td style="padding:10px; color:#888; font-size:0.7rem;">${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Existing'}</td>
                 <td style="padding:10px;"><button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; padding:4px 8px; font-size:0.7rem; cursor:pointer;">Audit</button></td>
             </tr>`;
         }).join('');
     });
 }
 
-// --- 🎯 RESTORED FULL DATA LOADING ---
+// --- 🎯 RESTORED DATA LOADING ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -144,8 +142,8 @@ window.uploadNewProduct = async () => {
     const price = document.getElementById('prod-price').value;
     const brand = document.getElementById('prod-brand').value;
     const btn = document.getElementById('upload-prod-btn');
-    if (!name || !price || !pendingProductBase64) return alert("Fill all fields!");
-    btn.innerText = "Optimizing AI Image..."; btn.disabled = true;
+    if (!name || !price || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
+    btn.innerText = "Optimizing..."; btn.disabled = true;
     try {
         const optimized = await optimizeImage(pendingProductBase64);
         const id = Date.now();
@@ -156,10 +154,10 @@ window.uploadNewProduct = async () => {
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name, price: Number(price), category: brand, imgUrl: url, storagePath: path 
         });
-        showToast("Product Added!");
         loadDashboardData();
+        showToast("Product Added!");
     } catch (e) { alert(e.message); }
-    finally { btn.innerText = "Add Item"; btn.disabled = false; }
+    finally { btn.innerText = "Add Item to Store"; btn.disabled = false; }
 };
 
 // --- 🎯 RESTORED STORE SETTINGS ---
@@ -237,5 +235,8 @@ window.toggleMasterVault = () => {
 };
 
 window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
-window.loginWithGoogle = () => signInWithPopup(auth, provider);
+window.loginWithGoogle = () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) signInWithRedirect(auth, provider); else signInWithPopup(auth, provider);
+};
 function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
