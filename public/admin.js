@@ -11,7 +11,7 @@ import {
     browserLocalPersistence 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.app";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -62,10 +62,8 @@ onAuthStateChanged(auth, async (user) => {
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
-    // HIDDEN BY DEFAULT: Prevents "onboarding flash" while database is loading
-    if(loginSec) loginSec.style.display = 'none';
-    if(onboardSec) onboardSec.style.display = 'none';
-    if(dashSec) dashSec.style.display = 'none';
+    // 🔥 HARD HIDE: Instantly hide everything while we check the database
+    [loginSec, onboardSec, dashSec].forEach(sec => { if(sec) sec.style.display = 'none'; });
 
     if (user) {
         if (user.email === MASTER_EMAIL) {
@@ -77,10 +75,12 @@ onAuthStateChanged(auth, async (user) => {
             const snap = await get(dbRef(db, `users/${user.uid}`));
             
             if (snap.exists()) {
+                // EXISTING USER: Verified in DB, go to Dashboard
                 activeStoreId = snap.val().storeId;
                 if(dashSec) dashSec.style.display = 'block';
                 loadDashboardData();
             } else {
+                // NEW USER: No DB entry yet, go to Onboarding
                 if(onboardSec) onboardSec.style.display = 'block';
             }
         } catch (error) {
@@ -88,6 +88,7 @@ onAuthStateChanged(auth, async (user) => {
             if(loginSec) loginSec.style.display = 'block';
         }
     } else { 
+        // NO SESSION: Show Login
         if(loginSec) loginSec.style.display = 'block';
     }
 });
