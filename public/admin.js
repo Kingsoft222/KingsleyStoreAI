@@ -45,7 +45,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
 
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
-// --- 🎯 AUTH ROUTING (RESTORED EXACT WORKING LOGIC) ---
+// --- 🎯 AUTH ROUTING ---
 onAuthStateChanged(auth, async (user) => {
     const loader = document.getElementById('loading-screen');
     const loginSec = document.getElementById('login-section');
@@ -77,7 +77,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// --- 👑 MASTER VAULT (PERFORMANCE + LINKS + RESET) ---
+// --- 👑 MASTER VAULT ---
 function listenForVaultUpdates() {
     const vaultBody = document.getElementById('vault-body');
     if (!vaultBody) return;
@@ -93,23 +93,21 @@ function listenForVaultUpdates() {
                 <td style="padding:10px;">${clicks}</td>
                 <td style="padding:10px;">₦${revenue.toLocaleString()}</td>
                 <td style="padding:10px; display:flex; gap:5px;">
-                    <button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">AUDIT</button>
-                    <button onclick="window.resetStoreRevenue('${id}')" style="background:#e60023; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">RESET</button>
+                    <button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; padding:5px; font-size:0.7rem; cursor:pointer; font-weight:bold;">AUDIT</button>
+                    <button onclick="window.resetStoreRevenue('${id}')" style="background:#e60023; color:#fff; padding:5px; font-size:0.7rem; cursor:pointer; font-weight:bold;">RESET</button>
                 </td>
             </tr>`;
         }).join('');
     });
 }
 
-window.resetStoreRevenue = async (storeId) => {
-    if(!confirm(`Reset revenue and clicks for ${storeId}?`)) return;
-    try {
-        await update(dbRef(db, `stores/${storeId}/analytics`), { totalRevenue: 0, whatsappClicks: 0 });
-        showToast("Revenue Reset!");
-    } catch (e) { alert(e.message); }
+window.resetStoreRevenue = async (id) => {
+    if(!confirm(`Reset data for ${id}?`)) return;
+    await update(dbRef(db, `stores/${id}/analytics`), { totalRevenue: 0, whatsappClicks: 0 });
+    showToast("Reset Complete");
 };
 
-// --- 🎯 DASHBOARD DATA LOADING (RESTORED ALL FIELDS) ---
+// --- 🎯 DASHBOARD DATA ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -123,15 +121,12 @@ async function loadDashboardData() {
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
-        
         const imgP = document.getElementById('admin-img-preview');
         imgP.style.display = "block";
         imgP.src = data.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-        
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
-        
         renderInventoryList(data.catalog || {});
     }
 }
@@ -144,19 +139,37 @@ function renderInventoryList(catalog) {
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details">
                 <h4>${catalog[k].name}</h4>
-                <p>₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
+                <p>₦${catalog[k].price.toLocaleString()} (${catalog[k].category})</p>
             </div>
             <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger"><i class="fas fa-trash"></i></button>
         </div>`).join('');
 }
 
+// --- 🎯 PRODUCT LOGIC (FIXED) ---
+window.handleProductImagePreview = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingProductBase64 = ev.target.result;
+        document.getElementById('prod-img-preview').src = ev.target.result;
+        document.getElementById('prod-img-wrap').style.display = 'inline-block';
+    };
+    reader.readAsDataURL(e.target.files[0]);
+};
+
+window.clearProductImage = () => {
+    pendingProductBase64 = null;
+    document.getElementById('prod-pic-upload').value = "";
+    document.getElementById('prod-img-wrap').style.display = 'none';
+};
+
 window.uploadNewProduct = async () => {
-    const name = document.getElementById('prod-name').value;
-    const price = document.getElementById('prod-price').value;
+    const nameEl = document.getElementById('prod-name');
+    const priceEl = document.getElementById('prod-price');
     const brand = document.getElementById('prod-brand').value;
     const btn = document.getElementById('upload-prod-btn');
-    if (!name || !price || !pendingProductBase64) return alert("Missing product info!");
-    btn.innerText = "Optimizing Image..."; btn.disabled = true;
+    if (!nameEl.value || !priceEl.value || !pendingProductBase64) return alert("Missing Info!");
+    
+    btn.innerText = "Processing..."; btn.disabled = true;
     try {
         const optimized = await optimizeImage(pendingProductBase64);
         const id = Date.now();
@@ -165,8 +178,14 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, optimized, 'data_url', { contentType: 'image/jpeg' });
         const url = await getDownloadURL(sRef);
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
-            name, price: Number(price), category: brand, imgUrl: url, storagePath: path 
+            name: nameEl.value, price: Number(priceEl.value), category: brand, imgUrl: url, storagePath: path 
         });
+        
+        // 🔥 AUTO-CLEAR ALL FIELDS
+        nameEl.value = "";
+        priceEl.value = "";
+        window.clearProductImage();
+        
         showToast("Product Added!");
         loadDashboardData();
     } catch (e) { alert(e.message); }
@@ -193,10 +212,19 @@ window.saveStoreSettings = async () => {
             updateData.profileImage = await getDownloadURL(ref);
         }
         await update(dbRef(db, `stores/${activeStoreId}`), updateData);
-        showToast("Settings Updated!");
+        showToast("Updated!");
         loadDashboardData();
     } catch (e) { alert(e.message); }
     finally { btn.innerText = "Save Settings"; btn.disabled = false; }
+};
+
+window.handleAdminImage = (e) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingBase64Image = ev.target.result;
+        document.getElementById('admin-img-preview').src = ev.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
 };
 
 window.createStoreProfile = async () => {
@@ -212,26 +240,6 @@ window.createStoreProfile = async () => {
         });
         window.location.reload(); 
     } catch (e) { alert(e.message); }
-};
-
-window.handleAdminImage = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingBase64Image = ev.target.result;
-        document.getElementById('admin-img-preview').src = ev.target.result;
-        document.getElementById('admin-img-preview').style.display = 'block';
-    };
-    reader.readAsDataURL(e.target.files[0]);
-};
-
-window.handleProductImagePreview = (e) => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-        pendingProductBase64 = ev.target.result;
-        document.getElementById('prod-img-preview').src = ev.target.result;
-        document.getElementById('prod-img-preview').style.display = 'block';
-    };
-    reader.readAsDataURL(e.target.files[0]);
 };
 
 window.deleteProduct = async (k, path) => {
