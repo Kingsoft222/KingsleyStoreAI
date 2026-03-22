@@ -26,7 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// 🔥 PERSISTENCE: Keeps existing users logged in even after refresh
+// 🔥 PERSISTENCE: Ensures users stay logged in until manual logout
 setPersistence(auth, browserLocalPersistence).catch((err) => console.error("Persistence Error:", err));
 
 const provider = new GoogleAuthProvider();
@@ -62,7 +62,7 @@ onAuthStateChanged(auth, async (user) => {
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
-    // Force hide all sections initially to prevent "Onboarding Flash"
+    // Force hide all sections initially to prevent "Onboarding Flash" for existing users
     [loginSec, onboardSec, dashSec].forEach(s => { if(s) s.style.display = 'none'; });
 
     if (user) {
@@ -73,21 +73,24 @@ onAuthStateChanged(auth, async (user) => {
         try {
             const snap = await get(dbRef(db, `users/${user.uid}`));
             if (snap.exists()) {
+                // EXISTING USER RECORD CAPTURED: Send to Dashboard
                 activeStoreId = snap.val().storeId;
                 if(dashSec) dashSec.style.display = 'block';
                 loadDashboardData();
             } else {
+                // NEW USER: Send to Onboarding
                 if(onboardSec) onboardSec.style.display = 'block';
             }
         } catch (error) {
             if(loginSec) loginSec.style.display = 'block';
         }
     } else { 
+        // NO SESSION: Show Login
         if(loginSec) loginSec.style.display = 'block';
     }
 });
 
-// --- 🎯 DASHBOARD DATA LOADING ---
+// --- 🎯 DASHBOARD DATA LOADING (Captures all existing records) ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -99,7 +102,7 @@ async function loadDashboardData() {
         document.getElementById('admin-label-1').value = data.label1 || "";
         document.getElementById('admin-label-2').value = data.label2 || "";
         
-        // Restore custom greetings mapping
+        // Restore custom greetings mapping precisely
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
@@ -116,18 +119,18 @@ async function loadDashboardData() {
     }
 }
 
-// --- 🎯 INVENTORY RENDERING ---
+// --- 🎯 INVENTORY RENDERING (Keeps UI Consistency) ---
 function renderInventoryList(catalog) {
     const list = document.getElementById('inventory-list');
     if(!list) return;
     list.innerHTML = Object.keys(catalog).map(k => `
-        <div class="inventory-item">
-            <img src="${catalog[k].imgUrl}">
-            <div class="inventory-item-details">
+        <div class="inventory-item" style="display:flex; align-items:center; gap:15px; padding:10px; border-bottom:1px solid #eee;">
+            <img src="${catalog[k].imgUrl}" style="width:50px; height:50px; border-radius:5px; object-fit:cover;">
+            <div class="inventory-item-details" style="flex-grow:1;">
                 <h4 style="margin:0; color:#111;">${catalog[k].name}</h4>
                 <p style="margin:5px 0; font-size:0.85rem; color:#666;">₦${catalog[k].price.toLocaleString()} (${catalog[k].category || 'General'})</p>
             </div>
-            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger">
+            <button onclick="window.deleteProduct('${k}', '${catalog[k].storagePath}')" class="btn-danger" style="background:none; color:#e60023; border:1px solid #e60023; padding:5px 10px; border-radius:5px; cursor:pointer;">
                 <i class="fas fa-trash"></i>
             </button>
         </div>`).join('');
