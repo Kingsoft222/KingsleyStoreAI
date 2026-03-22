@@ -1,6 +1,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref as dbRef, onValue, update, set, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+    getAuth, 
+    signInAnonymously, 
+    onAuthStateChanged, 
+    setPersistence, 
+    browserLocalPersistence 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
@@ -16,6 +22,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
+
+// 🔥 SSO Persistence: Shares your Admin login session with this storefront
+setPersistence(auth, browserLocalPersistence);
+
 const urlParams = new URLSearchParams(window.location.search);
 const currentStoreId = urlParams.get('store') || 'kingsley'; 
 
@@ -128,7 +138,13 @@ window.startTryOn = async () => {
 
 // --- 🎯 BOOTUP ---
 document.addEventListener('DOMContentLoaded', () => {
-    signInAnonymously(auth).catch(() => {});
+    // Check if user is already logged in (Admin SSO), otherwise sign in anonymously
+    onAuthStateChanged(auth, (user) => {
+        if (!user) {
+            signInAnonymously(auth).catch(() => {});
+        }
+    });
+
     window.updateCartUI();
     initVoiceSearch();
     document.getElementById('menu-icon').onclick = (e) => { e.preventDefault(); window.openOptionsMenu(); };
@@ -139,8 +155,9 @@ document.addEventListener('DOMContentLoaded', () => {
     onValue(dbRef(db, `stores/${currentStoreId}`), (snapshot) => {
         const data = snapshot.val();
         if (data) {
-            // 🔥 PASTE THE LINE HERE:
-        window.currentStoreOwnerEmail = data.ownerEmail;
+            // 🔥 CAPTURE OWNER EMAIL FOR SIDEBAR SECURITY
+            window.currentStoreOwnerEmail = data.ownerEmail;
+            
             document.getElementById('store-name-display').innerText = data.storeName || "STORE";
             const input = document.getElementById('ai-input'); 
             if (input) input.placeholder = data.searchHint || "Search style...";
@@ -181,7 +198,7 @@ window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`ca
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
 
-// --- 🎯 SIDEBAR NAVIGATOR (UPDATED FOR THOMAS & ADMINS) ---
+// --- 🎯 SIDEBAR NAVIGATOR (SSO ENABLED) ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
@@ -210,7 +227,7 @@ window.openOptionsMenu = () => {
                         <div style="font-size:0.75rem; font-weight:800; color:#888; text-transform:uppercase; margin-bottom:10px;">Luxury Native</div>
                         <div style="display:flex; flex-direction:column; gap:15px; color:#111;">
                             <div onclick="window.location.assign('?store=adivichi')" style="font-weight:600; cursor:pointer;">🧵 Adivici Fashion ${badge}</div>
-                            <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👕 Thomas Mongi ${badge}</div>
+                            <div onclick="window.location.assign('?store=thomasmongim')" style="font-weight:600; cursor:pointer;">👕 Tommy Best Fashion ${badge}</div>
                         </div>
                     </div>
                     
@@ -231,17 +248,25 @@ window.openOptionsMenu = () => {
             </div>
         </div>`;
     
-    // Trigger dynamic data
     window.loadUnverifiedStores();
     
     // Security check: Only show the "Return to Admin" if current user is the owner
-    // Uses the global 'auth' object and 'window.currentStoreOwnerEmail' from onValue
-    if (typeof onAuthStateChanged !== 'undefined' && typeof auth !== 'undefined') {
-        onAuthStateChanged(auth, (user) => {
-            const adminLink = document.getElementById('admin-sidebar-link');
-            if (user && user.email === window.currentStoreOwnerEmail && adminLink) {
-                adminLink.style.display = 'block';
-            }
-        });
-    }
+    onAuthStateChanged(auth, (user) => {
+        const adminLink = document.getElementById('admin-sidebar-link');
+        if (user && !user.isAnonymous && user.email === window.currentStoreOwnerEmail && adminLink) {
+            adminLink.style.display = 'block';
+        }
+    });
+};
+
+window.loadUnverifiedStores = () => {
+    onValue(dbRef(db, 'stores'), (snap) => {
+        const stores = snap.val();
+        const list = document.getElementById('unverified-list');
+        if (!stores || !list) return;
+        list.innerHTML = Object.entries(stores)
+            .filter(([id, data]) => data.verified !== true)
+            .map(([id, data]) => `<div onclick="window.location.assign('?store=${id}')" style="cursor:pointer;">🏪 ${data.storeName || id} <span style="color:#e60023; font-size:0.6rem;">[NEW]</span></div>`)
+            .join('') || '<div style="color:#aaa;">Searching...</div>';
+    }, { onlyOnce: true });
 };
