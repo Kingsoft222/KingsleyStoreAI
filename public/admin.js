@@ -6,14 +6,15 @@ import {
     getRedirectResult, 
     GoogleAuthProvider, 
     signOut, 
-    onAuthStateChanged 
+    onAuthStateChanged,
+    setPersistence,         // Added for persistent login
+    browserLocalPersistence // Added for persistent login
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    // Fixed: Pointing to Vercel domain to stop the "Timed Out" and "Unsafe attempt" errors
     authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
@@ -24,6 +25,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// 🔥 PERSISTENCE LOGIC: Keeps user signed in even after closing the browser
+setPersistence(auth, browserLocalPersistence)
+  .catch((error) => console.error("Persistence Error:", error));
+
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 const db = getDatabase(app); 
@@ -106,6 +112,7 @@ window.createStoreProfile = async () => {
             storeName: bizName, 
             phone: phone,
             ownerEmail: user.email, 
+            verified: false, // 🔥 Automatically lists in Unverified Stores list
             label1: "Ladies Wear",
             label2: "Men Wear",
             customGreetings: finalGreetings,
@@ -263,9 +270,11 @@ window.deleteProduct = async (k, path) => {
     loadDashboardData();
 };
 
-window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
+window.logoutAdmin = () => signOut(auth).then(() => {
+    // Force clear session on logout
+    window.location.reload();
+});
 
-// Corrected Login to prevent Mobile Timeout & land existing users on Dashboard
 window.loginWithGoogle = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
