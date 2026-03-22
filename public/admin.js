@@ -6,15 +6,14 @@ import {
     getRedirectResult, 
     GoogleAuthProvider, 
     signOut, 
-    onAuthStateChanged,
-    setPersistence,
-    browserLocalPersistence 
+    onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.app";
+import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
+    // Fixed: Pointing to Vercel domain to stop the "Timed Out" and "Unsafe attempt" errors
     authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
@@ -25,10 +24,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-
-// 🔥 PERSISTENCE LOGIC: Ensures user stays signed in across sessions
-setPersistence(auth, browserLocalPersistence).catch((err) => console.error("Persistence Error:", err));
-
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 const db = getDatabase(app); 
@@ -54,7 +49,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
     });
 }
 
-// Critical: Handle Mobile Redirect Result
+// Critical: Handle Mobile Redirect Result to catch existing user data after login
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
 onAuthStateChanged(auth, async (user) => {
@@ -62,34 +57,27 @@ onAuthStateChanged(auth, async (user) => {
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
 
-    // 🔥 HARD HIDE: Instantly hide everything while we check the database
-    [loginSec, onboardSec, dashSec].forEach(sec => { if(sec) sec.style.display = 'none'; });
-
     if (user) {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
         }
-
-        try {
-            const snap = await get(dbRef(db, `users/${user.uid}`));
-            
-            if (snap.exists()) {
-                // EXISTING USER: Verified in DB, go to Dashboard
-                activeStoreId = snap.val().storeId;
-                if(dashSec) dashSec.style.display = 'block';
-                loadDashboardData();
-            } else {
-                // NEW USER: No DB entry yet, go to Onboarding
-                if(onboardSec) onboardSec.style.display = 'block';
-            }
-        } catch (error) {
-            console.error("Routing Error:", error);
-            if(loginSec) loginSec.style.display = 'block';
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        if (snap.exists()) {
+            activeStoreId = snap.val().storeId;
+            if(loginSec) loginSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'none';
+            if(dashSec) dashSec.style.display = 'block';
+            loadDashboardData();
+        } else {
+            if(loginSec) loginSec.style.display = 'none';
+            if(dashSec) dashSec.style.display = 'none';
+            if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        // NO SESSION: Show Login
         if(loginSec) loginSec.style.display = 'block';
+        if(dashSec) dashSec.style.display = 'none';
+        if(onboardSec) onboardSec.style.display = 'none';
     }
 });
 
@@ -118,7 +106,6 @@ window.createStoreProfile = async () => {
             storeName: bizName, 
             phone: phone,
             ownerEmail: user.email, 
-            verified: false,
             label1: "Ladies Wear",
             label2: "Men Wear",
             customGreetings: finalGreetings,
@@ -276,10 +263,9 @@ window.deleteProduct = async (k, path) => {
     loadDashboardData();
 };
 
-window.logoutAdmin = () => signOut(auth).then(() => {
-    window.location.reload();
-});
+window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
 
+// Corrected Login to prevent Mobile Timeout & land existing users on Dashboard
 window.loginWithGoogle = () => {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (isMobile) {
