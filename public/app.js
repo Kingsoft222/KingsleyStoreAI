@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref as dbRef, onValue, update, set, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref as dbRef, onValue, update, set, increment, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { 
     getAuth, 
     signInAnonymously, 
@@ -23,7 +23,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const auth = getAuth(app);
 
-// 🔥 Essential for "Return to Admin" to work across refreshes
+// 🔥 SSO Persistence: Essential for keeping Admin logged in across pages
 setPersistence(auth, browserLocalPersistence);
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -97,7 +97,7 @@ window.initInspectionPan = (boxId, imgId) => {
     box.addEventListener('touchend', () => isPanning = false);
 };
 
-// --- 🚀 VTO ENGINE & CHECKOUT ---
+// --- 🎯 WHATSAPP & RECEIPT ---
 window.checkoutWhatsApp = async () => {
     if (cart.length === 0) return;
     const orderId = "VM-RCP-" + Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -112,6 +112,7 @@ window.checkoutWhatsApp = async () => {
     } catch(e) { alert("Checkout failed."); }
 };
 
+// --- 🚀 VTO ENGINE ---
 window.handleCustomerUpload = (e) => {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -128,13 +129,13 @@ window.startTryOn = async () => {
         const resp = await fetch('/api/process-vto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userImage: optUser, clothImageUrl: selectedCloth.imgUrl, category: selectedCloth.category || "Native" }) });
         const res = await resp.json();
         if (res.success) {
-            resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="res-box"><img src="data:image/png;base64,${res.image}" class="zoom-image" id="res-img"></div><button onclick="window.handleAddToCartLoop()" class="btn-primary">Add to Cart 🛍️</button></div>`;
+            resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="res-box"><img src="data:image/png;base64,${res.image}" class="zoom-image" id="res-img"></div><button onclick="window.handleAddToCartLoop()" class="btn-primary" style="background:#e60023; color:white; padding:15px; width:100%; border-radius:10px; border:none; margin-top:10px; font-weight:bold; cursor:pointer;">Add to Cart 🛍️</button></div>`;
             window.initInspectionPan('res-box', 'res-img');
         }
     } catch (e) { alert("Try-on failed"); }
 };
 
-// --- 🎯 BOOTUP & DATA ---
+// --- 🎯 BOOTUP ---
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => { if (!user) signInAnonymously(auth); });
     window.updateCartUI();
@@ -162,13 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 🎯 SIDEBAR & UTILS ---
+// --- 🎯 SIDEBAR NAVIGATOR ---
 window.openOptionsMenu = () => {
     document.getElementById('fitting-room-modal').style.display = 'flex';
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
     
     document.getElementById('ai-fitting-result').innerHTML = `
-        <div id="sidebar-drawer" style="width:280px; height:100%; background:#fff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1);">
+        <div id="sidebar-drawer" style="width:280px; height:100%; background:#fff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1); border-radius: 0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                 <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer;">🎧 Chat Support</span>
                 <span onclick="window.closeFittingRoom()" style="font-size:1.5rem; cursor:pointer;">✕</span>
@@ -191,20 +192,24 @@ window.openOptionsMenu = () => {
                     <div onclick="window.location.assign('?store=johnsonsneakers')" style="cursor:pointer; margin-top:10px;">🏪 Johnson Sneakers</div>
                 </div>
                 <div id="admin-sidebar-link" style="display:none; margin-top:20px; border-top:2px dashed #eee; padding-top:20px;">
-                    <div onclick="window.location.href='admin.html'" style="color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:10px;">
+                    <div onclick="window.location.href='admin.html'" style="display:flex; align-items:center; gap:10px; color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:10px;">
                         <i class="fas fa-arrow-left"></i> RETURN TO ADMIN
                     </div>
                 </div>
             </div>
+            <div style="padding:40px 0; color:#ccc; font-size:0.7rem; text-align:center; position:absolute; bottom:0; left:20px;">VIRTUALMALL © 2026</div>
         </div>`;
     
-    // 🔥 Check owner identity to show button
+    // 🔥 Reveal Admin Button if User is Owner
     onAuthStateChanged(auth, (user) => {
         const link = document.getElementById('admin-sidebar-link');
-        if (link && user && user.email === window.currentStoreOwnerEmail) link.style.display = 'block';
+        if (link && user && !user.isAnonymous && user.email === window.currentStoreOwnerEmail) {
+            link.style.display = 'block';
+        }
     });
 };
 
+// --- 🎯 UTILITIES ---
 window.executeSearch = () => { 
     const q = document.getElementById('ai-input').value.toLowerCase().trim(); 
     const res = document.getElementById('ai-results'); 
@@ -214,7 +219,19 @@ window.executeSearch = () => {
     res.innerHTML = filt.map(i => `<div class="result-card" onclick="window.promptShowroomChoice('${i.id}')"><img src="${i.imgUrl}"><h4>${i.name}</h4><p>₦${i.price.toLocaleString()}</p></div>`).join(''); 
 };
 
-window.openCart = () => { /* Logic as is */ };
+window.openCart = () => {
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const resDiv = document.getElementById('ai-fitting-result');
+    if (cart.length === 0) { resDiv.innerHTML = `<div style="padding:50px; text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h3>Cart empty</h3></div>`; return; }
+    let total = cart.reduce((s, i) => s + i.price, 0);
+    let itemsHTML = cart.map((item, idx) => `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><div style="text-align:left; color:#111;"><b>${item.name}</b><br><span style="color:#e60023;">₦${item.price.toLocaleString()}</span></div><button onclick="window.removeFromCart(${idx})" style="background:none; border:none; color:#e60023; font-weight:900; cursor:pointer;">✕</button></div>`).join('');
+    resDiv.innerHTML = `<div style="padding:10px;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:800;">CART SUMMARY</h2><div style="max-height:300px; overflow-y:auto; margin-bottom:20px;">${itemsHTML}</div><div style="display:flex; justify-content:space-between; font-weight:900; color:#111; border-top:2px solid #e60023; padding-top:15px;"><span>Total:</span><span>₦${total.toLocaleString()}</span></div><button onclick="window.checkoutWhatsApp()" style="width:100%; padding:20px; background:#25D366; color:white; border-radius:14px; border:none; font-weight:bold; margin-top:20px; cursor:pointer; display:block;">WhatsApp Checkout ➔</button></div>`;
+};
+
+window.handleAddToCartLoop = () => { if (selectedCloth) { cart.push(selectedCloth); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.updateCartUI(); const s = document.getElementById('cta-stack'); if (s) s.innerHTML = `<button onclick="window.closeFittingRoom()" style="width:100%; padding:20px; background:#555; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">Check Another One</button><button onclick="window.openCart()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; border:none; font-weight:900; cursor:pointer;">PROCEED TO CART ➔</button>`; } };
+window.promptShowroomChoice = (id) => { selectedCloth = storeCatalog.find(c => String(c.id) === String(id)); document.getElementById('fitting-room-modal').style.display = 'flex'; document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="pre-box"><img src="${selectedCloth.imgUrl}" class="zoom-image" id="pre-img"></div><h3 style="color:#111; margin:0;">${selectedCloth.name}</h3><p style="color:#e60023; font-weight:900; font-size:1.5rem;">₦${selectedCloth.price.toLocaleString()}</p><button onclick="window.proceedToUpload()" style="background:#e60023; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold; cursor:pointer;">Wear it! ✨</button></div>`; window.initInspectionPan('pre-box', 'pre-img'); };
+window.proceedToUpload = () => { document.getElementById('ai-fitting-result').innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div style="font-size:3rem;">🤳</div><h2 style="color:#e60023;">FINISH YOUR LOOK</h2><input type="file" id="temp-tryon-input" hidden onchange="window.handleCustomerUpload(event)" /><button onclick="document.getElementById('temp-tryon-input').click()" style="background:#111; color:white; padding:18px; width:100%; border-radius:14px; border:none; font-weight:bold; cursor:pointer;">SELECT PHOTO</button></div>`; };
 window.closeFittingRoom = () => { document.getElementById('fitting-room-modal').style.display = 'none'; };
+window.removeFromCart = (idx) => { cart.splice(idx, 1); localStorage.setItem(`cart_${currentStoreId}`, JSON.stringify(cart)); window.updateCartUI(); window.openCart(); };
 window.updateCartUI = () => { const c = document.getElementById('cart-count'); if (c) c.innerText = cart.length; };
 window.quickSearch = (q) => { document.getElementById('ai-input').value = q; window.executeSearch(); };
