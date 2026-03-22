@@ -1,11 +1,20 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { 
+    getAuth, 
+    signInWithPopup, 
+    signInWithRedirect, 
+    getRedirectResult, 
+    GoogleAuthProvider, 
+    signOut, 
+    onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getDatabase, ref as dbRef, get, set, update, push, remove, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhzPRw3Gw4nN1DlIxDa1KszH69I4bcHPE",
-    authDomain: "kingsleystoreai.firebaseapp.com", 
+    // Fixed: Pointing to Vercel domain to stop the "Timed Out" and "Unsafe attempt" errors
+    authDomain: "kingsley-store-ai.vercel.app", 
     projectId: "kingsleystoreai",
     storageBucket: "kingsleystoreai.firebasestorage.app",
     messagingSenderId: "31402654971",
@@ -40,10 +49,14 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
     });
 }
 
+// Critical: Handle Mobile Redirect Result to catch existing user data after login
+getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
+
 onAuthStateChanged(auth, async (user) => {
     const loginSec = document.getElementById('login-section');
     const onboardSec = document.getElementById('onboarding-section');
     const dashSec = document.getElementById('dashboard-section');
+
     if (user) {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
@@ -52,18 +65,18 @@ onAuthStateChanged(auth, async (user) => {
         const snap = await get(dbRef(db, `users/${user.uid}`));
         if (snap.exists()) {
             activeStoreId = snap.val().storeId;
-            loginSec.style.display = 'none';
+            if(loginSec) loginSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'none';
-            dashSec.style.display = 'block';
+            if(dashSec) dashSec.style.display = 'block';
             loadDashboardData();
         } else {
-            loginSec.style.display = 'none';
-            dashSec.style.display = 'none';
+            if(loginSec) loginSec.style.display = 'none';
+            if(dashSec) dashSec.style.display = 'none';
             if(onboardSec) onboardSec.style.display = 'block';
         }
     } else { 
-        loginSec.style.display = 'block';
-        dashSec.style.display = 'none';
+        if(loginSec) loginSec.style.display = 'block';
+        if(dashSec) dashSec.style.display = 'none';
         if(onboardSec) onboardSec.style.display = 'none';
     }
 });
@@ -151,7 +164,6 @@ window.uploadNewProduct = async () => {
         await uploadString(sRef, optimizedImg, 'data_url', { contentType: 'image/jpeg' });
         const url = await getDownloadURL(sRef);
         
-        // Ensure category matches what process-vto.js expects (Native, Corporate, Casual)
         let selectedCategory = brandInput.value;
         if(selectedCategory === "Native Wear") selectedCategory = "Native";
         if(selectedCategory === "Suits") selectedCategory = "Corporate";
@@ -159,7 +171,7 @@ window.uploadNewProduct = async () => {
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name: nameInput.value, 
             price: Number(priceInput.value),
-            category: selectedCategory, // Used by VTO logic
+            category: selectedCategory, 
             tags: tagsInput.value || "", 
             imgUrl: url, 
             storagePath: path 
@@ -231,7 +243,9 @@ window.handleProductImagePreview = (e) => {
 };
 
 function renderInventoryList(catalog) {
-    document.getElementById('inventory-list').innerHTML = Object.keys(catalog).map(k => `
+    const list = document.getElementById('inventory-list');
+    if(!list) return;
+    list.innerHTML = Object.keys(catalog).map(k => `
         <div class="inventory-item">
             <img src="${catalog[k].imgUrl}">
             <div class="inventory-item-details">
@@ -250,7 +264,17 @@ window.deleteProduct = async (k, path) => {
 };
 
 window.logoutAdmin = () => signOut(auth).then(() => window.location.reload());
-window.loginWithGoogle = () => signInWithPopup(auth, provider);
+
+// Corrected Login to prevent Mobile Timeout & land existing users on Dashboard
+window.loginWithGoogle = () => {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+        signInWithRedirect(auth, provider);
+    } else {
+        signInWithPopup(auth, provider);
+    }
+};
+
 function showToast(m) { const t = document.getElementById('status-toast'); if(t) { t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); } }
 
 window.toggleMasterVault = async () => {
