@@ -25,9 +25,9 @@
         .btn-outline { background: #eee; color: #333; }
         .btn-danger { background: none; color: #e60023; border: 1px solid #e60023; width: auto; padding: 5px 15px; margin-top: 5px; font-size: 0.8rem; }
         .btn-master { background: #000; color: #FFD700; display: none; margin-bottom: 20px; width: 100%; border: 1px solid #FFD700; }
-        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; color: #fff; }
+        #master-vault-section table { width:100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; color: #fff; }
         #master-vault-section th { color: #FFD700; border-bottom: 2px solid #333; padding: 10px; text-align: left; }
-        #master-vault-section td { padding: 10px; border-bottom: 1px solid #222; }
+        #master-vault-section td { padding: 10px; border-bottom: 1px solid #222; vertical-align: middle; }
         #status-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 20px; display: none; z-index: 1000; }
         .preview-img { width: 100px; height: 100px; object-fit: cover; border-radius: 50%; display: none; margin: 10px auto; border: 3px solid var(--primary); }
         .inventory-item { display: flex; align-items: center; gap: 15px; padding: 10px; border-bottom: 1px solid #eee; }
@@ -63,18 +63,18 @@
         </button>
 
         <div id="master-vault-section" class="card" style="display:none; background: #000; color: #fff; border: 1px solid #333;">
-            <h3 style="color:#FFD700;"><i class="fas fa-crown"></i> Founder's Control Room</h3>
+            <h3 style="color:#FFD700;"><i class="fas fa-chart-line"></i> Global Performance Tracker</h3>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Email</th>
-                            <th>Profile Link</th>
-                            <th>Joined</th>
-                            <th>Action</th>
+                            <th>Store Link</th>
+                            <th>Clicks</th>
+                            <th>Revenue</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="user-records-body"></tbody>
+                    <tbody id="vault-body"></tbody>
                 </table>
             </div>
         </div>

@@ -27,7 +27,6 @@ const storage = getStorage(app);
 const MASTER_EMAIL = "kman39980@gmail.com";
 let activeStoreId = "", pendingBase64Image = null, pendingProductBase64 = null; 
 
-// --- 🎯 RESTORED IMAGE OPTIMIZATION ---
 async function optimizeImage(base64Str, maxWidth = 1024) {
     return new Promise((resolve) => {
         const img = new Image();
@@ -46,7 +45,7 @@ async function optimizeImage(base64Str, maxWidth = 1024) {
 
 getRedirectResult(auth).catch((err) => console.error("Auth Redirect Error:", err));
 
-// --- 🎯 RESTORED AUTH ROUTING (FIXED LOGIN LOOP) ---
+// --- 🎯 AUTH ROUTING (RESTORED EXACT WORKING LOGIC) ---
 onAuthStateChanged(auth, async (user) => {
     const loader = document.getElementById('loading-screen');
     const loginSec = document.getElementById('login-section');
@@ -63,7 +62,7 @@ onAuthStateChanged(auth, async (user) => {
         if (user.email === MASTER_EMAIL) {
             const mBtn = document.getElementById('master-btn');
             if(mBtn) { mBtn.style.display = 'block'; mBtn.removeAttribute('disabled'); }
-            listenForNewUsers(); 
+            listenForVaultUpdates(); 
         }
         try {
             const snap = await get(dbRef(db, `users/${user.uid}`));
@@ -74,31 +73,43 @@ onAuthStateChanged(auth, async (user) => {
             } else { reveal(onboardSec); }
         } catch (e) { reveal(loginSec); }
     } else {
-        // 🔥 Original 800ms timeout restored to prevent loop
         setTimeout(() => { if (!auth.currentUser) reveal(loginSec); }, 800);
     }
 });
 
-// --- 👑 FOUNDER RECORDS ---
-function listenForNewUsers() {
-    const userTableBody = document.getElementById('user-records-body');
-    if (!userTableBody) return;
-    onValue(dbRef(db, 'users'), (snapshot) => {
-        const users = snapshot.val() || {};
-        userTableBody.innerHTML = Object.entries(users).map(([uid, data]) => {
-            const fullLink = `${window.location.origin}/?store=${data.storeId}`;
+// --- 👑 MASTER VAULT (PERFORMANCE + LINKS + RESET) ---
+function listenForVaultUpdates() {
+    const vaultBody = document.getElementById('vault-body');
+    if (!vaultBody) return;
+    onValue(dbRef(db, 'stores'), (snapshot) => {
+        const stores = snapshot.val() || {};
+        vaultBody.innerHTML = Object.entries(stores).map(([id, s]) => {
+            const fullLink = `${window.location.origin}/?store=${id}`;
+            const clicks = s.analytics?.whatsappClicks || 0;
+            const revenue = s.analytics?.totalRevenue || 0;
             return `
-            <tr style="border-bottom:1px solid #333;">
-                <td style="padding:10px; font-size:0.8rem;">${data.email || 'N/A'}</td>
-                <td style="padding:10px;"><a href="${fullLink}" target="_blank" style="color:#FFD700; font-size:0.75rem;">view.mall/${data.storeId}</a></td>
-                <td style="padding:10px; color:#888; font-size:0.7rem;">${data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Existing'}</td>
-                <td style="padding:10px;"><button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; padding:4px 8px; font-size:0.7rem; cursor:pointer;">Audit</button></td>
+            <tr style="border-bottom:1px solid #222;">
+                <td style="padding:10px;"><a href="${fullLink}" target="_blank" style="color:#FFD700; text-decoration:none;">view.mall/${id}</a></td>
+                <td style="padding:10px;">${clicks}</td>
+                <td style="padding:10px;">₦${revenue.toLocaleString()}</td>
+                <td style="padding:10px; display:flex; gap:5px;">
+                    <button onclick="window.open('${fullLink}', '_blank')" style="background:#fff; color:#000; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">AUDIT</button>
+                    <button onclick="window.resetStoreRevenue('${id}')" style="background:#e60023; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.7rem;">RESET</button>
+                </td>
             </tr>`;
         }).join('');
     });
 }
 
-// --- 🎯 RESTORED DATA LOADING ---
+window.resetStoreRevenue = async (storeId) => {
+    if(!confirm(`Reset revenue and clicks for ${storeId}?`)) return;
+    try {
+        await update(dbRef(db, `stores/${storeId}/analytics`), { totalRevenue: 0, whatsappClicks: 0 });
+        showToast("Revenue Reset!");
+    } catch (e) { alert(e.message); }
+};
+
+// --- 🎯 DASHBOARD DATA LOADING (RESTORED ALL FIELDS) ---
 async function loadDashboardData() {
     if(!activeStoreId) return;
     const snap = await get(dbRef(db, `stores/${activeStoreId}`));
@@ -112,12 +123,15 @@ async function loadDashboardData() {
         const greetText = document.getElementById('admin-greetings');
         if (greetText) greetText.value = (data.customGreetings || []).join('\n');
         document.getElementById('greetings-toggle').checked = data.greetingsEnabled !== false;
+        
         const imgP = document.getElementById('admin-img-preview');
         imgP.style.display = "block";
         imgP.src = data.profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+        
         const storeLink = `${window.location.origin}/?store=${activeStoreId}`;
         const linkEl = document.getElementById('my-store-link');
         if(linkEl) { linkEl.href = storeLink; linkEl.innerText = storeLink; }
+        
         renderInventoryList(data.catalog || {});
     }
 }
@@ -136,14 +150,13 @@ function renderInventoryList(catalog) {
         </div>`).join('');
 }
 
-// --- 🎯 RESTORED PRODUCT UPLOAD ---
 window.uploadNewProduct = async () => {
     const name = document.getElementById('prod-name').value;
     const price = document.getElementById('prod-price').value;
     const brand = document.getElementById('prod-brand').value;
     const btn = document.getElementById('upload-prod-btn');
-    if (!name || !price || !pendingProductBase64) return alert("Fill Name, Price & Photo!");
-    btn.innerText = "Optimizing..."; btn.disabled = true;
+    if (!name || !price || !pendingProductBase64) return alert("Missing product info!");
+    btn.innerText = "Optimizing Image..."; btn.disabled = true;
     try {
         const optimized = await optimizeImage(pendingProductBase64);
         const id = Date.now();
@@ -154,13 +167,12 @@ window.uploadNewProduct = async () => {
         await push(dbRef(db, `stores/${activeStoreId}/catalog`), { 
             name, price: Number(price), category: brand, imgUrl: url, storagePath: path 
         });
-        loadDashboardData();
         showToast("Product Added!");
+        loadDashboardData();
     } catch (e) { alert(e.message); }
     finally { btn.innerText = "Add Item to Store"; btn.disabled = false; }
 };
 
-// --- 🎯 RESTORED STORE SETTINGS ---
 window.saveStoreSettings = async () => {
     const btn = document.getElementById('save-btn');
     btn.innerText = "Saving..."; btn.disabled = true;
@@ -193,7 +205,7 @@ window.createStoreProfile = async () => {
     const bizName = document.getElementById('setup-bizname').value.trim();
     const phone = document.getElementById('setup-phone').value.trim();
     try {
-        await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email, createdAt: Date.now() });
+        await set(dbRef(db, `users/${user.uid}`), { storeId: username, email: user.email });
         await set(dbRef(db, `stores/${username}`), { 
             storeName: bizName, phone: phone, ownerEmail: user.email, 
             label1: "Ladies Wear", label2: "Men Wear", greetingsEnabled: true 
