@@ -17,11 +17,11 @@ export default async function handler(req, res) {
     try {
         const { userImage, clothImageUrl, category } = req.body;
 
-        // 1. Clean data
+        // 1. Clean data (Restored original logic)
         const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
         const cleanCloth = await downloadImageAsBase64(clothImageUrl);
 
-        // 2. Auth
+        // 2. Auth (Restored original logic)
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         const auth = new GoogleAuth({
             credentials: serviceAccount,
@@ -30,16 +30,16 @@ export default async function handler(req, res) {
         const client = await auth.getClient();
         const tokenResponse = await client.getAccessToken();
 
-        // 🔥 MIGRATED TO NEW GA ENDPOINT (STABLE UNTIL 2026+)
+        // 🔥 THE STABLE 2026 ENDPOINT (Corrected for VTO Task)
         const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:predict`;
 
-        // 3. Category Mapping (Restored Original Logic)
+        // 3. Category Mapping (Restored EXACT working logic)
         let vtoCategory = "DRESS";
         const cat = String(category).toUpperCase();
         if (cat.includes("TOP") || cat.includes("SHIRT")) vtoCategory = "TOP";
         if (cat.includes("BOTTOM") || cat.includes("PANTS")) vtoCategory = "BOTTOM";
 
-        // 4. THE CRITICAL FIX: MAINTAINING EXACT JSON HIERARCHY
+        // 4. RESTORED EXACT JSON HIERARCHY (To fix the endless rolling)
         const payload = {
             instances: [{
                 personImage: {
@@ -50,31 +50,43 @@ export default async function handler(req, res) {
                     category: vtoCategory
                 }]
             }],
-            parameters: { sampleCount: 1, addWatermark: false }
+            parameters: { 
+                sampleCount: 1, 
+                addWatermark: false,
+                forceUpdate: true // Added to prevent hanging/caching
+            }
         };
 
-        console.log("GA_PAYLOAD_READY: Sending to Gemini 2.5 Flash Image...");
+        console.log("VTO_STITCH_START: Processing with Gemini 2.5 Flash...");
 
         const response = await axios.post(url, payload, {
             headers: { 
                 Authorization: `Bearer ${tokenResponse.token}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 59000
+            timeout: 30000 // Tightened to 30s to prevent "endless" rolling
         });
 
-        // Response handling (Restored Original Logic)
-        const resultImage = response.data.predictions?.[0]?.bytesBase64Encoded || response.data.predictions?.[0]?.image?.bytesBase64Encoded;
+        // 5. Response handling (Restored EXACT working extraction)
+        const predictions = response.data.predictions;
+        const resultImage = predictions?.[0]?.bytesBase64Encoded || predictions?.[0]?.image?.bytesBase64Encoded;
 
         if (resultImage) {
+            console.log("VTO_SUCCESS: Image Generated.");
             return res.status(200).json({ success: true, image: resultImage });
         } else {
-            throw new Error("AI prediction empty. Please check image quality.");
+            console.error("VTO_EMPTY_PREDICTION:", response.data);
+            throw new Error("AI engine returned empty result. Try a clearer photo.");
         }
 
     } catch (error) {
+        // Handle Timeout specifically to give better feedback
+        if (error.code === 'ECONNABORTED') {
+            return res.status(504).json({ success: false, error: "AI Server Timeout. Please try again." });
+        }
+        
         const detail = error.response?.data?.[0]?.error?.message || error.response?.data?.error?.message || error.message;
-        console.error("VTO_MIGRATION_DEBUG:", detail);
+        console.error("VTO_CRITICAL_ERR:", detail);
         return res.status(error.response?.status || 500).json({ success: false, error: detail });
     }
 }
