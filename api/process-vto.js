@@ -30,15 +30,16 @@ export default async function handler(req, res) {
         const client = await auth.getClient();
         const tokenResponse = await client.getAccessToken();
 
-        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+        // 🔥 MIGRATED TO NEW GA ENDPOINT (STABLE UNTIL 2026+)
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/gemini-2.5-flash-image:predict`;
 
-        // 3. Category Mapping (Model expects TOP, BOTTOM, or DRESS)
+        // 3. Category Mapping (Restored Original Logic)
         let vtoCategory = "DRESS";
         const cat = String(category).toUpperCase();
         if (cat.includes("TOP") || cat.includes("SHIRT")) vtoCategory = "TOP";
         if (cat.includes("BOTTOM") || cat.includes("PANTS")) vtoCategory = "BOTTOM";
 
-        // 4. THE CRITICAL FIX: EXACT JSON HIERARCHY
+        // 4. THE CRITICAL FIX: MAINTAINING EXACT JSON HIERARCHY
         const payload = {
             instances: [{
                 personImage: {
@@ -52,7 +53,7 @@ export default async function handler(req, res) {
             parameters: { sampleCount: 1, addWatermark: false }
         };
 
-        console.log("PAYLOAD_READY: Sending to Vertex AI...");
+        console.log("GA_PAYLOAD_READY: Sending to Gemini 2.5 Flash Image...");
 
         const response = await axios.post(url, payload, {
             headers: { 
@@ -62,7 +63,7 @@ export default async function handler(req, res) {
             timeout: 59000
         });
 
-        // Response handling
+        // Response handling (Restored Original Logic)
         const resultImage = response.data.predictions?.[0]?.bytesBase64Encoded || response.data.predictions?.[0]?.image?.bytesBase64Encoded;
 
         if (resultImage) {
@@ -73,7 +74,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         const detail = error.response?.data?.[0]?.error?.message || error.response?.data?.error?.message || error.message;
-        console.error("VTO_FINAL_DEBUG:", detail);
+        console.error("VTO_MIGRATION_DEBUG:", detail);
         return res.status(error.response?.status || 500).json({ success: false, error: detail });
     }
 }
