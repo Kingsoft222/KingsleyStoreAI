@@ -1,89 +1,121 @@
 import axios from 'axios';
 import { GoogleAuth } from 'google-auth-library';
 
-// --- BUDGET GUARD (70 Try-ons = ~₦4,000) ---
-let currentUsage = 0;
+// --- 🛡️ BUDGET GUARD: Limits to 70 successful try-ons (approx. ₦4,000) ---
+let globalUsageCounter = 0;
 const MAX_LIMIT = 70;
 
-export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+// --- 🛠️ Helper: Fetch Cloth from Firebase Storage ---
+async function downloadImageAsBase64(url) {
+    try {
+        const response = await axios.get(url, { 
+            responseType: 'arraybuffer', 
+            timeout: 15000 
+        });
+        return Buffer.from(response.data, 'binary').toString('base64');
+    } catch (err) {
+        console.error("LOG: Cloth Download Error ->", err.message);
+        throw new Error("Could not fetch the clothing image from storage.");
+    }
+}
 
-    // 1. Check Daily Budget Limit
-    if (currentUsage >= MAX_LIMIT) {
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    // 1. Check if the 70-limit has been reached
+    if (globalUsageCounter >= MAX_LIMIT) {
         return res.status(403).json({ 
             success: false, 
-            error: "Premium Try-On limit reached for today. We reset at midnight!" 
+            error: "Premium Daily Limit (70/70) reached. We reset at midnight!" 
         });
     }
 
     try {
-        // Handle both stringified and object bodies from your existing UI logic
-        let data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-        const { userImage, clothImage, category } = data;
+        const { userImage, clothImageUrl, category } = req.body;
 
-        if (!userImage || !clothImage) {
-            return res.status(400).json({ success: false, error: "Images are missing." });
+        if (!userImage || !clothImageUrl) {
+            return res.status(400).json({ error: "Missing images for processing." });
         }
 
-        // 2. AUTHENTICATION (Using your saved Vercel Variable)
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+        // 2. Prepare Base64 Data
+        const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
+        const cleanCloth = await downloadImageAsBase64(clothImageUrl);
 
+        // 3. Authenticate with Google Cloud
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         const auth = new GoogleAuth({
             credentials: serviceAccount,
             scopes: 'https://www.googleapis.com/auth/cloud-platform',
         });
+        
         const client = await auth.getClient();
-        const token = await client.getAccessToken();
+        const tokenResponse = await client.getAccessToken();
+        const accessToken = tokenResponse.token;
 
-        // 3. THE ENTERPRISE ENDPOINT (GA v1 2026)
-        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+        // 4. Define the Specialized VTO Endpoint
+        const projectId = serviceAccount.project_id;
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
 
-        // 4. CATEGORY MAPPING (Matches your existing Logic)
+        // 5. Map Category (TOP, BOTTOM, or DRESS)
         let vtoCategory = "DRESS";
         const cat = String(category || "").toUpperCase();
-        if (cat.includes("TOP") || cat.includes("CORPORATE")) vtoCategory = "TOP";
-        if (cat.includes("BOTTOM") || cat.includes("CASUAL")) vtoCategory = "BOTTOM";
+        if (cat.includes("TOP") || cat.includes("SHIRT")) vtoCategory = "TOP";
+        if (cat.includes("BOTTOM") || cat.includes("PANTS")) vtoCategory = "BOTTOM";
 
-        // 5. THE 4-SECOND HD PAYLOAD
-        const response = await axios.post(url, {
+        // 6. Construct the Payload (Exact Hierarchy for 4s Speed)
+        const payload = {
             instances: [{
-                personImage: { image: { bytesBase64Encoded: userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage } },
-                productImages: [{ 
-                    image: { bytesBase64Encoded: clothImage.includes('base64,') ? clothImage.split('base64,')[1] : clothImage },
-                    category: vtoCategory 
+                personImage: {
+                    image: { bytesBase64Encoded: cleanUser.trim() }
+                },
+                productImages: [{
+                    image: { bytesBase64Encoded: cleanCloth.trim() },
+                    category: vtoCategory
                 }]
             }],
             parameters: { 
                 sampleCount: 1, 
-                addWatermark: false,
-                enableImageRefinement: false, // 👈 KEY FOR 4-SEC SPEED (Skips the extra cleanup pass)
-                guidanceScale: 2.5 
+                addWatermark: false 
+                // enableImageRefinement is OMITTED for maximum speed
             }
-        }, {
+        };
+
+        // 7. Execute API Call
+        const response = await axios.post(url, payload, {
             headers: { 
-                Authorization: `Bearer ${token.token}`,
+                Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             },
-            timeout: 45000 // Prevents "Forever Loading" if a network glitch occurs
+            timeout: 28000 
         });
 
-        const prediction = response.data.predictions?.[0];
-        const resultBase64 = prediction?.bytesBase64Encoded;
+        // 8. Extract Result
+        const predictions = response.data.predictions;
+        const resultBase64 = predictions?.[0]?.bytesBase64Encoded || predictions?.[0]?.image?.bytesBase64Encoded;
 
         if (resultBase64) {
-            currentUsage++; // Track the 70-limit
-            return res.status(200).json({ success: true, image: resultBase64 });
+            // Increment only on successful generation
+            globalUsageCounter++; 
+            console.log(`LOG: VTO Success. Current Usage: ${globalUsageCounter}/${MAX_LIMIT}`);
+            
+            return res.status(200).json({ 
+                success: true, 
+                image: resultBase64 
+            });
         } else {
-            throw new Error("AI_NO_OUTPUT");
+            throw new Error("AI engine failed to generate an image.");
         }
 
     } catch (error) {
-        console.error("VTO_FINAL_ERROR:", error.response?.data || error.message);
-        // Returns success:false so your UI shows the error instead of spinning
-        return res.status(200).json({ 
+        const statusCode = error.response?.status || 500;
+        const errorMessage = error.response?.data?.error?.message || error.message;
+        console.error(`LOG: VTO Error ->`, errorMessage);
+        
+        return res.status(statusCode).json({ 
             success: false, 
-            error: "Try-on process failed. Please ensure your photo is clear." 
+            error: "Process failed. Please ensure the photo is clear." 
         });
     }
 }
