@@ -1,68 +1,67 @@
 import axios from 'axios';
-
-async function downloadImageAsBase64(url) {
-    try {
-        // Adding a timestamp to the URL ensures we don't fetch a cached version from the server
-        const freshUrl = `${url}${url.includes('?') ? '&' : '?'}cacheBust=${Date.now()}`;
-        const response = await axios.get(freshUrl, { responseType: 'arraybuffer', timeout: 15000 });
-        return Buffer.from(response.data, 'binary').toString('base64');
-    } catch (err) {
-        throw new Error("IMAGE_FETCH_ERROR");
-    }
-}
+import { GoogleAuth } from 'google-auth-library';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
     try {
-        const { userImage, clothImageUrl, category } = req.body;
-        const apiKey = process.env.GEMINI_API_KEY;
+        let data = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const { userImage, clothImage, category } = data;
 
-        if (!apiKey) return res.status(500).json({ success: false, error: "Missing API Key" });
-
-        const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
-        const cleanCloth = await downloadImageAsBase64(clothImageUrl);
-
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
-
-        const payload = {
-            contents: [{
-                parts: [
-                    { inlineData: { mimeType: "image/jpeg", data: cleanUser.trim() } },
-                    { inlineData: { mimeType: "image/jpeg", data: cleanCloth.trim() } },
-                    { text: `TASK_ID_${Date.now()}: Perform a high-quality Virtual Try-On. 
-                            Remove the current clothing from the person in Image 1. 
-                            Replace it with the exact garment from Image 2 (${category || 'outfit'}). 
-                            The person MUST be wearing the new item in the final output. 
-                            Return ONLY the new processed image. Discard the original unchanged person.` }
-                ]
-            }],
-            generationConfig: {
-                responseModalities: ["IMAGE"],
-                temperature: 0.6, // 👈 Balanced to ensure it actually modifies the pixels
-                topP: 0.95
-            }
-        };
-
-        const response = await axios.post(url, payload, { timeout: 40000 });
-        
-        // Safety check to ensure the AI actually produced an image part
-        const resultPart = response.data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-        const resultImage = resultPart?.inlineData?.data;
-
-        if (resultImage) {
-            // Success: Sending back to your app.js exactly as it expects
-            return res.status(200).json({ success: true, image: resultImage });
-        } else {
-            // If the AI returned the original image, it usually means it hit a safety block
-            const reason = response.data.candidates?.[0]?.finishReason || "AI_BYPASS_DETECTION";
-            throw new Error(`AI ignored the request: ${reason}. Try a different photo.`);
+        if (!userImage || !clothImage) {
+            return res.status(400).json({ success: false, error: "Image data missing." });
         }
 
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+
+        const auth = new GoogleAuth({
+            credentials: serviceAccount,
+            scopes: 'https://www.googleapis.com/auth/cloud-platform',
+        });
+        const client = await auth.getClient();
+        const token = await client.getAccessToken();
+
+        const url = `https://us-central1-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/us-central1/publishers/google/models/virtual-try-on-001:predict`;
+
+        // Exact mapping for Nigerian Native Wear vs Corporate
+        let vtoCategory = "DRESS";
+        if (category === "Corporate" || category === "Top") vtoCategory = "TOP";
+        if (category === "Casual" || category === "Bottom") vtoCategory = "BOTTOM";
+        if (category === "Native" || category === "Agbada") vtoCategory = "DRESS";
+
+        const response = await axios.post(url, {
+            instances: [{
+                personImage: { image: { bytesBase64Encoded: userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage } },
+                productImages: [{ 
+                    image: { bytesBase64Encoded: clothImage.includes('base64,') ? clothImage.split('base64,')[1] : clothImage },
+                    category: vtoCategory 
+                }]
+            }],
+            parameters: { 
+                sampleCount: 1, 
+                addWatermark: false,
+                enableImageRefinement: true, // 👈 Keep this ON for the clear quality
+                guidanceScale: 2.5 
+            }
+        }, {
+            headers: { 
+                Authorization: `Bearer ${token.token}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 55000 
+        });
+
+        const prediction = response.data.predictions?.[0];
+        if (!prediction?.bytesBase64Encoded) throw new Error("AI returned no data.");
+
+        return res.status(200).json({ success: true, image: prediction.bytesBase64Encoded });
+
     } catch (error) {
-        const detail = error.response?.data?.error?.message || error.message;
-        console.error("VTO_STABILITY_ERROR:", detail);
-        // Returning success: false ensures your app.js can show the error instead of the wrong image
-        return res.status(200).json({ success: false, error: detail });
+        console.error("VTO_SYSTEM_ERROR:", error.response?.data || error.message);
+        return res.status(200).json({ 
+            success: false, 
+            error: "Please use a clear, full-body photo for the best fit." 
+        });
     }
 }
