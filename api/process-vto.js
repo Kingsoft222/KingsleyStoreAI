@@ -2,26 +2,23 @@ import axios from 'axios';
 
 async function downloadImageAsBase64(url) {
     try {
-        // Add a random query param to the cloth URL to bypass any image host caching
-        const freshUrl = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+        // Adding a timestamp to the URL ensures we don't fetch a cached version from the server
+        const freshUrl = `${url}${url.includes('?') ? '&' : '?'}cacheBust=${Date.now()}`;
         const response = await axios.get(freshUrl, { responseType: 'arraybuffer', timeout: 15000 });
         return Buffer.from(response.data, 'binary').toString('base64');
     } catch (err) {
-        throw new Error("CLOTH_FETCH_FAILED");
+        throw new Error("IMAGE_FETCH_ERROR");
     }
 }
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-    // Force the browser to NEVER cache this API response
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-
     try {
         const { userImage, clothImageUrl, category } = req.body;
         const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey) return res.status(500).json({ success: false, error: "Missing API Key" });
 
         const cleanUser = userImage.includes('base64,') ? userImage.split('base64,')[1] : userImage;
         const cleanCloth = await downloadImageAsBase64(clothImageUrl);
@@ -33,31 +30,39 @@ export default async function handler(req, res) {
                 parts: [
                     { inlineData: { mimeType: "image/jpeg", data: cleanUser.trim() } },
                     { inlineData: { mimeType: "image/jpeg", data: cleanCloth.trim() } },
-                    { text: `TASK: NEW_REQUEST_${Date.now()}. 
-                            Strict Virtual Try-On. 
-                            Discard all previous memory. 
-                            Dress the person in Image 1 with the ${category || 'item'} in Image 2. 
-                            The person MUST be wearing the new item. 
-                            Output the processed image only.` }
+                    { text: `TASK_ID_${Date.now()}: Perform a high-quality Virtual Try-On. 
+                            Remove the current clothing from the person in Image 1. 
+                            Replace it with the exact garment from Image 2 (${category || 'outfit'}). 
+                            The person MUST be wearing the new item in the final output. 
+                            Return ONLY the new processed image. Discard the original unchanged person.` }
                 ]
             }],
             generationConfig: {
                 responseModalities: ["IMAGE"],
-                temperature: 0.5, // 👈 Balanced for stability and accuracy
-                topP: 1.0
+                temperature: 0.6, // 👈 Balanced to ensure it actually modifies the pixels
+                topP: 0.95
             }
         };
 
-        const response = await axios.post(url, payload, { timeout: 30000 });
-        const resultBase64 = response.data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+        const response = await axios.post(url, payload, { timeout: 40000 });
+        
+        // Safety check to ensure the AI actually produced an image part
+        const resultPart = response.data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        const resultImage = resultPart?.inlineData?.data;
 
-        if (resultBase64) {
-            return res.status(200).json({ success: true, image: resultBase64 });
+        if (resultImage) {
+            // Success: Sending back to your app.js exactly as it expects
+            return res.status(200).json({ success: true, image: resultImage });
         } else {
-            throw new Error("AI_RETURNED_ORIGINAL_OR_EMPTY");
+            // If the AI returned the original image, it usually means it hit a safety block
+            const reason = response.data.candidates?.[0]?.finishReason || "AI_BYPASS_DETECTION";
+            throw new Error(`AI ignored the request: ${reason}. Try a different photo.`);
         }
 
     } catch (error) {
-        return res.status(200).json({ success: false, error: error.message });
+        const detail = error.response?.data?.error?.message || error.message;
+        console.error("VTO_STABILITY_ERROR:", detail);
+        // Returning success: false ensures your app.js can show the error instead of the wrong image
+        return res.status(200).json({ success: false, error: detail });
     }
 }
