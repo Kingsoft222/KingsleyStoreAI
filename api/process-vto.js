@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { GoogleAuth } from 'google-auth-library';
 
-// --- 🛡️ BUDGET GUARD: Limits to 70 successful try-ons (approx. ₦4,000) ---
+// --- 🛡️ BUDGET GUARD: Limits to 70 successful try-ons ---
 let globalUsageCounter = 0;
 const MAX_LIMIT = 70;
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         if (cat.includes("TOP") || cat.includes("SHIRT")) vtoCategory = "TOP";
         if (cat.includes("BOTTOM") || cat.includes("PANTS")) vtoCategory = "BOTTOM";
 
-        // 6. Construct the Payload (Optimized for Speed & Product Priority)
+        // 6. Construct the Payload
         const payload = {
             instances: [{
                 personImage: {
@@ -78,9 +78,11 @@ export default async function handler(req, res) {
             parameters: { 
                 sampleCount: 1, 
                 addWatermark: false,
-                // --- 🚀 SPEED & PRIORITY FIXES ---
-                baseSteps: 20, // Lower steps = faster generation (approx 4-6s)
-                enhancePrompt: true // Helps AI prioritize product details over person image
+                // --- 🚀 FIX: FORCE PRODUCT PRIORITY & SPEED ---
+                baseSteps: 20, // Keeps result fast (under 6s)
+                guidanceScale: 2.5, // High value forces AI to prioritize Product Image over Person Image
+                prompt: "Ignore the length, shape, and hemline of the existing clothing on the person. Render the new product at its full original length, drape, and volume as shown in the product image.",
+                enhancePrompt: true 
             }
         };
 
@@ -98,7 +100,6 @@ export default async function handler(req, res) {
         const resultBase64 = predictions?.[0]?.bytesBase64Encoded || predictions?.[0]?.image?.bytesBase64Encoded;
 
         if (resultBase64) {
-            // Increment only on successful generation
             globalUsageCounter++; 
             console.log(`LOG: VTO Success. Current Usage: ${globalUsageCounter}/${MAX_LIMIT}`);
             
