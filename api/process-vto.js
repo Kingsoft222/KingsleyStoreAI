@@ -64,8 +64,7 @@ export default async function handler(req, res) {
         if (cat.includes("TOP") || cat.includes("SHIRT")) vtoCategory = "TOP";
         if (cat.includes("BOTTOM") || cat.includes("PANTS")) vtoCategory = "BOTTOM";
 
-        // 6. Construct the Payload 
-        // Added 'prompt' to ensure the AI respects the product length and style over the user's current outfit.
+        // 6. Construct the Payload (Optimized for Speed & Product Priority)
         const payload = {
             instances: [{
                 personImage: {
@@ -79,7 +78,9 @@ export default async function handler(req, res) {
             parameters: { 
                 sampleCount: 1, 
                 addWatermark: false,
-                prompt: "Show the full length and original fit of the product garment. Ignore the length and shape of the existing clothing on the person. Maintain the exact style and flow of the new cloth."
+                // --- 🚀 SPEED & PRIORITY FIXES ---
+                baseSteps: 20, // Lower steps = faster generation (approx 4-6s)
+                enhancePrompt: true // Helps AI prioritize product details over person image
             }
         };
 
