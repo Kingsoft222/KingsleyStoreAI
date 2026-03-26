@@ -124,9 +124,21 @@ window.startTryOn = async () => {
     const vendorFirstName = storeName.split(' ')[0];
     resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><h2 style="color:#e60023; font-weight:900; margin:0;">${vendorFirstName}'s Showroom</h2><p style="margin:20px 0; font-weight:800; color:#e60023; text-transform:uppercase; font-size:0.8rem;">STITCHING YOUR OUTFIT...</p><div class="dotted-spinner"></div></div>`;
     try {
-        const img = new Image(); img.src = localUserBase64;
+       const img = new Image(); img.src = localUserBase64;
         const optUser = await new Promise(r => { img.onload = () => { const c = document.createElement('canvas'); const MAX = 768; let w = img.width, h = img.height; if(w > MAX){ h *= MAX/w; w = MAX; } c.width = w; c.height = h; c.getContext('2d').drawImage(img,0,0,w,h); r(c.toDataURL('image/jpeg', 0.85).split(',')[1]); }; });
-        const resp = await fetch('/api/process-vto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userImage: optUser, clothImageUrl: selectedCloth.imgUrl, category: selectedCloth.category || "Native" }) });
+        
+        // --- 🎯 Force Product Priority ---
+        let finalCategory = (selectedCloth.category || "DRESS").toUpperCase();
+        const clothName = (selectedCloth.name || "").toLowerCase();
+        if (clothName.includes("gown") || clothName.includes("dress") || clothName.includes("suit")) {
+            finalCategory = "DRESS";
+        }
+
+        const resp = await fetch('/api/process-vto', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ userImage: optUser, clothImageUrl: selectedCloth.imgUrl, category: finalCategory }) 
+        });
         const res = await resp.json();
         if (res.success) {
             resDiv.innerHTML = `<div style="text-align:center;"><div class="close-preview-x" onclick="window.closeFittingRoom()">✕</div><div class="zoom-container" id="res-box"><img src="data:image/png;base64,${res.image}" class="zoom-image" id="res-img"></div><div id="cta-stack" style="display:flex; flex-direction:column; gap:12px;"><button onclick="window.handleAddToCartLoop()" style="width:100%; padding:20px; background:#e60023; color:white; border-radius:14px; font-weight:900; border:none; cursor:pointer;">Add to Cart 🛍️</button></div></div>`;
