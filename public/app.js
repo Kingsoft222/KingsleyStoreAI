@@ -183,11 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 🎯 SIDEBAR NAVIGATOR (FIXED UI & ADMIN BUTTON) ---
+// --- 🎯 SIDEBAR NAVIGATOR (FIXED UI) ---
 window.openOptionsMenu = () => {
-    // We do NOT open 'fitting-room-modal' here to avoid the white background blocking the store
+    // We REMOVE the line that opens the 'fitting-room-modal' to stop the white background
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
     
+    // Create the sidebar wrapper only if it doesn't exist
     let drawerContainer = document.getElementById('sidebar-wrapper');
     if (!drawerContainer) {
         drawerContainer = document.createElement('div');
@@ -196,7 +197,7 @@ window.openOptionsMenu = () => {
     }
 
     drawerContainer.innerHTML = `
-        <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1); color: #111; animation: slideIn 0.3s ease-out; overflow-y: auto;">
+        <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1); color: #111; animation: slideIn 0.3s ease-out;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                 <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer; font-size:0.9rem;">🎧 Chat Support</span>
                 <span onclick="document.getElementById('sidebar-wrapper').innerHTML=''" style="font-size:1.5rem; cursor:pointer; color: #111;">✕</span>
@@ -217,13 +218,6 @@ window.openOptionsMenu = () => {
                         <div onclick="window.location.assign('?store=thomasmongim')" style="cursor:pointer; font-weight:600; color:#111;">👕 Tommy Best ${badge}</div>
                     </div>
                 </div>
-                <div style="border-top:1px solid #eee; padding-top:20px;">
-                    <p style="font-size:0.7rem; color:#888; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; margin-bottom:12px;">Unverified Stores</p>
-                    <div style="display:flex; flex-direction:column; gap:12px;">
-                        <div onclick="window.location.assign('?store=johnsonclothing')" style="cursor:pointer; font-weight:500; color:#111;">🏪 Johnson Clothing Line</div>
-                        <div onclick="window.location.assign('?store=johnsonsneakers')" style="cursor:pointer; font-weight:500; color:#111;">🏪 Johnson Sneakers</div>
-                    </div>
-                </div>
                 
                 <div id="admin-sidebar-link" style="display:none; margin-top:10px; border-top:2px dashed #f5f5f5; padding-top:20px;">
                     <div onclick="window.location.href='admin.html'" style="display:flex; align-items:center; gap:10px; color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:12px; font-size:0.9rem;">
@@ -231,13 +225,12 @@ window.openOptionsMenu = () => {
                     </div>
                 </div>
             </div>
-            <div style="margin-top:40px; text-align:center; color:#ccc; font-size:0.65rem; font-weight:700; letter-spacing:1px;">VIRTUALMALL © 2026</div>
         </div>
         <style>
             @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         </style>`;
 
-    // --- 🛡️ Restoring Admin Logic ---
+    // Restoring the Admin button logic exactly as it was
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
         const link = document.getElementById('admin-sidebar-link');
