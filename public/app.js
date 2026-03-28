@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.updateCartUI();
     initVoiceSearch();
-    //document.getElementById('menu-icon').onclick = window.openOptionsMenu;
+    document.getElementById('menu-icon').onclick = window.openOptionsMenu;
     document.getElementById('cart-icon-container').onclick = window.openCart;
     const sendBtn = document.querySelector('.send-circle');
     if (sendBtn) sendBtn.onclick = window.executeSearch;
@@ -183,12 +183,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 🎯 SIDEBAR NAVIGATOR (FIXED UI) ---
+// --- 🎯 SIDEBAR NAVIGATOR (FIXED UI & ADMIN RESTORED) ---
 window.openOptionsMenu = () => {
-    // We REMOVE the line that opens the 'fitting-room-modal' to stop the white background
+    // We strictly DO NOT use 'fitting-room-modal' here to ensure the white background is gone
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
     
-    // Create the sidebar wrapper only if it doesn't exist
+    // Check if the sidebar wrapper exists, if not, create it
     let drawerContainer = document.getElementById('sidebar-wrapper');
     if (!drawerContainer) {
         drawerContainer = document.createElement('div');
@@ -197,13 +197,15 @@ window.openOptionsMenu = () => {
     }
 
     drawerContainer.innerHTML = `
-        <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1); color: #111; animation: slideIn 0.3s ease-out;">
+        <div id="sidebar-drawer" style="width:280px; height:100%; background:#ffffff; position:fixed; left:0; top:0; z-index:10001; padding:20px; box-shadow:2px 0 10px rgba(0,0,0,0.1); color: #111; animation: slideIn 0.3s ease-out; overflow-y: auto; display: flex; flex-direction: column;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                 <span onclick="window.openChatPage()" style="color:#0b57d0; font-weight:700; cursor:pointer; font-size:0.9rem;">🎧 Chat Support</span>
                 <span onclick="document.getElementById('sidebar-wrapper').innerHTML=''" style="font-size:1.5rem; cursor:pointer; color: #111;">✕</span>
             </div>
+            
             <h2 style="font-weight:900; margin:0; color:#111;"><span style="color:#e60023;">Mall</span> Navigator</h2>
-            <div style="display:flex; flex-direction:column; gap:25px; margin-top:35px;">
+            
+            <div style="display:flex; flex-direction:column; gap:25px; margin-top:35px; flex-grow: 1;">
                 <div>
                     <p style="font-size:0.7rem; color:#888; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; margin-bottom:12px;">Street Wears</p>
                     <div style="display:flex; flex-direction:column; gap:12px;">
@@ -211,6 +213,7 @@ window.openOptionsMenu = () => {
                         <div onclick="window.location.assign('?store=kingss1')" style="cursor:pointer; font-weight:600; color:#111;">💎 Stella Wears ${badge}</div>
                     </div>
                 </div>
+                
                 <div>
                     <p style="font-size:0.7rem; color:#888; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; margin-bottom:12px;">Luxury Native</p>
                     <div style="display:flex; flex-direction:column; gap:12px;">
@@ -218,19 +221,22 @@ window.openOptionsMenu = () => {
                         <div onclick="window.location.assign('?store=thomasmongim')" style="cursor:pointer; font-weight:600; color:#111;">👕 Tommy Best ${badge}</div>
                     </div>
                 </div>
-                
+
                 <div id="admin-sidebar-link" style="display:none; margin-top:10px; border-top:2px dashed #f5f5f5; padding-top:20px;">
                     <div onclick="window.location.href='admin.html'" style="display:flex; align-items:center; gap:10px; color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:12px; font-size:0.9rem;">
                         <i class="fas fa-arrow-left"></i> RETURN TO ADMIN
                     </div>
                 </div>
             </div>
+
+            <div style="text-align:center; color:#ccc; font-size:0.65rem; font-weight:700; letter-spacing:1px; padding-top:20px;">VIRTUALMALL © 2026</div>
         </div>
         <style>
             @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         </style>`;
 
-    // Restoring the Admin button logic exactly as it was
+    // --- 🛡️ Restoring Admin Logic Check ---
+    // This ensures the button only appears if you are the store owner
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
         const link = document.getElementById('admin-sidebar-link');
