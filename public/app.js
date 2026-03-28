@@ -183,12 +183,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- 🎯 SIDEBAR NAVIGATOR (FIXED UI & ADMIN RESTORED) ---
+// --- 🎯 CHAT SUPPORT LOGIC (RESTORED MODAL & SPINNER) ---
+window.openChatPage = () => {
+    injectChatSupport();
+    // Close the sidebar wrapper first so the modal is visible
+    const wrapper = document.getElementById('sidebar-wrapper');
+    if (wrapper) wrapper.innerHTML = '';
+
+    // Launch the fitting room modal for the chat interface
+    document.getElementById('fitting-room-modal').style.display = 'flex';
+    const resDiv = document.getElementById('ai-fitting-result');
+    resDiv.innerHTML = `
+        <div style="height:400px; display:flex; align-items:center; justify-content:center; flex-direction:column; background:white; border-radius:20px;">
+            <div class="dotted-spinner"></div>
+            <p style="margin-top:20px; font-weight:700; color:#111;">Connecting Support...</p>
+            <button onclick="window.closeFittingRoom()" style="margin-top:20px; padding:12px 24px; border-radius:30px; border:1px solid #ddd; background:#f9f9f9; color:#111; font-weight:700; cursor:pointer;">Back to Store</button>
+        </div>`;
+    const check = setInterval(() => { if(window.chatway) { window.chatway.show(); window.chatway.open(); clearInterval(check); } }, 500);
+};
+
+// --- 🎯 SIDEBAR NAVIGATOR (FULL RESTORED DATA) ---
 window.openOptionsMenu = () => {
-    // We strictly DO NOT use 'fitting-room-modal' here to ensure the white background is gone
     const badge = `<svg viewBox="0 0 24 24" width="14" height="14" fill="#00a2ff" style="margin-left:4px; vertical-align:middle;"><path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.79L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/></svg>`;
     
-    // Check if the sidebar wrapper exists, if not, create it
     let drawerContainer = document.getElementById('sidebar-wrapper');
     if (!drawerContainer) {
         drawerContainer = document.createElement('div');
@@ -222,6 +239,13 @@ window.openOptionsMenu = () => {
                     </div>
                 </div>
 
+                <div>
+                    <p style="font-size:0.7rem; color:#888; text-transform:uppercase; font-weight:800; letter-spacing:0.5px; margin-bottom:12px;">Unverified Stores</p>
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+                        <div onclick="window.location.assign('?store=johnson1992')" style="cursor:pointer; font-weight:500; color:#111;">🏪 Johnson Clothing Line</div>
+                    </div>
+                </div>
+
                 <div id="admin-sidebar-link" style="display:none; margin-top:10px; border-top:2px dashed #f5f5f5; padding-top:20px;">
                     <div onclick="window.location.href='admin.html'" style="display:flex; align-items:center; gap:10px; color:#e60023; font-weight:800; cursor:pointer; background:#fff5f5; padding:12px; border-radius:12px; font-size:0.9rem;">
                         <i class="fas fa-arrow-left"></i> RETURN TO ADMIN
@@ -235,8 +259,6 @@ window.openOptionsMenu = () => {
             @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         </style>`;
 
-    // --- 🛡️ Restoring Admin Logic Check ---
-    // This ensures the button only appears if you are the store owner
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
         const link = document.getElementById('admin-sidebar-link');
